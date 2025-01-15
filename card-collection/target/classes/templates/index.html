@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="cs" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sbírka karet</title>
+    <style>
+        :root {
+            --gold: #ffd700;
+            --bronze: #cd7f32;
+            --black: #1a1a1a;
+            --gray: #3a3a3a;
+        }
+
+        body {
+            margin: 0;
+            padding: 20px;
+            background: var(--black);
+            font-family: Arial, sans-serif;
+            color: white;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .title {
+            color: var(--gold);
+            font-size: 32px;
+            margin-bottom: 10px;
+        }
+
+        .progress {
+            color: white;
+            font-size: 18px;
+        }
+
+        .cards-container {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .card {
+            width: 180px;
+            height: 250px;
+            position: relative;
+            cursor: pointer;
+            transition: transform 0.3s ease;
+        }
+
+        .card:hover {
+            transform: translateY(-5px);
+        }
+
+        .card::before {
+            content: '';
+            position: absolute;
+            inset: -3px;
+            background: var(--bronze);
+            border-radius: 15px;
+            z-index: -1;
+            animation: glow 1.5s ease-in-out infinite alternate;
+        }
+
+        .card[data-special="true"]::before {
+            background: var(--gold);
+        }
+
+        .card-inner {
+            width: 100%;
+            height: 100%;
+            background: var(--gray);
+            border-radius: 12px;
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 48px;
+            color: var(--gold);
+        }
+
+        .card img {
+            width: calc(100% - 10px);
+            height: calc(100% - 10px);
+            object-fit: cover;
+            border-radius: 8px;
+        }
+
+        .buttons {
+            display: flex;
+            gap: 20px;
+            margin-top: 20px;
+        }
+
+        button {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            background: var(--gold);
+            color: var(--black);
+            font-size: 16px;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(255, 215, 0, 0.3);
+        }
+
+        @keyframes glow {
+            from {
+                box-shadow: 0 0 5px currentColor,
+                           0 0 10px currentColor,
+                           0 0 15px currentColor;
+            }
+            to {
+                box-shadow: 0 0 10px currentColor,
+                           0 0 20px currentColor,
+                           0 0 30px currentColor;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1 class="title">Sbírka karet</h1>
+        <div class="progress">Získáno karet: <span id="progress">0/7</span></div>
+    </div>
+
+    <div class="cards-container" id="cards">
+        <div th:each="card : ${cards}" class="card" th:data-special="${card.special}">
+            <div class="card-inner">
+                <img th:src="@{'/static/images/' + ${card.image}}" th:alt="${card.name}"/>
+            </div>
+        </div>
+    </div>
+
+    <div class="buttons">
+        <button onclick="openPack(3)">3 karty</button>
+        <button onclick="openPack(5)">5 karet</button>
+        <button onclick="openPack(7)">7 karet</button>
+    </div>
+
+    <script th:inline="javascript">
+        let unlockedCards = new Set();
+        
+        function updateProgress() {
+            const totalCards = /*[[${cards.size()}]]*/ 7;
+            document.getElementById('progress').textContent = `${unlockedCards.size}/${totalCards}`;
+        }
+
+        async function openPack(size) {
+            try {
+                const response = await fetch('/openPack?size=' + size, {
+                    method: 'POST'
+                });
+                const card = await response.json();
+                
+                if (card) {
+                    unlockedCards.add(card.id);
+                    updateProgress();
+                    await fetch('/unlockCard?cardId=' + card.id, {
+                        method: 'POST'
+                    });
+                }
+            } catch (error) {
+                console.error('Error opening pack:', error);
+            }
+        }
+
+        // Initialize
+        updateProgress();
+    </script>
+</body>
+</html> 
