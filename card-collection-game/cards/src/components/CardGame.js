@@ -110,8 +110,13 @@ const CardGame = () => {
                   className="transform transition-transform hover:scale-105 active:scale-95 col-span-full md:col-span-1"
                   onClick={() => openPack(packSize)}
                 >
-                  <div className="cursor-pointer bg-gradient-to-br from-zinc-800 to-zinc-900 border-2 border-yellow-500 rounded-lg p-6">
-                    <h3 className="text-2xl font-bold text-yellow-400 text-center">
+                  <div className="cursor-pointer bg-gradient-to-br from-zinc-800 to-zinc-900 border-2 border-yellow-500 rounded-lg p-2">
+                    <img
+                      src="/Images/LancersBalicek.jpg"
+                      alt={`Balíček ${packSize} karet`}
+                      className="w-full h-32 object-contain mb-2"
+                    />
+                    <h3 className="text-xl font-bold text-yellow-400 text-center">
                       Balíček {packSize} karet
                     </h3>
                   </div>
