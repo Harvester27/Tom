@@ -93,21 +93,21 @@ const CardGame = () => {
         <ConfettiParticle key={particle.id} color={particle.color} />
       ))}
 
-      <div className="max-w-6xl mx-auto">
-        <header className="text-center mb-12">
-          <h1 className="text-4xl font-bold text-yellow-400 mb-4">Sbírka karet</h1>
+      <div className="max-w-7xl mx-auto">
+        <header className="text-center mb-8">
+          <h1 className="text-4xl font-bold text-yellow-400 mb-2">Sbírka karet</h1>
           <p className="text-white text-xl">
             Získáno: {unlockedCards.size} / {cards.length}
           </p>
         </header>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+        <div className="grid grid-cols-1 md:grid-cols-7 gap-4 justify-items-center">
           {!showCollection ? (
             <>
               {[3, 5, 7].map((packSize) => (
                 <div
                   key={packSize}
-                  className="transform transition-transform hover:scale-105 active:scale-95"
+                  className="transform transition-transform hover:scale-105 active:scale-95 col-span-full md:col-span-1"
                   onClick={() => openPack(packSize)}
                 >
                   <div className="cursor-pointer bg-gradient-to-br from-zinc-800 to-zinc-900 border-2 border-yellow-500 rounded-lg p-6">
@@ -123,10 +123,10 @@ const CardGame = () => {
               {cards.map((card) => (
                 <div
                   key={card.id}
-                  className="transform transition-opacity opacity-100"
+                  className="transform transition-all duration-300 hover:scale-105"
                 >
                   <div className={`
-                    relative overflow-hidden rounded-lg
+                    relative overflow-hidden rounded-lg shadow-xl
                     ${unlockedCards.has(card.id) 
                       ? 'bg-gradient-to-br from-yellow-500 to-yellow-700 p-0.5' 
                       : 'bg-zinc-800 p-0.5'}
@@ -135,10 +135,10 @@ const CardGame = () => {
                       <img
                         src={card.image}
                         alt={card.name}
-                        className="w-full h-64 object-contain rounded"
+                        className="w-full h-56 object-contain rounded"
                       />
                     ) : (
-                      <div className="w-full h-64 flex items-center justify-center text-4xl text-gray-500">
+                      <div className="w-full h-56 flex items-center justify-center text-4xl text-gray-500">
                         ?
                       </div>
                     )}
