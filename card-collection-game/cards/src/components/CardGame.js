@@ -93,7 +93,7 @@ const CardGame = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-gray-900 to-black p-8">
+    <div className="min-h-screen bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-indigo-900 via-gray-900 to-black p-8">
       <style jsx global>{`
         @keyframes confetti-fall {
           0% {
@@ -105,6 +105,15 @@ const CardGame = () => {
             opacity: 0;
           }
         }
+
+        @keyframes float {
+          0%, 100% {
+            transform: translateY(0);
+          }
+          50% {
+            transform: translateY(-10px);
+          }
+        }
       `}</style>
 
       {confetti.map((particle) => (
@@ -112,14 +121,24 @@ const CardGame = () => {
       ))}
 
       <div className="max-w-7xl mx-auto">
-        <header className="text-center mb-8">
-          <h1 className="text-4xl font-bold text-yellow-400 mb-2">Sbírka karet</h1>
-          <p className="text-white text-xl mb-2">
-            Získáno: {unlockedCards.size} / {cards.length}
-          </p>
-          <p className="text-white text-xl">
-            Peníze: {money} Kč
-          </p>
+        <header className="text-center mb-12 animate-[float_4s_ease-in-out_infinite]">
+          <div className="inline-block bg-black/30 backdrop-blur-sm p-6 rounded-2xl shadow-2xl border border-yellow-500/20">
+            <h1 className="text-5xl font-bold bg-gradient-to-r from-yellow-400 via-yellow-300 to-yellow-400 text-transparent bg-clip-text mb-4">
+              Sbírka karet
+            </h1>
+            <div className="flex justify-center gap-8">
+              <div className="bg-black/40 px-6 py-3 rounded-xl border border-yellow-500/20">
+                <p className="text-yellow-100 text-xl">
+                  Získáno: <span className="font-bold text-yellow-400">{unlockedCards.size}</span> / <span className="font-bold text-yellow-400">{cards.length}</span>
+                </p>
+              </div>
+              <div className="bg-black/40 px-6 py-3 rounded-xl border border-yellow-500/20">
+                <p className="text-yellow-100 text-xl">
+                  Peníze: <span className="font-bold text-yellow-400">{money} Kč</span>
+                </p>
+              </div>
+            </div>
+          </div>
         </header>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 justify-items-center mb-8">
@@ -214,7 +233,7 @@ const CardGame = () => {
         <div className="fixed top-4 right-4">
           <button
             onClick={() => setShowCollection(!showCollection)}
-            className="bg-yellow-500 hover:bg-yellow-600 text-black font-bold py-2 px-4 rounded"
+            className="bg-gradient-to-r from-yellow-500 to-yellow-600 hover:from-yellow-600 hover:to-yellow-700 text-black font-bold py-3 px-6 rounded-xl shadow-lg transform transition-all duration-300 hover:scale-105 active:scale-95 border-2 border-yellow-400/20"
           >
             {showCollection ? 'Zpět na balíčky' : 'Zobrazit sbírku'}
           </button>
