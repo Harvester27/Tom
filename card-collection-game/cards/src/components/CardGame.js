@@ -24,6 +24,7 @@ const CardGame = () => {
   const [currentCards, setCurrentCards] = useState([]);
   const [confetti, setConfetti] = useState([]);
   const [money, setMoney] = useState(100);
+  const [selectedCard, setSelectedCard] = useState(null);
   
   const cards = [
     { id: 1, name: "Štěpánovský", image: "/Images/Stepanovsky1.jpg", rarity: "common" },
@@ -176,7 +177,8 @@ const CardGame = () => {
               {cards.map((card) => (
                 <div
                   key={card.id}
-                  className="transform transition-all duration-300 hover:scale-105"
+                  className="transform transition-all duration-300 hover:scale-105 cursor-pointer"
+                  onClick={() => unlockedCards.has(card.id) && setSelectedCard(card)}
                 >
                   <div className={`
                     relative overflow-hidden rounded-lg shadow-xl
@@ -201,6 +203,27 @@ const CardGame = () => {
             </>
           )}
         </div>
+
+        {selectedCard && (
+          <div 
+            className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 cursor-pointer backdrop-blur-sm"
+            onClick={() => setSelectedCard(null)}
+          >
+            <div className="transform transition-all duration-300 hover:scale-105">
+              <div className="bg-gradient-to-br from-yellow-500 to-yellow-700 p-0.5 rounded-lg shadow-2xl">
+                <img
+                  src={selectedCard.image}
+                  alt={selectedCard.name}
+                  className="w-auto h-[80vh] object-contain rounded"
+                />
+              </div>
+              <div className="text-center mt-4">
+                <p className="text-yellow-400 text-xl font-bold">{selectedCard.name}</p>
+                <p className="text-yellow-200 text-lg capitalize">{selectedCard.rarity}</p>
+              </div>
+            </div>
+          </div>
+        )}
 
         {currentCards.length > 0 && (
           <div className="fixed bottom-0 left-0 right-0 bg-black bg-opacity-90 p-4">
