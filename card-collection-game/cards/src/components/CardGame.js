@@ -25,13 +25,13 @@ const CardGame = () => {
   const [confetti, setConfetti] = useState([]);
   
   const cards = [
-    { id: 1, name: "Štěpánovský", image: "/images/Stepanovsky1.jpg", rarity: "common" },
-    { id: 2, name: "Nováková", image: "/images/Novakova1.jpg", rarity: "common" },
-    { id: 3, name: "Coufal", image: "/images/Coufal3.jpg", rarity: "legendary" },
-    { id: 4, name: "Dlugopolský", image: "/images/Dlugopolsky1.jpg", rarity: "rare" },
-    { id: 5, name: "Petrov", image: "/images/Petrov1.jpg", rarity: "common" },
-    { id: 6, name: "Nistor", image: "/images/Nistor1.jpg", rarity: "rare" },
-    { id: 7, name: "Materna", image: "/images/Materna1.jpg", rarity: "epic" }
+    { id: 1, name: "Štěpánovský", image: "/Images/Stepanovsky1.jpg", rarity: "common" },
+    { id: 2, name: "Nováková", image: "/Images/Novakova1.jpg", rarity: "common" },
+    { id: 3, name: "Coufal", image: "/Images/Coufal3.jpg", rarity: "legendary" },
+    { id: 4, name: "Dlugopolský", image: "/Images/Dlugopolsky1.jpg", rarity: "rare" },
+    { id: 5, name: "Petrov", image: "/Images/Petrov1.jpg", rarity: "common" },
+    { id: 6, name: "Nistor", image: "/Images/Nistor1.jpg", rarity: "rare" },
+    { id: 7, name: "Materna", image: "/Images/Materna1.jpg", rarity: "epic" }
   ];
 
   const createConfetti = () => {
