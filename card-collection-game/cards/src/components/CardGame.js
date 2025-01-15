@@ -55,6 +55,11 @@ const CardGame = () => {
   };
 
   const openPack = (size) => {
+    if (currentCards.length > 0) {
+      alert('Nejdřív přesuňte rozbalené karty do sbírky!');
+      return;
+    }
+
     if (money < packPrices[size]) {
       alert('Nemáte dostatek peněz!');
       return;
@@ -117,7 +122,7 @@ const CardGame = () => {
           </p>
         </header>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 justify-items-center mb-8">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 justify-items-center mb-8">
           {!showCollection ? (
             <>
               {[3, 5, 7].map((packSize) => (
@@ -126,18 +131,23 @@ const CardGame = () => {
                   className="transform transition-transform hover:scale-105 active:scale-95"
                   onClick={() => openPack(packSize)}
                 >
-                  <div className="cursor-pointer bg-gradient-to-br from-zinc-800 to-zinc-900 border-2 border-yellow-500 rounded-lg p-4 w-64">
+                  <div className={`cursor-pointer rounded-lg overflow-hidden shadow-xl relative group ${
+                    currentCards.length > 0 ? 'opacity-50 cursor-not-allowed' : ''
+                  }`}>
+                    <div className="absolute inset-0 bg-gradient-to-br from-yellow-500/30 to-yellow-700/30 group-hover:opacity-75 transition-opacity"></div>
                     <img
                       src="/Images/LancersBalicek.jpg"
                       alt={`Balíček ${packSize} karet`}
-                      className="w-full h-64 object-contain mb-3"
+                      className="w-64 h-80 object-cover"
                     />
-                    <h3 className="text-xl font-bold text-yellow-400 text-center mb-1">
-                      Balíček {packSize} karet
-                    </h3>
-                    <p className="text-white text-center">
-                      Cena: {packPrices[packSize]} Kč
-                    </p>
+                    <div className="absolute bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-black/90 to-transparent">
+                      <h3 className="text-xl font-bold text-yellow-400 text-center mb-1">
+                        Balíček {packSize} karet
+                      </h3>
+                      <p className="text-white text-center">
+                        Cena: {packPrices[packSize]} Kč
+                      </p>
+                    </div>
                   </div>
                 </div>
               ))}
