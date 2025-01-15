@@ -155,30 +155,37 @@ const CardGame = () => {
         </div>
 
         {currentCards.length > 0 && (
-          <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-75">
-            <div className="text-center transform transition-transform scale-100">
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="fixed bottom-0 left-0 right-0 bg-black bg-opacity-90 p-4">
+            <div className="max-w-7xl mx-auto">
+              <div className="flex flex-wrap justify-center gap-4">
                 {currentCards.map(card => (
-                  <div key={card.id} className="w-64 bg-gradient-to-br from-yellow-400 to-yellow-600 rounded-lg">
-                    <div className="p-4">
-                      <img
-                        src={card.image}
-                        alt={card.name}
-                        className="w-full h-48 object-cover rounded"
-                      />
-                      <h3 className="mt-4 text-xl font-bold text-white">
-                        {card.name}
-                      </h3>
+                  <div key={card.id} className="w-48 transform transition-all duration-300 hover:scale-105">
+                    <div className="bg-gradient-to-br from-yellow-400 to-yellow-600 rounded-lg shadow-xl">
+                      <div className="p-3">
+                        <img
+                          src={card.image}
+                          alt={card.name}
+                          className="w-full h-36 object-cover rounded"
+                        />
+                        <h3 className="mt-2 text-lg font-bold text-white text-center">
+                          {card.name}
+                        </h3>
+                        <div className="mt-1 text-sm text-yellow-200 text-center">
+                          {card.rarity}
+                        </div>
+                      </div>
                     </div>
                   </div>
                 ))}
               </div>
-              <button
-                onClick={collectCards}
-                className="mt-4 bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-4 rounded"
-              >
-                Přidat do sbírky
-              </button>
+              <div className="text-center mt-4">
+                <button
+                  onClick={collectCards}
+                  className="bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-8 rounded-full transform transition-transform hover:scale-105 active:scale-95"
+                >
+                  Přesunout do sbírky
+                </button>
+              </div>
             </div>
           </div>
         )}
