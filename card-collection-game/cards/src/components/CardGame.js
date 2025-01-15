@@ -128,25 +128,20 @@ const CardGame = () => {
                   <div className={`
                     relative overflow-hidden rounded-lg
                     ${unlockedCards.has(card.id) 
-                      ? 'bg-gradient-to-br from-yellow-500 to-yellow-700' 
-                      : 'bg-zinc-800'}
+                      ? 'bg-gradient-to-br from-yellow-500 to-yellow-700 p-0.5' 
+                      : 'bg-zinc-800 p-0.5'}
                   `}>
-                    <div className="p-4">
-                      {unlockedCards.has(card.id) ? (
-                        <img
-                          src={card.image}
-                          alt={card.name}
-                          className="w-full h-64 object-contain rounded"
-                        />
-                      ) : (
-                        <div className="w-full h-64 flex items-center justify-center text-4xl text-gray-500">
-                          ?
-                        </div>
-                      )}
-                      <h3 className="mt-4 text-center text-white font-bold">
-                        {card.name}
-                      </h3>
-                    </div>
+                    {unlockedCards.has(card.id) ? (
+                      <img
+                        src={card.image}
+                        alt={card.name}
+                        className="w-full h-64 object-contain rounded"
+                      />
+                    ) : (
+                      <div className="w-full h-64 flex items-center justify-center text-4xl text-gray-500">
+                        ?
+                      </div>
+                    )}
                   </div>
                 </div>
               ))}
@@ -157,23 +152,15 @@ const CardGame = () => {
         {currentCards.length > 0 && (
           <div className="fixed bottom-0 left-0 right-0 bg-black bg-opacity-90 p-4">
             <div className="max-w-7xl mx-auto">
-              <div className="flex flex-wrap justify-center gap-4">
+              <div className="grid grid-cols-7 gap-4 justify-items-center">
                 {currentCards.map(card => (
-                  <div key={card.id} className="w-40 transform transition-all duration-300 hover:scale-105">
-                    <div className="bg-gradient-to-br from-yellow-400 to-yellow-600 rounded-lg shadow-xl">
-                      <div className="p-3">
-                        <img
-                          src={card.image}
-                          alt={card.name}
-                          className="w-full h-56 object-contain rounded"
-                        />
-                        <h3 className="mt-2 text-lg font-bold text-white text-center">
-                          {card.name}
-                        </h3>
-                        <div className="mt-1 text-sm text-yellow-200 text-center">
-                          {card.rarity}
-                        </div>
-                      </div>
+                  <div key={card.id} className="transform transition-all duration-300 hover:scale-105">
+                    <div className="bg-gradient-to-br from-yellow-400 to-yellow-600 rounded-lg shadow-xl p-0.5">
+                      <img
+                        src={card.image}
+                        alt={card.name}
+                        className="w-full h-56 object-contain rounded"
+                      />
                     </div>
                   </div>
                 ))}
