@@ -23,6 +23,7 @@ const CardGame = () => {
   const [showCollection, setShowCollection] = useState(false);
   const [currentCards, setCurrentCards] = useState([]);
   const [confetti, setConfetti] = useState([]);
+  const [money, setMoney] = useState(100);
   
   const cards = [
     { id: 1, name: "Štěpánovský", image: "/Images/Stepanovsky1.jpg", rarity: "common" },
@@ -33,6 +34,12 @@ const CardGame = () => {
     { id: 6, name: "Nistor", image: "/Images/Nistor1.jpg", rarity: "rare" },
     { id: 7, name: "Materna", image: "/Images/Materna1.jpg", rarity: "epic" }
   ];
+
+  const packPrices = {
+    3: 30,
+    5: 50,
+    7: 70
+  };
 
   const createConfetti = () => {
     const colors = ['#FFD700', '#FFA500', '#FF4500'];
@@ -48,12 +55,18 @@ const CardGame = () => {
   };
 
   const openPack = (size) => {
+    if (money < packPrices[size]) {
+      alert('Nemáte dostatek peněz!');
+      return;
+    }
+
     const availableCards = cards.filter(card => !unlockedCards.has(card.id));
     if (availableCards.length === 0) {
       alert('Všechny karty jsou již odemčené!');
       return;
     }
 
+    setMoney(prev => prev - packPrices[size]);
     const drawnCards = [];
     const maxCards = Math.min(size, availableCards.length);
     
@@ -96,29 +109,35 @@ const CardGame = () => {
       <div className="max-w-7xl mx-auto">
         <header className="text-center mb-8">
           <h1 className="text-4xl font-bold text-yellow-400 mb-2">Sbírka karet</h1>
-          <p className="text-white text-xl">
+          <p className="text-white text-xl mb-2">
             Získáno: {unlockedCards.size} / {cards.length}
+          </p>
+          <p className="text-white text-xl">
+            Peníze: {money} Kč
           </p>
         </header>
 
-        <div className="grid grid-cols-1 md:grid-cols-7 gap-4 justify-items-center">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 justify-items-center mb-8">
           {!showCollection ? (
             <>
               {[3, 5, 7].map((packSize) => (
                 <div
                   key={packSize}
-                  className="transform transition-transform hover:scale-105 active:scale-95 col-span-full md:col-span-1"
+                  className="transform transition-transform hover:scale-105 active:scale-95"
                   onClick={() => openPack(packSize)}
                 >
-                  <div className="cursor-pointer bg-gradient-to-br from-zinc-800 to-zinc-900 border-2 border-yellow-500 rounded-lg p-2">
+                  <div className="cursor-pointer bg-gradient-to-br from-zinc-800 to-zinc-900 border-2 border-yellow-500 rounded-lg p-4 w-64">
                     <img
                       src="/Images/LancersBalicek.jpg"
                       alt={`Balíček ${packSize} karet`}
-                      className="w-full h-32 object-contain mb-2"
+                      className="w-full h-64 object-contain mb-3"
                     />
-                    <h3 className="text-xl font-bold text-yellow-400 text-center">
+                    <h3 className="text-xl font-bold text-yellow-400 text-center mb-1">
                       Balíček {packSize} karet
                     </h3>
+                    <p className="text-white text-center">
+                      Cena: {packPrices[packSize]} Kč
+                    </p>
                   </div>
                 </div>
               ))}
