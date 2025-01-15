@@ -136,10 +136,10 @@ const CardGame = () => {
                         <img
                           src={card.image}
                           alt={card.name}
-                          className="w-full h-48 object-cover rounded"
+                          className="w-full h-64 object-contain rounded"
                         />
                       ) : (
-                        <div className="w-full h-48 flex items-center justify-center text-4xl text-gray-500">
+                        <div className="w-full h-64 flex items-center justify-center text-4xl text-gray-500">
                           ?
                         </div>
                       )}
@@ -159,13 +159,13 @@ const CardGame = () => {
             <div className="max-w-7xl mx-auto">
               <div className="flex flex-wrap justify-center gap-4">
                 {currentCards.map(card => (
-                  <div key={card.id} className="w-48 transform transition-all duration-300 hover:scale-105">
+                  <div key={card.id} className="w-40 transform transition-all duration-300 hover:scale-105">
                     <div className="bg-gradient-to-br from-yellow-400 to-yellow-600 rounded-lg shadow-xl">
                       <div className="p-3">
                         <img
                           src={card.image}
                           alt={card.name}
-                          className="w-full h-36 object-cover rounded"
+                          className="w-full h-56 object-contain rounded"
                         />
                         <h3 className="mt-2 text-lg font-bold text-white text-center">
                           {card.name}
