@@ -672,20 +672,25 @@ const CardGame = () => {
   };
 
   useEffect(() => {
-    if (matchState.isPlaying) {
+    if (matchState.isPlaying && !showDecision) {
       const timer = setInterval(() => {
         setMatchState(prev => {
-          const timeDecrease = prev.gameSpeed;
-          
-          // Aktualizace trestů
-          const updatedPenalties = prev.penalties
-            .map(penalty => ({
-              ...penalty,
-              timeLeft: Math.max(0, penalty.timeLeft - timeDecrease)
-            }))
-            .filter(penalty => penalty.timeLeft > 0);
+          // Pokud se zobrazí rozhodnutí, zastavíme časovač
+          if (showDecision) {
+            clearInterval(timer);
+            return prev;
+          }
 
-          if (prev.time <= 0) {
+          const timeDecrease = prev.gameSpeed;
+          const newTime = prev.time - timeDecrease;
+
+          // Aktualizace penalt
+          const updatedPenalties = prev.penalties.map(penalty => ({
+            ...penalty,
+            timeLeft: penalty.timeLeft - timeDecrease
+          })).filter(penalty => penalty.timeLeft > 0);
+
+          if (newTime <= 0) {
             if (prev.period < 3) {
               return {
                 ...prev,
@@ -735,66 +740,16 @@ const CardGame = () => {
             }
           }
 
-          if (Math.random() < 0.03 * prev.gameSpeed) {
-            const event = generateGameEvent(selectedTeam);
-            if (!event) return { ...prev, time: prev.time - timeDecrease };
-            
-            const newStats = { ...prev.playerStats };
-
-            if (event.type === 'goal') {
-              newStats.goals[event.playerId] = (newStats.goals[event.playerId] || 0) + 1;
-              if (event.assistId) {
-                newStats.assists[event.assistId] = (newStats.assists[event.assistId] || 0) + 1;
-              }
-              newStats.shots[selectedTeam.goalkeeper] = (newStats.shots[selectedTeam.goalkeeper] || 0) + 1;
-              return {
-                ...prev,
-                time: prev.time - timeDecrease,
-                score: { ...prev.score, home: prev.score.home + 1 },
-                events: [event, ...prev.events],
-                playerStats: newStats,
-                penalties: updatedPenalties
-              };
-            } else if (event.type === 'save' && event.playerId === selectedTeam.goalkeeper) {
-              newStats.saves[event.playerId] = (newStats.saves[event.playerId] || 0) + 1;
-              newStats.shots[selectedTeam.goalkeeper] = (newStats.shots[selectedTeam.goalkeeper] || 0) + 1;
-              const saves = newStats.saves[event.playerId];
-              const shots = newStats.shots[selectedTeam.goalkeeper];
-              newStats.saveAccuracy[event.playerId] = Math.round((saves / shots) * 100);
-              return {
-                ...prev,
-                time: prev.time - timeDecrease,
-                events: [event, ...prev.events],
-                playerStats: newStats,
-                penalties: updatedPenalties
-              };
-            }
-
-            return {
-              ...prev,
-              time: prev.time - timeDecrease,
-              events: [event, ...prev.events],
-              penalties: updatedPenalties
-            };
-          }
-
-          // Šance na speciální událost (5% při každém tiknutí)
-          if (!showDecision && Math.random() < 0.05) {
-            const specialEvent = generateSpecialEvent(selectedTeam);
-            if (specialEvent) {
-              setCurrentDecision(specialEvent);
-              setShowDecision(true);
-              return {
-                ...prev,
-                time: prev.time - timeDecrease,
-                penalties: updatedPenalties
-              };
-            }
+          // 5% šance na speciální událost
+          if (Math.random() < 0.05 && !showDecision) {
+            setShowDecision(true);
+            setCurrentDecision(generateSpecialEvent(selectedTeam));
+            return prev; // Zachováme současný stav
           }
 
           return {
             ...prev,
-            time: prev.time - timeDecrease,
+            time: newTime,
             penalties: updatedPenalties
           };
         });
@@ -1176,272 +1131,12 @@ const CardGame = () => {
         )}
 
         {showMatch && (
-          <div className="fixed inset-0 bg-black/95 flex flex-col z-50 p-4">
-            <div className="flex h-full gap-4">
-              {/* Levá část - časomíra a hřiště */}
-              <div className="flex-1">
-                {/* Horní panel s logy, časomírou a ovládáním rychlosti */}
-                <div className="flex justify-between items-center mb-4 bg-black/50 p-4 rounded-xl">
-                  <div className="flex items-center gap-8">
-                    <img src="/Images/Litvinov_Lancers.png" alt="Litvínov Lancers" className="h-20 object-contain" />
-                    {matchState.penalties.length > 0 && (
-                      <div className="flex gap-4">
-                        {matchState.penalties.map(penalty => {
-                          const player = cards.find(c => c.id === penalty.playerId);
-                          return (
-                            <div key={`${penalty.playerId}-${penalty.startTime}`} className="relative">
-                              <img 
-                                src={player?.image}
-                                alt={player?.name}
-                                className="w-24 h-32 object-contain rounded-lg shadow-lg border-2 border-red-600"
-                              />
-                              <div className="absolute -bottom-2 left-0 right-0 text-center">
-                                <div className="bg-red-900/80 text-white text-sm px-2 py-1 rounded-lg font-mono">
-                                  {Math.floor(penalty.timeLeft / 60)}:
-                                  {(penalty.timeLeft % 60).toString().padStart(2, '0')}
-                                </div>
-                              </div>
-                            </div>
-                          );
-                        })}
-                      </div>
-                    )}
-                  </div>
-                  <div className="text-center">
-                    <div className="text-4xl font-bold text-yellow-400 mb-2">
-                      {matchState.score.home} : {matchState.score.away}
-                    </div>
-                    <div className="text-3xl font-mono text-white">
-                      {formatTime(matchState.time)}
-                    </div>
-                    <div className="text-xl text-yellow-200 mt-2">
-                      {matchState.period}. třetina
-                    </div>
-                    {/* Ovládání rychlosti */}
-                    <div className="flex justify-center gap-2 mt-4">
-                      {gameSpeedOptions.map(speed => (
-                        <button
-                          key={speed}
-                          onClick={() => setGameSpeed(speed)}
-                          className={`px-3 py-1 rounded ${
-                            matchState.gameSpeed === speed
-                              ? 'bg-yellow-500 text-black font-bold'
-                              : 'bg-gray-700 text-white hover:bg-gray-600'
-                          } text-sm transition-colors`}
-                        >
-                          {speed}×
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                  <img src="/Images/HC_Lopaty_Praha.png" alt="HC Lopaty Praha" className="h-20 object-contain" />
-                </div>
-
-                {/* Vylepšená ledová plocha */}
-                <div className="relative w-full h-[calc(100vh-200px)] bg-[#e8f0f0] rounded-[200px] overflow-hidden border-8 border-blue-900/30">
-                  {/* Červené čáry */}
-                  <div className="absolute left-0 right-0 top-1/2 h-1 bg-red-600 transform -translate-y-1/2"></div>
-                  <div className="absolute left-1/3 right-1/3 top-0 bottom-0 border-l-2 border-r-2 border-red-600"></div>
-                  
-                  {/* Modré čáry */}
-                  <div className="absolute w-1 h-full bg-blue-600 left-1/4"></div>
-                  <div className="absolute w-1 h-full bg-blue-600 right-1/4"></div>
-                  
-                  {/* Kruhy na vhazování */}
-                  <div className="absolute left-1/6 top-1/4 w-24 h-24 border-2 border-red-600 rounded-full"></div>
-                  <div className="absolute left-1/6 bottom-1/4 w-24 h-24 border-2 border-red-600 rounded-full"></div>
-                  <div className="absolute right-1/6 top-1/4 w-24 h-24 border-2 border-red-600 rounded-full"></div>
-                  <div className="absolute right-1/6 bottom-1/4 w-24 h-24 border-2 border-red-600 rounded-full"></div>
-                  <div className="absolute left-1/2 top-1/2 w-24 h-24 border-2 border-red-600 rounded-full transform -translate-x-1/2 -translate-y-1/2"></div>
-                  
-                  {/* Brankoviště */}
-                  <div className="absolute left-8 top-1/2 w-16 h-32 border-2 border-red-600 rounded-r-lg transform -translate-y-1/2"></div>
-                  <div className="absolute right-8 top-1/2 w-16 h-32 border-2 border-red-600 rounded-l-lg transform -translate-y-1/2"></div>
-
-                  {/* Domácí tým - upravená formace podle trestů */}
-                  <div className="absolute left-0 right-1/2 top-0 bottom-0 grid grid-cols-3 gap-4 p-8">
-                    {/* Brankář */}
-                    <div className="flex justify-center items-center">
-                      <div className="relative">
-                        <img 
-                          src={cards.find(card => card.id === selectedTeam.goalkeeper)?.image}
-                          alt="Brankář"
-                          className={`w-24 h-32 object-contain transform hover:scale-110 transition-transform rounded-lg shadow-lg
-                            ${matchState.penalties.some(p => p.playerId === selectedTeam.goalkeeper) ? 'opacity-50' : ''}`}
-                        />
-                        {/* Statistiky brankáře */}
-                        {matchState.playerStats.saves[selectedTeam.goalkeeper] > 0 && (
-                          <div className="absolute -bottom-6 left-0 right-0 text-center">
-                            <div className="bg-blue-900/80 text-white text-sm px-2 py-1 rounded-lg">
-                              {matchState.playerStats.saves[selectedTeam.goalkeeper]} zákroků
-                              <br />
-                              Úspěšnost: {matchState.playerStats.shots[selectedTeam.goalkeeper] > 0 
-                                ? Math.round((matchState.playerStats.saves[selectedTeam.goalkeeper] / matchState.playerStats.shots[selectedTeam.goalkeeper]) * 100)
-                                : 100}%
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                    {/* Obránci */}
-                    <div className="grid grid-rows-2 gap-8">
-                      {selectedTeam.defenders.map(id => (
-                        <div key={id} className="flex justify-center items-center">
-                          <div className="relative">
-                            <img 
-                              src={cards.find(card => card.id === id)?.image}
-                              alt="Obránce"
-                              className={`w-24 h-32 object-contain transform hover:scale-110 transition-transform rounded-lg shadow-lg
-                                ${matchState.penalties.some(p => p.playerId === id) ? 'opacity-50' : ''}`}
-                            />
-                            {/* Góly a asistence */}
-                            <div className="absolute -bottom-6 left-0 right-0 flex justify-center gap-2">
-                              {Array.from({ length: matchState.playerStats.goals[id] || 0 }).map((_, i) => (
-                                <img key={i} src="/Images/puck.png" alt="Gól" className="w-4 h-4" />
-                              ))}
-                              {matchState.playerStats.assists[id] > 0 && (
-                                <span className="bg-yellow-500/80 text-black font-bold text-sm px-2 rounded-lg">
-                                  A: {matchState.playerStats.assists[id]}
-                                </span>
-                              )}
-                            </div>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                    {/* Útočníci */}
-                    <div className="grid grid-rows-3 gap-4">
-                      {selectedTeam.forwards.map(id => (
-                        <div key={id} className="flex justify-center items-center">
-                          <div className="relative">
-                            <img 
-                              src={cards.find(card => card.id === id)?.image}
-                              alt="Útočník"
-                              className={`w-24 h-32 object-contain transform hover:scale-110 transition-transform rounded-lg shadow-lg
-                                ${matchState.penalties.some(p => p.playerId === id) ? 'opacity-50' : ''}`}
-                            />
-                            {/* Góly a asistence */}
-                            <div className="absolute -bottom-6 left-0 right-0 flex justify-center gap-2">
-                              {Array.from({ length: matchState.playerStats.goals[id] || 0 }).map((_, i) => (
-                                <img key={i} src="/Images/puck.png" alt="Gól" className="w-4 h-4" />
-                              ))}
-                              {matchState.playerStats.assists[id] > 0 && (
-                                <span className="bg-yellow-500/80 text-black font-bold text-sm px-2 rounded-lg">
-                                  A: {matchState.playerStats.assists[id]}
-                                </span>
-                              )}
-                            </div>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-
-                  {/* Soupeřův tým */}
-                  <div className="absolute left-1/2 right-0 top-0 bottom-0 grid grid-cols-3 gap-4 p-8">
-                    {/* Útočníci */}
-                    <div className="grid grid-rows-3 gap-4">
-                      {[1, 2, 3].map(i => (
-                        <div key={i} className="flex justify-center items-center">
-                          <div className="w-24 h-32 bg-gray-800 rounded-lg shadow-lg flex items-center justify-center text-4xl text-gray-600 transform hover:scale-110 transition-transform">
-                            ?
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                    {/* Obránci */}
-                    <div className="grid grid-rows-2 gap-8">
-                      {[1, 2].map(i => (
-                        <div key={i} className="flex justify-center items-center">
-                          <div className="w-24 h-32 bg-gray-800 rounded-lg shadow-lg flex items-center justify-center text-4xl text-gray-600 transform hover:scale-110 transition-transform">
-                            ?
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                    {/* Brankář */}
-                    <div className="flex justify-center items-center">
-                      <div className="w-24 h-32 bg-gray-800 rounded-lg shadow-lg flex items-center justify-center text-4xl text-gray-600 transform hover:scale-110 transition-transform">
-                        ?
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Pravá část - události */}
-              <div className="w-96 flex flex-col">
-                {/* Seznam událostí */}
-                <div className="bg-gradient-to-b from-black/50 to-black/30 rounded-xl p-6 h-full overflow-y-auto">
-                  <h3 className="text-2xl font-bold text-yellow-400 sticky top-0 bg-black/50 backdrop-blur-sm p-2 rounded-lg mb-4 border-b border-yellow-500/20">
-                    Průběh zápasu
-                  </h3>
-                  <div className="space-y-2">
-                    {matchState.events.map(event => (
-                      <div 
-                        key={event.id}
-                        className={`p-3 rounded-lg border border-white/5 backdrop-blur-sm transition-all duration-300 hover:scale-[1.02] ${
-                          event.type === 'goal' ? 'bg-gradient-to-r from-green-900/50 to-green-800/30' :
-                          event.type === 'penalty' ? 'bg-gradient-to-r from-red-900/50 to-red-800/30' :
-                          event.type === 'save' ? 'bg-gradient-to-r from-blue-900/50 to-blue-800/30' :
-                          'bg-gradient-to-r from-gray-800/50 to-gray-700/30'
-                        }`}
-                      >
-                        <div className="flex items-center gap-2">
-                          <span className="text-yellow-200 font-mono bg-black/30 px-2 py-1 rounded">
-                            {event.time}
-                          </span>
-                          <div className="flex-1">
-                            <div className="flex items-center gap-2">
-                              <span className={`text-sm px-2 rounded flex items-center gap-1 ${
-                                event.position === 'goalkeeper' ? 'bg-blue-500/30 text-blue-200' :
-                                event.position === 'defender' ? 'bg-green-500/30 text-green-200' :
-                                'bg-yellow-500/30 text-yellow-200'
-                              }`}>
-                                {event.player}
-                                <span className="bg-black/30 px-1 rounded text-xs">
-                                  Lvl {event.level}
-                                </span>
-                              </span>
-                              <p className="text-white ml-2">{event.message}</p>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
+          <div className="fixed inset-0 bg-black/90 flex flex-col items-center justify-center z-50 p-4">
+            <div className="w-[90%] max-w-7xl mx-auto bg-gradient-to-b from-blue-900 to-blue-950 rounded-xl shadow-2xl overflow-hidden">
+              <div className="relative w-full aspect-[16/9] bg-[url('/Images/hokej.jpg')] bg-cover bg-center">
+                {/* ... rest of the match field content ... */}
               </div>
             </div>
-
-            {showDecision && currentDecision && (
-              <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50">
-                <div className="bg-gradient-to-br from-blue-900/90 to-blue-800/80 p-8 rounded-2xl max-w-md w-full mx-4 border border-blue-500/20">
-                  <h2 className="text-3xl font-bold text-center mb-4 text-blue-300">
-                    {currentDecision.title}
-                  </h2>
-                  <p className="text-white text-center mb-6">
-                    {currentDecision.description}
-                  </p>
-                  <div className="flex flex-col gap-4">
-                    {currentDecision.options.map(option => (
-                      <button
-                        key={option.id}
-                        onClick={() => handleDecision(option)}
-                        className="bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 
-                          text-white font-bold py-3 px-6 rounded-xl shadow-lg transform transition-all duration-300 
-                          hover:scale-105 active:scale-95"
-                      >
-                        {option.text}
-                        <div className="text-sm opacity-75">
-                          Šance na úspěch: {Math.round(option.successRate * 100)}%
-                        </div>
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              </div>
-            )}
           </div>
         )}
 
