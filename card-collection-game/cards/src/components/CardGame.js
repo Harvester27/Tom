@@ -194,37 +194,52 @@ const CardGame = () => {
   };
 
   const generateGameEvent = (selectedTeam) => {
-    const events = [
-      // Útočné události
-      { type: 'shot', message: 'Střela na bránu!', probability: 0.25 },
-      { type: 'goal', message: 'GÓÓÓL!', probability: 0.1 },
-      { type: 'breakaway', message: 'Samostatný únik!', probability: 0.05 },
-      { type: 'oneTimer', message: 'Střela z první!', probability: 0.05 },
-      { type: 'slapshot', message: 'Tvrdá střela od modré!', probability: 0.05 },
-      
-      // Obranné události
-      { type: 'save', message: 'Skvělý zákrok brankáře!', probability: 0.1 },
-      { type: 'block', message: 'Zblokovaná střela!', probability: 0.05 },
-      { type: 'puckCover', message: 'Brankář přikrývá puk!', probability: 0.05 },
-      
-      // Tresty a souboje
-      { type: 'penalty', message: 'Vyloučení na 2 minuty', probability: 0.1 },
-      { type: 'fight', message: 'Strkanice před brankou!', probability: 0.05 },
-      { type: 'hit', message: 'Tvrdý bodyček!', probability: 0.05 },
-      
-      // Herní situace
-      { type: 'icing', message: 'Zakázané uvolnění', probability: 0.03 },
-      { type: 'offside', message: 'Ofsajd', probability: 0.03 },
-      { type: 'faceoff', message: 'Vhazování v útočném pásmu', probability: 0.02 },
-      { type: 'powerplay', message: 'Přesilová hra!', probability: 0.02 }
-    ];
+    // Rozdělíme události podle pozic hráčů
+    const events = {
+      goalkeeper: [
+        { type: 'save', message: 'Skvělý zákrok brankáře!', probability: 0.4 },
+        { type: 'puckCover', message: 'Brankář přikrývá puk!', probability: 0.3 },
+        { type: 'pass', message: 'Rozehrávka od brankáře!', probability: 0.3 }
+      ],
+      defender: [
+        { type: 'block', message: 'Zblokovaná střela!', probability: 0.3 },
+        { type: 'hit', message: 'Tvrdý bodyček!', probability: 0.2 },
+        { type: 'shot', message: 'Střela od modré!', probability: 0.2 },
+        { type: 'penalty', message: 'Vyloučení na 2 minuty', probability: 0.15 },
+        { type: 'goal', message: 'GÓÓÓL!', probability: 0.15 }
+      ],
+      forward: [
+        { type: 'shot', message: 'Střela na bránu!', probability: 0.3 },
+        { type: 'goal', message: 'GÓÓÓL!', probability: 0.2 },
+        { type: 'breakaway', message: 'Samostatný únik!', probability: 0.15 },
+        { type: 'oneTimer', message: 'Střela z první!', probability: 0.15 },
+        { type: 'penalty', message: 'Vyloučení na 2 minuty', probability: 0.1 },
+        { type: 'hit', message: 'Bodyček v útočném pásmu!', probability: 0.1 }
+      ]
+    };
 
-    // Vážený výběr události podle pravděpodobnosti
-    const totalProb = events.reduce((sum, event) => sum + event.probability, 0);
+    // Vybereme náhodného hráče, který není vyloučený
+    const availablePlayers = [
+      ...selectedTeam.forwards,
+      ...selectedTeam.defenders,
+      selectedTeam.goalkeeper
+    ].filter(id => {
+      return id !== null && !matchState.penalties.find(p => p.playerId === id);
+    });
+    
+    if (availablePlayers.length === 0) return null;
+    
+    const randomId = availablePlayers[Math.floor(Math.random() * availablePlayers.length)];
+    const player = cards.find(card => card.id === randomId);
+    if (!player) return null;
+
+    // Vybereme události podle pozice hráče
+    const playerEvents = events[player.position];
+    const totalProb = playerEvents.reduce((sum, event) => sum + event.probability, 0);
     let random = Math.random() * totalProb;
     let randomEvent;
     
-    for (const event of events) {
+    for (const event of playerEvents) {
       random -= event.probability;
       if (random <= 0) {
         randomEvent = event;
@@ -232,20 +247,26 @@ const CardGame = () => {
       }
     }
 
-    // Speciální zprávy pro góly podle typu
+    // Speciální zprávy podle typu události a pozice hráče
     if (randomEvent.type === 'goal') {
-      const goalTypes = [
-        'GÓÓÓL! Střela přímo do vinglu!',
-        'GÓÓÓL! Dorážka do prázdné branky!',
-        'GÓÓÓL! Teč před brankou!',
-        'GÓÓÓL! Bekhendem pod víko!',
-        'GÓÓÓL! Střela mezi betony!',
-        'GÓÓÓL! Po krásné kombinaci!'
-      ];
-      randomEvent.message = goalTypes[Math.floor(Math.random() * goalTypes.length)];
+      const goalTypes = {
+        defender: [
+          'GÓÓÓL! Dělovka od modré!',
+          'GÓÓÓL! Střela propadla až do branky!',
+          'GÓÓÓL! Tvrdá rána od modré čáry!'
+        ],
+        forward: [
+          'GÓÓÓL! Střela přímo do vinglu!',
+          'GÓÓÓL! Dorážka do prázdné branky!',
+          'GÓÓÓL! Teč před brankou!',
+          'GÓÓÓL! Bekhendem pod víko!',
+          'GÓÓÓL! Střela mezi betony!',
+          'GÓÓÓL! Po krásné kombinaci!'
+        ]
+      };
+      randomEvent.message = goalTypes[player.position][Math.floor(Math.random() * goalTypes[player.position].length)];
     }
 
-    // Speciální zprávy pro zákroky brankáře
     if (randomEvent.type === 'save') {
       const saveTypes = [
         'Fantastický zákrok brankáře lapačkou!',
@@ -278,31 +299,17 @@ const CardGame = () => {
       }));
     }
 
-    const availablePlayers = [
-      ...selectedTeam.forwards,
-      ...selectedTeam.defenders,
-      selectedTeam.goalkeeper
-    ].filter(id => {
-      return id !== null && !matchState.penalties.find(p => p.playerId === id);
-    });
-    
-    if (availablePlayers.length === 0) return null;
-    
-    const randomId = availablePlayers[Math.floor(Math.random() * availablePlayers.length)];
-    const player = cards.find(card => card.id === randomId);
-    if (!player) return null;
-
     const event = {
       ...randomEvent,
       player: player.name,
       playerId: player.id,
+      position: player.position,
       time: formatTime(matchState.time),
       id: Date.now()
     };
 
     // Přidáme asistenci pro góly s větší pravděpodobností u některých typů gólů
-    if (event.type === 'goal' && availablePlayers.length > 1 && 
-        (event.message.includes('kombinaci') || event.message.includes('dorážka'))) {
+    if (event.type === 'goal' && availablePlayers.length > 1) {
       const possibleAssisters = availablePlayers.filter(id => id !== player.id);
       if (possibleAssisters.length > 0) {
         const assisterId = possibleAssisters[Math.floor(Math.random() * possibleAssisters.length)];
@@ -310,6 +317,7 @@ const CardGame = () => {
         if (assister) {
           event.assist = assister.name;
           event.assistId = assister.id;
+          event.assistPosition = assister.position;
           event.message += ` Asistuje ${assister.name}!`;
         }
       }
@@ -697,7 +705,30 @@ const CardGame = () => {
               <div className="flex-1">
                 {/* Horní panel s logy, časomírou a ovládáním rychlosti */}
                 <div className="flex justify-between items-center mb-4 bg-black/50 p-4 rounded-xl">
-                  <img src="/Images/Litvinov_Lancers.png" alt="Litvínov Lancers" className="h-20 object-contain" />
+                  <div className="flex flex-col items-center gap-4">
+                    <img src="/Images/Litvinov_Lancers.png" alt="Litvínov Lancers" className="h-20 object-contain" />
+                    {/* Tresty pro domácí tým */}
+                    <div className="flex gap-2">
+                      {matchState.penalties.map(penalty => {
+                        const player = cards.find(c => c.id === penalty.playerId);
+                        return (
+                          <div key={`${penalty.playerId}-${penalty.startTime}`} className="relative">
+                            <img 
+                              src={player?.image}
+                              alt={player?.name}
+                              className="w-12 h-16 object-contain rounded-lg shadow-lg border-2 border-red-600"
+                            />
+                            <div className="absolute -bottom-2 left-0 right-0 text-center">
+                              <div className="bg-red-900/80 text-white text-xs px-1 py-0.5 rounded-lg font-mono">
+                                {Math.floor(penalty.timeLeft / 60)}:
+                                {(penalty.timeLeft % 60).toString().padStart(2, '0')}
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
                   <div className="text-center">
                     <div className="text-4xl font-bold text-yellow-400 mb-2">
                       {matchState.score.home} : {matchState.score.away}
@@ -708,35 +739,6 @@ const CardGame = () => {
                     <div className="text-xl text-yellow-200 mt-2">
                       {matchState.period}. třetina
                     </div>
-                    {/* Tresty */}
-                    {matchState.penalties.length > 0 && (
-                      <div className="mt-4 flex flex-col items-center gap-2">
-                        <div className="text-xl font-bold text-red-500">VYLOUČENÍ</div>
-                        <div className="flex gap-4">
-                          {matchState.penalties.map(penalty => {
-                            const player = cards.find(c => c.id === penalty.playerId);
-                            return (
-                              <div key={`${penalty.playerId}-${penalty.startTime}`} className="relative">
-                                <img 
-                                  src={player?.image}
-                                  alt={player?.name}
-                                  className="w-16 h-20 object-contain rounded-lg shadow-lg border-2 border-red-600"
-                                />
-                                <div className="absolute -bottom-6 left-0 right-0 text-center">
-                                  <div className="bg-red-900/80 text-white text-sm px-2 py-1 rounded-lg">
-                                    <div className="font-bold">{player?.name}</div>
-                                    <div className="font-mono">
-                                      {Math.floor(penalty.timeLeft / 60)}:
-                                      {(penalty.timeLeft % 60).toString().padStart(2, '0')}
-                                    </div>
-                                  </div>
-                                </div>
-                              </div>
-                            );
-                          })}
-                        </div>
-                      </div>
-                    )}
                     {/* Ovládání rychlosti */}
                     <div className="flex justify-center gap-2 mt-4">
                       {gameSpeedOptions.map(speed => (
@@ -754,7 +756,9 @@ const CardGame = () => {
                       ))}
                     </div>
                   </div>
-                  <img src="/Images/HC_Lopaty_Praha.png" alt="HC Lopaty Praha" className="h-20 object-contain" />
+                  <div className="flex flex-col items-center gap-4">
+                    <img src="/Images/HC_Lopaty_Praha.png" alt="HC Lopaty Praha" className="h-20 object-contain" />
+                  </div>
                 </div>
 
                 {/* Vylepšená ledová plocha */}
@@ -915,24 +919,53 @@ const CardGame = () => {
               {/* Pravá část - události */}
               <div className="w-96 flex flex-col">
                 {/* Seznam událostí */}
-                <div className="bg-black/50 rounded-xl p-6 h-full overflow-y-auto">
-                  <h3 className="text-2xl font-bold text-yellow-400 sticky top-0 bg-black/50 backdrop-blur-sm p-2 rounded-lg mb-4">
+                <div className="bg-gradient-to-b from-black/50 to-black/30 rounded-xl p-6 h-full overflow-y-auto">
+                  <h3 className="text-2xl font-bold text-yellow-400 sticky top-0 bg-black/50 backdrop-blur-sm p-2 rounded-lg mb-4 border-b border-yellow-500/20">
                     Průběh zápasu
                   </h3>
                   <div className="space-y-2">
                     {matchState.events.map(event => (
                       <div 
                         key={event.id}
-                        className={`p-3 rounded ${
-                          event.type === 'goal' ? 'bg-green-900/50' :
-                          event.type === 'penalty' ? 'bg-red-900/50' :
-                          'bg-blue-900/50'
+                        className={`p-3 rounded-lg border border-white/5 backdrop-blur-sm transition-all duration-300 hover:scale-[1.02] ${
+                          event.type === 'goal' ? 'bg-gradient-to-r from-green-900/50 to-green-800/30' :
+                          event.type === 'penalty' ? 'bg-gradient-to-r from-red-900/50 to-red-800/30' :
+                          event.type === 'save' ? 'bg-gradient-to-r from-blue-900/50 to-blue-800/30' :
+                          'bg-gradient-to-r from-gray-800/50 to-gray-700/30'
                         }`}
                       >
-                        <span className="text-yellow-200 font-mono">{event.time}</span>
-                        <span className="mx-2 text-white">
-                          {event.player && `${event.player} - `}{event.message}
-                        </span>
+                        <div className="flex items-center gap-2">
+                          <span className="text-yellow-200 font-mono bg-black/30 px-2 py-1 rounded">
+                            {event.time}
+                          </span>
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2">
+                              <span className={`text-sm px-2 rounded ${
+                                event.position === 'goalkeeper' ? 'bg-blue-500/30 text-blue-200' :
+                                event.position === 'defender' ? 'bg-green-500/30 text-green-200' :
+                                'bg-yellow-500/30 text-yellow-200'
+                              }`}>
+                                {event.position === 'goalkeeper' ? 'B' :
+                                 event.position === 'defender' ? 'O' : 'Ú'}
+                              </span>
+                              <span className="font-bold text-white">{event.player}</span>
+                            </div>
+                            <p className="text-gray-300 mt-1">{event.message}</p>
+                            {event.assist && (
+                              <div className="flex items-center gap-2 mt-1 text-sm">
+                                <span className={`px-2 rounded ${
+                                  event.assistPosition === 'goalkeeper' ? 'bg-blue-500/30 text-blue-200' :
+                                  event.assistPosition === 'defender' ? 'bg-green-500/30 text-green-200' :
+                                  'bg-yellow-500/30 text-yellow-200'
+                                }`}>
+                                  {event.assistPosition === 'goalkeeper' ? 'B' :
+                                   event.assistPosition === 'defender' ? 'O' : 'Ú'}
+                                </span>
+                                <span className="text-gray-400">Asistence: {event.assist}</span>
+                              </div>
+                            )}
+                          </div>
+                        </div>
                       </div>
                     ))}
                   </div>
