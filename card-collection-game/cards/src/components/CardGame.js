@@ -253,148 +253,107 @@ const CardGame = () => {
     return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
   };
 
-  const generateGameEvent = (selectedTeam) => {
-    // Rozdělíme události podle pozic hráčů
-    const events = {
-      goalkeeper: [
-        { type: 'save', message: 'Skvělý zákrok brankáře!', probability: 0.4 },
-        { type: 'puckCover', message: 'Brankář přikrývá puk!', probability: 0.3 },
-        { type: 'pass', message: 'Rozehrávka od brankáře!', probability: 0.3 }
-      ],
-      defender: [
-        { type: 'block', message: 'Zblokovaná střela!', probability: 0.3 },
-        { type: 'hit', message: 'Tvrdý bodyček!', probability: 0.2 },
-        { type: 'shot', message: 'Střela od modré!', probability: 0.2 },
-        { type: 'penalty', message: 'Vyloučení na 2 minuty', probability: 0.15 },
-        { type: 'goal', message: 'GÓÓÓL!', probability: 0.15 }
-      ],
-      forward: [
-        { type: 'shot', message: 'Střela na bránu!', probability: 0.3 },
-        { type: 'goal', message: 'GÓÓÓL!', probability: 0.2 },
-        { type: 'breakaway', message: 'Samostatný únik!', probability: 0.15 },
-        { type: 'oneTimer', message: 'Střela z první!', probability: 0.15 },
-        { type: 'penalty', message: 'Vyloučení na 2 minuty', probability: 0.1 },
-        { type: 'hit', message: 'Bodyček v útočném pásmu!', probability: 0.1 }
-      ]
+  // Definice soupeřova týmu
+  const opponentTeam = {
+    goalkeeper: { id: 'opp_gk', name: "Kolečko 'Betonář' Vozíkový", number: "1", level: 3, image: "/Images/question_mark.png" },
+    defenders: [
+      { id: 'opp_def1', name: "Hrábě 'Zeď' Zahradnický", number: "44", level: 3, image: "/Images/question_mark.png" },
+      { id: 'opp_def2', name: "Sekera 'Drtič' Štípačový", number: "77", level: 2, image: "/Images/question_mark.png" }
+    ],
+    forwards: [
+      { id: 'opp_fw1', name: "Lopatka 'Rychlík' Rýčový", number: "13", level: 1, image: "/Images/question_mark.png" },
+      { id: 'opp_fw2', name: "Krumpáč 'Střela' Kopáčový", number: "88", level: 1, image: "/Images/question_mark.png" },
+      { id: 'opp_fw3', name: "Motyka 'Tank' Hrabalský", number: "91", level: 1, image: "/Images/question_mark.png" }
+    ]
+  };
+
+  const generateGameEvent = () => {
+    const isHomeTeam = Math.random() < 0.5;
+    const team = isHomeTeam ? selectedTeam : opponentTeam;
+    
+    // Získání všech aktivních hráčů (ti, kteří nejsou vyloučeni)
+    const activePlayers = {
+      forwards: isHomeTeam 
+        ? selectedTeam.forwards.filter(id => !matchState.penalties.some(p => p.playerId === id))
+        : opponentTeam.forwards.filter(p => !matchState.penalties.some(pen => pen.playerId === p.id)),
+      defenders: isHomeTeam
+        ? selectedTeam.defenders.filter(id => !matchState.penalties.some(p => p.playerId === id))
+        : opponentTeam.defenders.filter(p => !matchState.penalties.some(pen => pen.playerId === p.id)),
+      goalkeeper: isHomeTeam ? selectedTeam.goalkeeper : opponentTeam.goalkeeper
     };
 
-    // Vybereme náhodného hráče, který není vyloučený
-    const availablePlayers = [
-      ...selectedTeam.forwards,
-      ...selectedTeam.defenders,
-      selectedTeam.goalkeeper
-    ].filter(id => {
-      return id !== null && !matchState.penalties.find(p => p.playerId === id);
-    });
-    
-    if (availablePlayers.length === 0) return null;
-    
-    const randomId = availablePlayers[Math.floor(Math.random() * availablePlayers.length)];
-    const player = cards.find(card => card.id === randomId);
-    if (!player) return null;
+    // Zohlednění počtu hráčů na ledě při generování události
+    const powerPlay = matchState.penalties.length > 0;
+    const baseChance = powerPlay 
+      ? (isHomeTeam === matchState.penalties[0].isHomeTeam ? 0.4 : 0.6)
+      : 0.5;
 
-    // Získáme level hráče a vypočítáme bonus k úspěšnosti
-    const playerLevel = getCardLevel(player.id);
-    const levelBonus = (playerLevel - 1) * 0.1; // Každý level přidá 10% k úspěšnosti
+    // Generování události s ohledem na level hráčů
+    const eventTypes = ['shot', 'penalty'];
+    const eventType = eventTypes[Math.floor(Math.random() * eventTypes.length)];
 
-    // Vybereme události podle pozice hráče a upravíme pravděpodobnosti podle levelu
-    const playerEvents = events[player.position].map(event => ({
-      ...event,
-      probability: event.probability * (1 + levelBonus)
-    }));
+    if (eventType === 'shot') {
+      const shooter = activePlayers.forwards[Math.floor(Math.random() * activePlayers.forwards.length)];
+      const assist = activePlayers.forwards.concat(activePlayers.defenders)
+        .filter(p => p !== shooter)[Math.floor(Math.random() * (activePlayers.forwards.length + activePlayers.defenders.length - 1))];
+      
+      const shooterLevel = isHomeTeam ? getCardLevel(shooter) : shooter.level;
+      const assistLevel = isHomeTeam ? getCardLevel(assist) : assist.level;
+      const opposingGoalieLevel = isHomeTeam 
+        ? opponentTeam.goalkeeper.level 
+        : getCardLevel(selectedTeam.goalkeeper);
 
-    const totalProb = playerEvents.reduce((sum, event) => sum + event.probability, 0);
-    let random = Math.random() * totalProb;
-    let randomEvent;
-    
-    for (const event of playerEvents) {
-      random -= event.probability;
-      if (random <= 0) {
-        randomEvent = event;
-        break;
+      // Šance na gól se zvyšuje s levelem střelce a nahrávače, snižuje s levelem brankáře
+      const goalChance = baseChance + 
+        (shooterLevel * 0.05) + 
+        (assistLevel * 0.02) - 
+        (opposingGoalieLevel * 0.03);
+
+      if (Math.random() < goalChance) {
+        // Gól
+        return {
+          type: 'goal',
+          isHomeTeam,
+          player: isHomeTeam ? cards.find(c => c.id === shooter).name : shooter.name,
+          assist: isHomeTeam ? cards.find(c => c.id === assist).name : assist.name,
+          level: shooterLevel,
+          assistLevel: assistLevel,
+          message: `Góóól! Střílí ${isHomeTeam ? cards.find(c => c.id === shooter).name : shooter.name} s asistencí od ${isHomeTeam ? cards.find(c => c.id === assist).name : assist.name}!`
+        };
+      } else {
+        // Zákrok brankáře
+        return {
+          type: 'save',
+          isHomeTeam: !isHomeTeam,
+          player: isHomeTeam ? opponentTeam.goalkeeper.name : cards.find(c => c.id === selectedTeam.goalkeeper).name,
+          level: opposingGoalieLevel,
+          message: `Výborný zákrok brankáře ${isHomeTeam ? opponentTeam.goalkeeper.name : cards.find(c => c.id === selectedTeam.goalkeeper).name}!`
+        };
       }
-    }
-
-    // Speciální zprávy podle typu události a pozice hráče
-    if (randomEvent.type === 'goal') {
-      const goalTypes = {
-        defender: [
-          'GÓÓÓL! Dělovka od modré!',
-          'GÓÓÓL! Střela propadla až do branky!',
-          'GÓÓÓL! Tvrdá rána od modré čáry!'
-        ],
-        forward: [
-          'GÓÓÓL! Střela přímo do vinglu!',
-          'GÓÓÓL! Dorážka do prázdné branky!',
-          'GÓÓÓL! Teč před brankou!',
-          'GÓÓÓL! Bekhendem pod víko!',
-          'GÓÓÓL! Střela mezi betony!',
-          'GÓÓÓL! Po krásné kombinaci!'
-        ]
+    } else if (eventType === 'penalty') {
+      const penalizedPlayer = [...activePlayers.forwards, ...activePlayers.defenders][
+        Math.floor(Math.random() * (activePlayers.forwards.length + activePlayers.defenders.length))
+      ];
+      
+      const penalties = [
+        "Vyloučení na 2 minuty za hákování",
+        "Vyloučení na 2 minuty za sekání",
+        "Vyloučení na 2 minuty za držení",
+        "Vyloučení na 2 minuty za nedovolené bránění"
+      ];
+      
+      const penalty = penalties[Math.floor(Math.random() * penalties.length)];
+      
+      return {
+        type: 'penalty',
+        isHomeTeam,
+        player: isHomeTeam ? cards.find(c => c.id === penalizedPlayer).name : penalizedPlayer.name,
+        level: isHomeTeam ? getCardLevel(penalizedPlayer) : penalizedPlayer.level,
+        message: `${penalty} - ${isHomeTeam ? cards.find(c => c.id === penalizedPlayer).name : penalizedPlayer.name}`,
+        duration: 120,
+        playerId: isHomeTeam ? penalizedPlayer : penalizedPlayer.id
       };
-      randomEvent.message = goalTypes[player.position][Math.floor(Math.random() * goalTypes[player.position].length)];
     }
-
-    if (randomEvent.type === 'save') {
-      const saveTypes = [
-        'Fantastický zákrok brankáře lapačkou!',
-        'Neuvěřitelný zákrok vyrážečkou!',
-        'Pohotový zákrok betonem!',
-        'Skvělý rozklek a puk končí v lapačce!',
-        'Výborný poziční zákrok!'
-      ];
-      randomEvent.message = saveTypes[Math.floor(Math.random() * saveTypes.length)];
-    }
-
-    // Speciální zprávy pro tresty
-    if (randomEvent.type === 'penalty') {
-      const penaltyTypes = [
-        'Vyloučení na 2 minuty za hákování',
-        'Vyloučení na 2 minuty za sekání',
-        'Vyloučení na 2 minuty za držení',
-        'Vyloučení na 2 minuty za krosček',
-        'Vyloučení na 2 minuty za nedovolené bránění'
-      ];
-      randomEvent.message = penaltyTypes[Math.floor(Math.random() * penaltyTypes.length)];
-      // Přidáme vyloučení
-      setMatchState(prev => ({
-        ...prev,
-        penalties: [...prev.penalties, {
-          playerId: player.id,
-          timeLeft: 120,
-          startTime: prev.time
-        }]
-      }));
-    }
-
-    const event = {
-      ...randomEvent,
-      player: player.name,
-      playerId: player.id,
-      position: player.position,
-      time: formatTime(matchState.time),
-      id: Date.now(),
-      level: playerLevel // Přidáme level hráče do události
-    };
-
-    // Přidáme asistenci pro góly s větší pravděpodobností u některých typů gólů
-    if (event.type === 'goal' && availablePlayers.length > 1) {
-      const possibleAssisters = availablePlayers.filter(id => id !== player.id);
-      if (possibleAssisters.length > 0) {
-        const assisterId = possibleAssisters[Math.floor(Math.random() * possibleAssisters.length)];
-        const assister = cards.find(card => card.id === assisterId);
-        if (assister) {
-          const assisterLevel = getCardLevel(assister.id);
-          event.assist = assister.name;
-          event.assistId = assister.id;
-          event.assistPosition = assister.position;
-          event.assistLevel = assisterLevel; // Přidáme level asistujícího hráče
-          event.message += ` Asistuje ${assister.name}!`;
-        }
-      }
-    }
-
-    return event;
   };
 
   const generateSpecialEvent = (selectedTeam) => {
@@ -829,6 +788,19 @@ const CardGame = () => {
             transform: translateY(-10px);
           }
         }
+
+        @keyframes shine {
+          0% {
+            transform: translateX(-100%);
+          }
+          100% {
+            transform: translateX(100%);
+          }
+        }
+
+        .animate-shine {
+          animation: shine 1.5s linear infinite;
+        }
       `}</style>
 
       {confetti.map((particle) => (
@@ -946,18 +918,18 @@ const CardGame = () => {
                   <img
                     src={selectedCard.image}
                     alt={selectedCard.name}
-                    className="w-auto h-[80vh] object-contain rounded"
+                    className="w-auto h-[70vh] object-contain rounded"
                   />
                   <div className="absolute top-4 right-4 w-12 h-12 rounded-full bg-gradient-to-br from-yellow-400 to-yellow-600 flex items-center justify-center border-2 border-yellow-300 shadow-lg">
                     <span className="text-black font-bold text-lg">{getCardLevel(selectedCard.id)}</span>
                   </div>
                 </div>
               </div>
-              <div className="text-center mt-4 space-y-4">
+              <div className="text-center mt-2 space-y-2">
                 <p className="text-yellow-400 text-xl font-bold">{selectedCard.name}</p>
                 <p className="text-yellow-200 text-lg capitalize">{selectedCard.rarity}</p>
                 {unlockedCards.some(c => c.id === selectedCard.id) && (
-                  <div className="flex flex-col items-center gap-4">
+                  <div className="flex flex-col items-center gap-2">
                     {/* Počet stejných karet */}
                     <p className="text-white">
                       Počet karet: <span className="text-yellow-400">
@@ -1140,9 +1112,9 @@ const CardGame = () => {
                   <div className="flex justify-between items-center mb-4 bg-black/50 p-4 rounded-xl">
                     <div className="flex items-center gap-8">
                       <img src="/Images/Litvinov_Lancers.png" alt="Litvínov Lancers" className="h-20 object-contain" />
-                      {matchState.penalties.length > 0 && (
+                      {matchState.penalties.filter(p => p.isHomeTeam).length > 0 && (
                         <div className="flex gap-4">
-                          {matchState.penalties.map(penalty => {
+                          {matchState.penalties.filter(p => p.isHomeTeam).map(penalty => {
                             const player = cards.find(c => c.id === penalty.playerId);
                             return (
                               <div key={`${penalty.playerId}-${penalty.startTime}`} className="relative">
@@ -1190,7 +1162,38 @@ const CardGame = () => {
                         ))}
                       </div>
                     </div>
-                    <img src="/Images/HC_Lopaty_Praha.png" alt="HC Lopaty Praha" className="h-20 object-contain" />
+                    <div className="flex items-center gap-8">
+                      {matchState.penalties.filter(p => !p.isHomeTeam).length > 0 && (
+                        <div className="flex gap-4">
+                          {matchState.penalties.filter(p => !p.isHomeTeam).map(penalty => {
+                            const player = opponentTeam.forwards.concat(opponentTeam.defenders)
+                              .find(p => p.id === penalty.playerId);
+                            return (
+                              <div key={`${penalty.playerId}-${penalty.startTime}`} className="relative">
+                                <div className="w-24 h-32 bg-gradient-to-br from-gray-800 to-gray-900 rounded-lg shadow-lg flex flex-col items-center justify-center text-gray-400 relative overflow-hidden border-2 border-red-600">
+                                  <div className="text-5xl font-bold mb-2">?</div>
+                                  <div className="absolute top-2 right-2 w-6 h-6 rounded-full bg-gradient-to-br from-yellow-400 to-yellow-600 flex items-center justify-center">
+                                    <span className="text-black text-xs font-bold">{player.level}</span>
+                                  </div>
+                                  <div className="absolute bottom-0 left-0 w-full bg-gradient-to-r from-gray-900 to-gray-800 p-1">
+                                    <p className="text-[8px] text-center text-gray-300 font-bold leading-tight">
+                                      {player.name}
+                                    </p>
+                                  </div>
+                                </div>
+                                <div className="absolute -bottom-2 left-0 right-0 text-center">
+                                  <div className="bg-red-900/80 text-white text-sm px-2 py-1 rounded-lg font-mono">
+                                    {Math.floor(penalty.timeLeft / 60)}:
+                                    {(penalty.timeLeft % 60).toString().padStart(2, '0')}
+                                  </div>
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )}
+                      <img src="/Images/HC_Lopaty_Praha.png" alt="HC Lopaty Praha" className="h-20 object-contain" />
+                    </div>
                   </div>
 
                   {/* Vylepšená ledová plocha */}
@@ -1297,28 +1300,68 @@ const CardGame = () => {
                     <div className="absolute left-1/2 right-0 top-0 bottom-0 grid grid-cols-3 gap-4 p-8">
                       {/* Útočníci */}
                       <div className="grid grid-rows-3 gap-4">
-                        {[1, 2, 3].map(i => (
-                          <div key={i} className="flex justify-center items-center">
-                            <div className="w-24 h-32 bg-gray-800 rounded-lg shadow-lg flex items-center justify-center text-4xl text-gray-600 transform hover:scale-110 transition-transform">
-                              ?
+                        {[
+                          { name: "Lopatka 'Rychlík' Rýčový", number: "13", level: 1 },
+                          { name: "Krumpáč 'Střela' Kopáčový", number: "88", level: 1 },
+                          { name: "Motyka 'Tank' Hrabalský", number: "91", level: 1 }
+                        ].map(player => (
+                          <div key={player.name} className="flex justify-center items-center">
+                            <div className="w-24 h-32 bg-gradient-to-br from-gray-800 to-gray-900 rounded-lg shadow-lg flex flex-col items-center justify-center text-gray-400 transform hover:scale-110 transition-transform relative overflow-hidden">
+                              <div className="absolute top-0 left-0 w-full bg-gradient-to-r from-red-600 to-red-800 py-1">
+                                <span className="text-white text-xs font-bold">{player.number}</span>
+                              </div>
+                              <div className="text-5xl font-bold mb-2">?</div>
+                              <div className="absolute top-2 right-2 w-6 h-6 rounded-full bg-gradient-to-br from-yellow-400 to-yellow-600 flex items-center justify-center">
+                                <span className="text-black text-xs font-bold">{player.level}</span>
+                              </div>
+                              <div className="absolute bottom-0 left-0 w-full bg-gradient-to-r from-gray-900 to-gray-800 p-1">
+                                <p className="text-[8px] text-center text-gray-300 font-bold leading-tight">
+                                  {player.name}
+                                </p>
+                              </div>
                             </div>
                           </div>
                         ))}
                       </div>
                       {/* Obránci */}
                       <div className="grid grid-rows-2 gap-8">
-                        {[1, 2].map(i => (
-                          <div key={i} className="flex justify-center items-center">
-                            <div className="w-24 h-32 bg-gray-800 rounded-lg shadow-lg flex items-center justify-center text-4xl text-gray-600 transform hover:scale-110 transition-transform">
-                              ?
+                        {[
+                          { name: "Hrábě 'Zeď' Zahradnický", number: "44", level: 3 },
+                          { name: "Sekera 'Drtič' Štípačový", number: "77", level: 2 }
+                        ].map(player => (
+                          <div key={player.name} className="flex justify-center items-center">
+                            <div className="w-24 h-32 bg-gradient-to-br from-gray-800 to-gray-900 rounded-lg shadow-lg flex flex-col items-center justify-center text-gray-400 transform hover:scale-110 transition-transform relative overflow-hidden">
+                              <div className="absolute top-0 left-0 w-full bg-gradient-to-r from-blue-600 to-blue-800 py-1">
+                                <span className="text-white text-xs font-bold">{player.number}</span>
+                              </div>
+                              <div className="text-5xl font-bold mb-2">?</div>
+                              <div className="absolute top-2 right-2 w-6 h-6 rounded-full bg-gradient-to-br from-yellow-400 to-yellow-600 flex items-center justify-center">
+                                <span className="text-black text-xs font-bold">{player.level}</span>
+                              </div>
+                              <div className="absolute bottom-0 left-0 w-full bg-gradient-to-r from-gray-900 to-gray-800 p-1">
+                                <p className="text-[8px] text-center text-gray-300 font-bold leading-tight">
+                                  {player.name}
+                                </p>
+                              </div>
                             </div>
                           </div>
                         ))}
                       </div>
                       {/* Brankář */}
                       <div className="flex justify-center items-center">
-                        <div className="w-24 h-32 bg-gray-800 rounded-lg shadow-lg flex items-center justify-center text-4xl text-gray-600 transform hover:scale-110 transition-transform">
-                          ?
+                        <div className="w-24 h-32 bg-gradient-to-br from-gray-800 to-gray-900 rounded-lg shadow-lg flex flex-col items-center justify-center text-gray-400 transform hover:scale-110 transition-transform relative overflow-hidden">
+                          <div className="absolute top-0 left-0 w-full bg-gradient-to-r from-yellow-600 to-yellow-800 py-1">
+                            <span className="text-white text-xs font-bold">1</span>
+                          </div>
+                          <div className="text-5xl font-bold mb-2">?</div>
+                          <div className="absolute top-2 right-2 w-6 h-6 rounded-full bg-gradient-to-br from-yellow-400 to-yellow-600 flex items-center justify-center">
+                            <span className="text-black text-xs font-bold">3</span>
+                          </div>
+                          <div className="absolute bottom-0 left-0 w-full bg-gradient-to-r from-gray-900 to-gray-800 p-1">
+                            <p className="text-[8px] text-center text-gray-300 font-bold leading-tight">
+                              Kolečko "Betonář" Vozíkový
+                            </p>
+                          </div>
                         </div>
                       </div>
                     </div>
@@ -1414,23 +1457,37 @@ const CardGame = () => {
                   <h3 className="text-yellow-400 text-xl mb-2">Odměny:</h3>
                   <div className="space-y-2">
                     <p className="text-white">
-                      Peníze: <span className="text-yellow-400">+{matchResult === 'victory' ? '50' : '20'} Kč</span>
+                      Peníze: <span className="text-yellow-400 animate-bounce">+{matchResult === 'victory' ? '50' : '20'} Kč</span>
                     </p>
                     <p className="text-white">
-                      Zkušenosti: <span className="text-yellow-400">+{matchResult === 'victory' ? '20' : '5'} XP</span>
+                      Zkušenosti: <span className="text-yellow-400 animate-bounce">+{matchResult === 'victory' ? '20' : '5'} XP</span>
                     </p>
                   </div>
                 </div>
 
-                <div className="bg-black/30 p-4 rounded-xl">
-                  <h3 className="text-yellow-400 text-xl mb-2">Level {level}</h3>
-                  <div className="bg-gray-900 rounded-full h-4 overflow-hidden">
-                    <div 
-                      className="bg-gradient-to-r from-yellow-500 to-yellow-600 h-full transition-all duration-1000"
-                      style={{ width: `${(xp / 20) * 100}%` }}
-                    ></div>
+                <div className="bg-black/30 p-4 rounded-xl relative overflow-hidden">
+                  <div className="relative z-10">
+                    <h3 className="text-yellow-400 text-xl mb-2 flex items-center justify-between">
+                      <span>Level {level}</span>
+                      {xp >= 20 && (
+                        <span className="text-sm bg-yellow-500 text-black px-2 py-1 rounded-full animate-pulse">
+                          Level Up!
+                        </span>
+                      )}
+                    </h3>
+                    <div className="bg-gray-900 rounded-full h-4 overflow-hidden">
+                      <div 
+                        className="bg-gradient-to-r from-yellow-500 to-yellow-600 h-full transition-all duration-1000 ease-out"
+                        style={{ width: `${(xp / 20) * 100}%` }}
+                      ></div>
+                    </div>
+                    <p className="text-center text-yellow-200 mt-2">{xp}/20 XP</p>
                   </div>
-                  <p className="text-center text-yellow-200 mt-2">{xp}/20 XP</p>
+                  {xp >= 20 && (
+                    <div className="absolute inset-0 animate-shine pointer-events-none">
+                      <div className="absolute inset-0 bg-gradient-to-r from-transparent via-yellow-500/20 to-transparent" style={{ transform: 'translateX(-100%)' }}></div>
+                    </div>
+                  )}
                 </div>
 
                 <button
