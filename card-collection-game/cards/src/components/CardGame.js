@@ -267,6 +267,15 @@ const CardGame = () => {
         'Vyloučení na 2 minuty za nedovolené bránění'
       ];
       randomEvent.message = penaltyTypes[Math.floor(Math.random() * penaltyTypes.length)];
+      // Přidáme vyloučení
+      setMatchState(prev => ({
+        ...prev,
+        penalties: [...prev.penalties, {
+          playerId: player.id,
+          timeLeft: 120,
+          startTime: prev.time
+        }]
+      }));
     }
 
     const availablePlayers = [
@@ -322,7 +331,8 @@ const CardGame = () => {
           saves: {},
           saveAccuracy: {},
           shots: {}
-        }
+        },
+        penalties: [] // Reset trestů při začátku nového zápasu
       }));
       
       const timer = setInterval(() => {
@@ -335,7 +345,7 @@ const CardGame = () => {
               ...penalty,
               timeLeft: Math.max(0, penalty.timeLeft - timeDecrease)
             }))
-            .filter(penalty => penalty.timeLeft > 0);
+            .filter(penalty => penalty.timeLeft > 0); // Odstraníme tresty, které vypršely
 
           if (prev.time <= 0) {
             if (prev.period < 3) {
@@ -343,6 +353,7 @@ const CardGame = () => {
                 ...prev,
                 period: prev.period + 1,
                 time: 1200,
+                penalties: updatedPenalties, // Zachováme aktivní tresty mezi třetinami
                 events: [...prev.events, { 
                   type: 'period',
                   message: `Konec ${prev.period}. třetiny!`,
@@ -355,6 +366,7 @@ const CardGame = () => {
               return {
                 ...prev,
                 isPlaying: false,
+                penalties: [], // Vynulujeme tresty na konci zápasu
                 events: [...prev.events, {
                   type: 'end',
                   message: 'Konec zápasu!',
@@ -698,24 +710,31 @@ const CardGame = () => {
                     </div>
                     {/* Tresty */}
                     {matchState.penalties.length > 0 && (
-                      <div className="mt-2 flex flex-col items-center gap-2">
-                        {matchState.penalties.map(penalty => {
-                          const player = cards.find(c => c.id === penalty.playerId);
-                          return (
-                            <div key={`${penalty.playerId}-${penalty.startTime}`} className="relative">
-                              <img 
-                                src={player?.image}
-                                alt={player?.name}
-                                className="w-16 h-20 object-contain rounded-lg shadow-lg border-2 border-red-600"
-                              />
-                              <div className="absolute -bottom-2 left-0 right-0 text-center">
-                                <span className="bg-red-900/80 text-white text-sm px-2 py-1 rounded-lg">
-                                  {Math.ceil(penalty.timeLeft / 60)}:00
-                                </span>
+                      <div className="mt-4 flex flex-col items-center gap-2">
+                        <div className="text-xl font-bold text-red-500">VYLOUČENÍ</div>
+                        <div className="flex gap-4">
+                          {matchState.penalties.map(penalty => {
+                            const player = cards.find(c => c.id === penalty.playerId);
+                            return (
+                              <div key={`${penalty.playerId}-${penalty.startTime}`} className="relative">
+                                <img 
+                                  src={player?.image}
+                                  alt={player?.name}
+                                  className="w-16 h-20 object-contain rounded-lg shadow-lg border-2 border-red-600"
+                                />
+                                <div className="absolute -bottom-6 left-0 right-0 text-center">
+                                  <div className="bg-red-900/80 text-white text-sm px-2 py-1 rounded-lg">
+                                    <div className="font-bold">{player?.name}</div>
+                                    <div className="font-mono">
+                                      {Math.floor(penalty.timeLeft / 60)}:
+                                      {(penalty.timeLeft % 60).toString().padStart(2, '0')}
+                                    </div>
+                                  </div>
+                                </div>
                               </div>
-                            </div>
-                          );
-                        })}
+                            );
+                          })}
+                        </div>
                       </div>
                     )}
                     {/* Ovládání rychlosti */}
