@@ -19,7 +19,7 @@ const ConfettiParticle = ({ color }) => {
 };
 
 const CardGame = () => {
-  const [unlockedCards, setUnlockedCards] = useState(new Set());
+  const [unlockedCards, setUnlockedCards] = useState([]);
   const [showCollection, setShowCollection] = useState(false);
   const [currentCards, setCurrentCards] = useState([]);
   const [confetti, setConfetti] = useState([]);
@@ -72,7 +72,8 @@ const CardGame = () => {
   }, [cardLevels]);
 
   const getCardLevel = (cardId) => {
-    return cardLevels[cardId] || 1;
+    const card = cards.find(c => c.id === cardId);
+    return (cardLevels[cardId] || 0) + (card?.baseLevel || 1);
   };
 
   const getUpgradeCost = (currentLevel) => {
@@ -95,13 +96,15 @@ const CardGame = () => {
   };
 
   const cards = [
-    { id: 1, name: "Štěpánovský", image: "/Images/Stepanovsky1.jpg", rarity: "common", position: "defender", level: 1 },
-    { id: 2, name: "Nováková", image: "/Images/Novakova1.jpg", rarity: "common", position: "goalkeeper", level: 1 },
-    { id: 3, name: "Coufal", image: "/Images/Coufal3.jpg", rarity: "legendary", position: "defender", level: 1 },
-    { id: 4, name: "Dlugopolský", image: "/Images/Dlugopolsky1.jpg", rarity: "rare", position: "forward", level: 1 },
-    { id: 5, name: "Petrov", image: "/Images/Petrov1.jpg", rarity: "common", position: "forward", level: 1 },
-    { id: 6, name: "Nistor", image: "/Images/Nistor1.jpg", rarity: "rare", position: "goalkeeper", level: 1 },
-    { id: 7, name: "Materna", image: "/Images/Materna1.jpg", rarity: "epic", position: "forward", level: 1 }
+    { id: 1, name: "Štěpánovský", image: "/Images/Stepanovsky1.jpg", rarity: "common", position: "defender", baseLevel: 1 },
+    { id: 2, name: "Nováková", image: "/Images/Novakova1.jpg", rarity: "common", position: "goalkeeper", baseLevel: 1 },
+    { id: 3, name: "Coufal", image: "/Images/Coufal3.jpg", rarity: "legendary", position: "defender", baseLevel: 10 },
+    { id: 4, name: "Dlugopolský", image: "/Images/Dlugopolsky1.jpg", rarity: "rare", position: "forward", baseLevel: 1 },
+    { id: 5, name: "Petrov", image: "/Images/Petrov1.jpg", rarity: "common", position: "forward", baseLevel: 1 },
+    { id: 6, name: "Nistor", image: "/Images/Nistor1.jpg", rarity: "rare", position: "goalkeeper", baseLevel: 1 },
+    { id: 7, name: "Materna", image: "/Images/Materna1.jpg", rarity: "epic", position: "forward", baseLevel: 1 },
+    { id: 8, name: "Coufal", image: "/Images/Coufal1.jpg", rarity: "common", position: "defender", baseLevel: 1 },
+    { id: 9, name: "Sommer", image: "/Images/Sommer1.jpg", rarity: "rare", position: "goalkeeper", baseLevel: 1 }
   ];
 
   const packPrices = {
@@ -140,19 +143,26 @@ const CardGame = () => {
       return;
     }
 
-    const availableCards = cards.filter(card => !unlockedCards.has(card.id));
-    if (availableCards.length === 0) {
-      alert('Všechny karty jsou již odemčené!');
-      return;
-    }
-
     setMoney(prev => prev - packPrices[size]);
     const drawnCards = [];
-    const maxCards = Math.min(size, availableCards.length);
     
-    for (let i = 0; i < maxCards; i++) {
-      const remainingCards = availableCards.filter(card => !drawnCards.includes(card));
-      const randomCard = remainingCards[Math.floor(Math.random() * remainingCards.length)];
+    for (let i = 0; i < size; i++) {
+      // Nejprve vybereme vzácnost karty
+      const random = Math.random();
+      let selectedRarity;
+      let sum = 0;
+      
+      for (const [rarity, probability] of Object.entries(rarityProbabilities)) {
+        sum += probability;
+        if (random <= sum) {
+          selectedRarity = rarity;
+          break;
+        }
+      }
+
+      // Pak vybereme náhodnou kartu z dané vzácnosti
+      const cardsOfRarity = cards.filter(card => card.rarity === selectedRarity);
+      const randomCard = cardsOfRarity[Math.floor(Math.random() * cardsOfRarity.length)];
       drawnCards.push(randomCard);
     }
 
@@ -162,14 +172,13 @@ const CardGame = () => {
 
   const collectCards = () => {
     if (currentCards.length > 0) {
-      setUnlockedCards(prev => new Set([...prev, ...currentCards.map(card => card.id)]));
+      setUnlockedCards(prev => [...prev, ...currentCards]);
       setCurrentCards([]);
     }
   };
 
   const canPlayMatch = () => {
-    const unlockedPlayersByPosition = cards
-      .filter(card => unlockedCards.has(card.id))
+    const unlockedPlayersByPosition = unlockedCards
       .reduce((acc, card) => {
         acc[card.position] = (acc[card.position] || 0) + 1;
         return acc;
@@ -789,6 +798,54 @@ const CardGame = () => {
     }
   }, [matchState.isPlaying, showDecision]);
 
+  // Ceny prodeje karet podle vzácnosti
+  const sellPrices = {
+    common: 15,    // Polovina ceny balíčku se 3 kartami
+    rare: 35,
+    epic: 60,
+    legendary: 100
+  };
+
+  const getSellPrice = (card) => {
+    return sellPrices[card.rarity];
+  };
+
+  const sellCard = (cardToSell) => {
+    // Najdeme všechny stejné karty
+    const sameCards = unlockedCards.filter(c => c.id === cardToSell.id);
+    
+    if (sameCards.length <= 1) {
+      alert('Toto je vaše poslední karta tohoto typu!');
+      return;
+    }
+
+    // Přidáme peníze a odstraníme kartu
+    setMoney(prev => prev + getSellPrice(cardToSell));
+    setUnlockedCards(prev => prev.filter((_, index) => 
+      index !== prev.findIndex(c => c.id === cardToSell.id)
+    ));
+    setSelectedCard(null);
+  };
+
+  // Funkce pro navigaci mezi duplikáty
+  const navigateCards = (direction) => {
+    if (!selectedCard) return;
+
+    const sameCards = unlockedCards.filter(c => c.id === selectedCard.id);
+    if (sameCards.length <= 1) return;
+
+    const currentIndex = sameCards.findIndex(c => c === selectedCard);
+    let newIndex;
+
+    if (direction === 'next') {
+      newIndex = (currentIndex + 1) % sameCards.length;
+    } else {
+      newIndex = (currentIndex - 1 + sameCards.length) % sameCards.length;
+    }
+
+    setSelectedCard(sameCards[newIndex]);
+  };
+
   return (
     <div className="min-h-screen bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-indigo-900 via-gray-900 to-black p-8">
       <style jsx global>{`
@@ -826,7 +883,7 @@ const CardGame = () => {
             <div className="flex justify-center gap-8 mb-4">
               <div className="bg-black/40 px-6 py-3 rounded-xl border border-yellow-500/20">
                 <p className="text-yellow-100 text-xl">
-                  Získáno: <span className="font-bold text-yellow-400">{unlockedCards.size}</span> / <span className="font-bold text-yellow-400">{cards.length}</span>
+                  Získáno: <span className="font-bold text-yellow-400">{unlockedCards.length}</span> / <span className="font-bold text-yellow-400">{cards.length}</span>
                 </p>
               </div>
               <div className="bg-black/40 px-6 py-3 rounded-xl border border-yellow-500/20">
@@ -885,15 +942,15 @@ const CardGame = () => {
                 <div
                   key={card.id}
                   className="transform transition-all duration-300 hover:scale-105 cursor-pointer"
-                  onClick={() => unlockedCards.has(card.id) && setSelectedCard(card)}
+                  onClick={() => unlockedCards.some(c => c.id === card.id) && setSelectedCard(card)}
                 >
                   <div className={`
                     relative overflow-hidden rounded-lg shadow-xl
-                    ${unlockedCards.has(card.id) 
+                    ${unlockedCards.some(c => c.id === card.id) 
                       ? 'bg-gradient-to-br from-yellow-500 to-yellow-700 p-0.5' 
                       : 'bg-zinc-800 p-0.5'}
                   `}>
-                    {unlockedCards.has(card.id) ? (
+                    {unlockedCards.some(c => c.id === card.id) ? (
                       <div className="relative">
                         <img
                           src={card.image}
@@ -941,20 +998,55 @@ const CardGame = () => {
               <div className="text-center mt-4 space-y-4">
                 <p className="text-yellow-400 text-xl font-bold">{selectedCard.name}</p>
                 <p className="text-yellow-200 text-lg capitalize">{selectedCard.rarity}</p>
-                {unlockedCards.has(selectedCard.id) && (
-                  <div className="flex flex-col items-center gap-2">
+                {unlockedCards.some(c => c.id === selectedCard.id) && (
+                  <div className="flex flex-col items-center gap-4">
+                    {/* Počet stejných karet */}
                     <p className="text-white">
-                      Cena vylepšení: <span className="text-yellow-400">{getUpgradeCost(getCardLevel(selectedCard.id))} Kč</span>
+                      Počet karet: <span className="text-yellow-400">
+                        {unlockedCards.filter(c => c.id === selectedCard.id).length}x
+                      </span>
                     </p>
-                    <button
-                      onClick={() => upgradeCard(selectedCard.id)}
-                      className="bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 
-                        text-white font-bold py-2 px-6 rounded-lg transform transition-all duration-300 
-                        hover:scale-105 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
-                      disabled={money < getUpgradeCost(getCardLevel(selectedCard.id))}
-                    >
-                      Vylepšit kartu na level {getCardLevel(selectedCard.id) + 1}
-                    </button>
+
+                    {/* Navigační tlačítka pro duplikáty */}
+                    {unlockedCards.filter(c => c.id === selectedCard.id).length > 1 && (
+                      <div className="flex gap-4">
+                        <button
+                          onClick={() => navigateCards('prev')}
+                          className="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded-lg"
+                        >
+                          ←
+                        </button>
+                        <button
+                          onClick={() => navigateCards('next')}
+                          className="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded-lg"
+                        >
+                          →
+                        </button>
+                      </div>
+                    )}
+
+                    {/* Tlačítka pro vylepšení a prodej */}
+                    <div className="flex gap-4">
+                      <button
+                        onClick={() => upgradeCard(selectedCard.id)}
+                        className="bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 
+                          text-white font-bold py-2 px-6 rounded-lg transform transition-all duration-300 
+                          hover:scale-105 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
+                        disabled={money < getUpgradeCost(getCardLevel(selectedCard.id))}
+                      >
+                        Vylepšit ({getUpgradeCost(getCardLevel(selectedCard.id))} Kč)
+                      </button>
+
+                      <button
+                        onClick={() => sellCard(selectedCard)}
+                        className="bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 
+                          text-white font-bold py-2 px-6 rounded-lg transform transition-all duration-300 
+                          hover:scale-105 active:scale-95"
+                        disabled={unlockedCards.filter(c => c.id === selectedCard.id).length <= 1}
+                      >
+                        Prodat ({getSellPrice(selectedCard)} Kč)
+                      </button>
+                    </div>
                   </div>
                 )}
               </div>
@@ -1002,7 +1094,7 @@ const CardGame = () => {
               onClick={startTeamSelection}
               className={`bg-gradient-to-r ${canPlayMatch() ? 'from-green-500 to-green-600 hover:from-green-600 hover:to-green-700' : 'from-gray-500 to-gray-600 cursor-not-allowed'} 
                 text-white font-bold py-3 px-6 rounded-xl shadow-lg transform transition-all duration-300 
-                ${canPlayMatch() ? 'hover:scale-105 active:scale-95' : ''} border-2 border-white/20`}
+                ${canPlayMatch() ? 'hover:scale-105 active:scale-95' : ''}`}
               disabled={!canPlayMatch()}
             >
               Hrát zápas {!canPlayMatch() && '(Neúplná sestava)'}
@@ -1017,7 +1109,7 @@ const CardGame = () => {
               <div className="text-center">
                 <h3 className="text-xl font-bold text-yellow-200 mb-4">Brankář ({selectedTeam.goalkeeper ? '1/1' : '0/1'})</h3>
                 <div className="grid gap-4">
-                  {cards.filter(card => card.position === 'goalkeeper' && unlockedCards.has(card.id)).map(card => (
+                  {cards.filter(card => card.position === 'goalkeeper' && unlockedCards.some(c => c.id === card.id)).map(card => (
                     <div
                       key={card.id}
                       onClick={() => selectPlayer(card)}
@@ -1032,7 +1124,7 @@ const CardGame = () => {
               <div className="text-center">
                 <h3 className="text-xl font-bold text-yellow-200 mb-4">Obránci ({selectedTeam.defenders.length}/2)</h3>
                 <div className="grid gap-4">
-                  {cards.filter(card => card.position === 'defender' && unlockedCards.has(card.id)).map(card => (
+                  {cards.filter(card => card.position === 'defender' && unlockedCards.some(c => c.id === card.id)).map(card => (
                     <div
                       key={card.id}
                       onClick={() => selectPlayer(card)}
@@ -1047,7 +1139,7 @@ const CardGame = () => {
               <div className="text-center">
                 <h3 className="text-xl font-bold text-yellow-200 mb-4">Útočníci ({selectedTeam.forwards.length}/3)</h3>
                 <div className="grid gap-4">
-                  {cards.filter(card => card.position === 'forward' && unlockedCards.has(card.id)).map(card => (
+                  {cards.filter(card => card.position === 'forward' && unlockedCards.some(c => c.id === card.id)).map(card => (
                     <div
                       key={card.id}
                       onClick={() => selectPlayer(card)}
