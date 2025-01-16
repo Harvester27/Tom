@@ -43,7 +43,8 @@ const CardGame = () => {
       goals: {},
       assists: {},
       saves: {},
-      saveAccuracy: {}
+      saveAccuracy: {},
+      shots: {}
     },
     penalties: []
   });
@@ -194,12 +195,30 @@ const CardGame = () => {
 
   const generateGameEvent = (selectedTeam) => {
     const events = [
-      { type: 'shot', message: 'Střela na bránu!', probability: 0.4 },
-      { type: 'goal', message: 'GÓÓÓL!', probability: 0.2 },
-      { type: 'penalty', message: 'Vyloučení na 2 minuty', probability: 0.2 },
-      { type: 'save', message: 'Skvělý zákrok brankáře!', probability: 0.2 }
+      // Útočné události
+      { type: 'shot', message: 'Střela na bránu!', probability: 0.25 },
+      { type: 'goal', message: 'GÓÓÓL!', probability: 0.1 },
+      { type: 'breakaway', message: 'Samostatný únik!', probability: 0.05 },
+      { type: 'oneTimer', message: 'Střela z první!', probability: 0.05 },
+      { type: 'slapshot', message: 'Tvrdá střela od modré!', probability: 0.05 },
+      
+      // Obranné události
+      { type: 'save', message: 'Skvělý zákrok brankáře!', probability: 0.1 },
+      { type: 'block', message: 'Zblokovaná střela!', probability: 0.05 },
+      { type: 'puckCover', message: 'Brankář přikrývá puk!', probability: 0.05 },
+      
+      // Tresty a souboje
+      { type: 'penalty', message: 'Vyloučení na 2 minuty', probability: 0.1 },
+      { type: 'fight', message: 'Strkanice před brankou!', probability: 0.05 },
+      { type: 'hit', message: 'Tvrdý bodyček!', probability: 0.05 },
+      
+      // Herní situace
+      { type: 'icing', message: 'Zakázané uvolnění', probability: 0.03 },
+      { type: 'offside', message: 'Ofsajd', probability: 0.03 },
+      { type: 'faceoff', message: 'Vhazování v útočném pásmu', probability: 0.02 },
+      { type: 'powerplay', message: 'Přesilová hra!', probability: 0.02 }
     ];
-    
+
     // Vážený výběr události podle pravděpodobnosti
     const totalProb = events.reduce((sum, event) => sum + event.probability, 0);
     let random = Math.random() * totalProb;
@@ -213,12 +232,48 @@ const CardGame = () => {
       }
     }
 
+    // Speciální zprávy pro góly podle typu
+    if (randomEvent.type === 'goal') {
+      const goalTypes = [
+        'GÓÓÓL! Střela přímo do vinglu!',
+        'GÓÓÓL! Dorážka do prázdné branky!',
+        'GÓÓÓL! Teč před brankou!',
+        'GÓÓÓL! Bekhendem pod víko!',
+        'GÓÓÓL! Střela mezi betony!',
+        'GÓÓÓL! Po krásné kombinaci!'
+      ];
+      randomEvent.message = goalTypes[Math.floor(Math.random() * goalTypes.length)];
+    }
+
+    // Speciální zprávy pro zákroky brankáře
+    if (randomEvent.type === 'save') {
+      const saveTypes = [
+        'Fantastický zákrok brankáře lapačkou!',
+        'Neuvěřitelný zákrok vyrážečkou!',
+        'Pohotový zákrok betonem!',
+        'Skvělý rozklek a puk končí v lapačce!',
+        'Výborný poziční zákrok!'
+      ];
+      randomEvent.message = saveTypes[Math.floor(Math.random() * saveTypes.length)];
+    }
+
+    // Speciální zprávy pro tresty
+    if (randomEvent.type === 'penalty') {
+      const penaltyTypes = [
+        'Vyloučení na 2 minuty za hákování',
+        'Vyloučení na 2 minuty za sekání',
+        'Vyloučení na 2 minuty za držení',
+        'Vyloučení na 2 minuty za krosček',
+        'Vyloučení na 2 minuty za nedovolené bránění'
+      ];
+      randomEvent.message = penaltyTypes[Math.floor(Math.random() * penaltyTypes.length)];
+    }
+
     const availablePlayers = [
       ...selectedTeam.forwards,
       ...selectedTeam.defenders,
       selectedTeam.goalkeeper
     ].filter(id => {
-      // Vyloučení hráči nemohou generovat události
       return id !== null && !matchState.penalties.find(p => p.playerId === id);
     });
     
@@ -236,18 +291,9 @@ const CardGame = () => {
       id: Date.now()
     };
 
-    if (event.type === 'penalty') {
-      // Přidáme vyloučení
-      setMatchState(prev => ({
-        ...prev,
-        penalties: [...prev.penalties, {
-          playerId: player.id,
-          timeLeft: 120,
-          startTime: prev.time
-        }]
-      }));
-    } else if (event.type === 'goal' && availablePlayers.length > 1) {
-      // Asistence pouze pokud máme víc než jednoho hráče na ledě
+    // Přidáme asistenci pro góly s větší pravděpodobností u některých typů gólů
+    if (event.type === 'goal' && availablePlayers.length > 1 && 
+        (event.message.includes('kombinaci') || event.message.includes('dorážka'))) {
       const possibleAssisters = availablePlayers.filter(id => id !== player.id);
       if (possibleAssisters.length > 0) {
         const assisterId = possibleAssisters[Math.floor(Math.random() * possibleAssisters.length)];
@@ -255,6 +301,7 @@ const CardGame = () => {
         if (assister) {
           event.assist = assister.name;
           event.assistId = assister.id;
+          event.message += ` Asistuje ${assister.name}!`;
         }
       }
     }
@@ -266,7 +313,17 @@ const CardGame = () => {
     if (isTeamComplete()) {
       setShowMatch(true);
       setShowTeamSelection(false);
-      setMatchState(prev => ({ ...prev, isPlaying: true }));
+      setMatchState(prev => ({ 
+        ...prev, 
+        isPlaying: true,
+        playerStats: {
+          goals: {},
+          assists: {},
+          saves: {},
+          saveAccuracy: {},
+          shots: {}
+        }
+      }));
       
       const timer = setInterval(() => {
         setMatchState(prev => {
@@ -319,6 +376,7 @@ const CardGame = () => {
               if (event.assistId) {
                 newStats.assists[event.assistId] = (newStats.assists[event.assistId] || 0) + 1;
               }
+              newStats.shots[selectedTeam.goalkeeper] = (newStats.shots[selectedTeam.goalkeeper] || 0) + 1;
               return {
                 ...prev,
                 time: prev.time - timeDecrease,
@@ -328,7 +386,10 @@ const CardGame = () => {
               };
             } else if (event.type === 'save' && event.playerId === selectedTeam.goalkeeper) {
               newStats.saves[event.playerId] = (newStats.saves[event.playerId] || 0) + 1;
-              newStats.saveAccuracy[event.playerId] = 90 + Math.floor(Math.random() * 10);
+              newStats.shots[selectedTeam.goalkeeper] = (newStats.shots[selectedTeam.goalkeeper] || 0) + 1;
+              const saves = newStats.saves[event.playerId];
+              const shots = newStats.shots[selectedTeam.goalkeeper];
+              newStats.saveAccuracy[event.playerId] = Math.round((saves / shots) * 100);
               return {
                 ...prev,
                 time: prev.time - timeDecrease,
@@ -618,239 +679,255 @@ const CardGame = () => {
         )}
 
         {showMatch && (
-          <div className="fixed inset-0 bg-black/95 flex flex-col items-center z-50 p-8 overflow-y-auto">
-            <div className="w-full max-w-6xl">
-              {/* Horní panel s logy, časomírou a ovládáním rychlosti */}
-              <div className="flex justify-between items-center mb-8 bg-black/50 p-6 rounded-xl">
-                <img src="/Images/Litvinov_Lancers.png" alt="Litvínov Lancers" className="h-24 object-contain" />
-                <div className="text-center">
-                  <div className="text-4xl font-bold text-yellow-400 mb-2">
-                    {matchState.score.away} : {matchState.score.home}
+          <div className="fixed inset-0 bg-black/95 flex flex-col z-50 p-4">
+            <div className="flex h-full gap-4">
+              {/* Levá část - časomíra a hřiště */}
+              <div className="flex-1">
+                {/* Horní panel s logy, časomírou a ovládáním rychlosti */}
+                <div className="flex justify-between items-center mb-4 bg-black/50 p-4 rounded-xl">
+                  <img src="/Images/Litvinov_Lancers.png" alt="Litvínov Lancers" className="h-20 object-contain" />
+                  <div className="text-center">
+                    <div className="text-4xl font-bold text-yellow-400 mb-2">
+                      {matchState.score.home} : {matchState.score.away}
+                    </div>
+                    <div className="text-3xl font-mono text-white">
+                      {formatTime(matchState.time)}
+                    </div>
+                    <div className="text-xl text-yellow-200 mt-2">
+                      {matchState.period}. třetina
+                    </div>
+                    {/* Tresty */}
+                    {matchState.penalties.length > 0 && (
+                      <div className="mt-2 flex flex-col items-center gap-2">
+                        {matchState.penalties.map(penalty => {
+                          const player = cards.find(c => c.id === penalty.playerId);
+                          return (
+                            <div key={`${penalty.playerId}-${penalty.startTime}`} className="relative">
+                              <img 
+                                src={player?.image}
+                                alt={player?.name}
+                                className="w-16 h-20 object-contain rounded-lg shadow-lg border-2 border-red-600"
+                              />
+                              <div className="absolute -bottom-2 left-0 right-0 text-center">
+                                <span className="bg-red-900/80 text-white text-sm px-2 py-1 rounded-lg">
+                                  {Math.ceil(penalty.timeLeft / 60)}:00
+                                </span>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+                    {/* Ovládání rychlosti */}
+                    <div className="flex justify-center gap-2 mt-4">
+                      {gameSpeedOptions.map(speed => (
+                        <button
+                          key={speed}
+                          onClick={() => setGameSpeed(speed)}
+                          className={`px-3 py-1 rounded ${
+                            matchState.gameSpeed === speed
+                              ? 'bg-yellow-500 text-black font-bold'
+                              : 'bg-gray-700 text-white hover:bg-gray-600'
+                          } text-sm transition-colors`}
+                        >
+                          {speed}×
+                        </button>
+                      ))}
+                    </div>
                   </div>
-                  <div className="text-3xl font-mono text-white">
-                    {formatTime(matchState.time)}
+                  <img src="/Images/HC_Lopaty_Praha.png" alt="HC Lopaty Praha" className="h-20 object-contain" />
+                </div>
+
+                {/* Vylepšená ledová plocha */}
+                <div className="relative w-full h-[calc(100vh-200px)] bg-[#e8f0f0] rounded-[200px] overflow-hidden border-8 border-blue-900/30">
+                  {/* Červené čáry */}
+                  <div className="absolute left-0 right-0 top-1/2 h-1 bg-red-600 transform -translate-y-1/2"></div>
+                  <div className="absolute left-1/3 right-1/3 top-0 bottom-0 border-l-2 border-r-2 border-red-600"></div>
+                  
+                  {/* Modré čáry */}
+                  <div className="absolute w-1 h-full bg-blue-600 left-1/4"></div>
+                  <div className="absolute w-1 h-full bg-blue-600 right-1/4"></div>
+                  
+                  {/* Kruhy na vhazování */}
+                  <div className="absolute left-1/6 top-1/4 w-24 h-24 border-2 border-red-600 rounded-full"></div>
+                  <div className="absolute left-1/6 bottom-1/4 w-24 h-24 border-2 border-red-600 rounded-full"></div>
+                  <div className="absolute right-1/6 top-1/4 w-24 h-24 border-2 border-red-600 rounded-full"></div>
+                  <div className="absolute right-1/6 bottom-1/4 w-24 h-24 border-2 border-red-600 rounded-full"></div>
+                  <div className="absolute left-1/2 top-1/2 w-24 h-24 border-2 border-red-600 rounded-full transform -translate-x-1/2 -translate-y-1/2"></div>
+                  
+                  {/* Brankoviště */}
+                  <div className="absolute left-8 top-1/2 w-16 h-32 border-2 border-red-600 rounded-r-lg transform -translate-y-1/2"></div>
+                  <div className="absolute right-8 top-1/2 w-16 h-32 border-2 border-red-600 rounded-l-lg transform -translate-y-1/2"></div>
+
+                  {/* Domácí tým - upravená formace podle trestů */}
+                  <div className="absolute left-0 right-1/2 top-0 bottom-0 grid grid-cols-3 gap-4 p-8">
+                    {/* Brankář */}
+                    <div className="flex justify-center items-center">
+                      <div className="relative">
+                        <img 
+                          src={cards.find(card => card.id === selectedTeam.goalkeeper)?.image}
+                          alt="Brankář"
+                          className={`w-24 h-32 object-contain transform hover:scale-110 transition-transform rounded-lg shadow-lg
+                            ${matchState.penalties.some(p => p.playerId === selectedTeam.goalkeeper) ? 'opacity-50' : ''}`}
+                        />
+                        {/* Statistiky brankáře */}
+                        {matchState.playerStats.saves[selectedTeam.goalkeeper] > 0 && (
+                          <div className="absolute -bottom-6 left-0 right-0 text-center">
+                            <div className="bg-blue-900/80 text-white text-sm px-2 py-1 rounded-lg">
+                              {matchState.playerStats.saves[selectedTeam.goalkeeper]} zákroků
+                              <br />
+                              Úspěšnost: {matchState.playerStats.shots[selectedTeam.goalkeeper] > 0 
+                                ? Math.round((matchState.playerStats.saves[selectedTeam.goalkeeper] / matchState.playerStats.shots[selectedTeam.goalkeeper]) * 100)
+                                : 100}%
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                    {/* Obránci */}
+                    <div className="grid grid-rows-2 gap-8">
+                      {selectedTeam.defenders.map(id => (
+                        <div key={id} className="flex justify-center items-center">
+                          <div className="relative">
+                            <img 
+                              src={cards.find(card => card.id === id)?.image}
+                              alt="Obránce"
+                              className={`w-24 h-32 object-contain transform hover:scale-110 transition-transform rounded-lg shadow-lg
+                                ${matchState.penalties.some(p => p.playerId === id) ? 'opacity-50' : ''}`}
+                            />
+                            {/* Góly a asistence */}
+                            <div className="absolute -bottom-6 left-0 right-0 flex justify-center gap-2">
+                              {Array.from({ length: matchState.playerStats.goals[id] || 0 }).map((_, i) => (
+                                <img key={i} src="/Images/puck.png" alt="Gól" className="w-4 h-4" />
+                              ))}
+                              {matchState.playerStats.assists[id] > 0 && (
+                                <span className="bg-yellow-500/80 text-black font-bold text-sm px-2 rounded-lg">
+                                  A: {matchState.playerStats.assists[id]}
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                    {/* Útočníci */}
+                    <div className="grid grid-rows-3 gap-4">
+                      {selectedTeam.forwards.map(id => (
+                        <div key={id} className="flex justify-center items-center">
+                          <div className="relative">
+                            <img 
+                              src={cards.find(card => card.id === id)?.image}
+                              alt="Útočník"
+                              className={`w-24 h-32 object-contain transform hover:scale-110 transition-transform rounded-lg shadow-lg
+                                ${matchState.penalties.some(p => p.playerId === id) ? 'opacity-50' : ''}`}
+                            />
+                            {/* Góly a asistence */}
+                            <div className="absolute -bottom-6 left-0 right-0 flex justify-center gap-2">
+                              {Array.from({ length: matchState.playerStats.goals[id] || 0 }).map((_, i) => (
+                                <img key={i} src="/Images/puck.png" alt="Gól" className="w-4 h-4" />
+                              ))}
+                              {matchState.playerStats.assists[id] > 0 && (
+                                <span className="bg-yellow-500/80 text-black font-bold text-sm px-2 rounded-lg">
+                                  A: {matchState.playerStats.assists[id]}
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
                   </div>
-                  <div className="text-xl text-yellow-200 mt-2">
-                    {matchState.period}. třetina
-                  </div>
-                  {/* Tresty */}
+
+                  {/* Vyloučení hráči */}
                   {matchState.penalties.length > 0 && (
-                    <div className="mt-2 flex justify-center gap-4">
+                    <div className="absolute bottom-4 left-4 flex gap-4">
                       {matchState.penalties.map(penalty => {
                         const player = cards.find(c => c.id === penalty.playerId);
                         return (
-                          <div key={`${penalty.playerId}-${penalty.startTime}`} className="bg-red-900/80 px-3 py-1 rounded-lg">
-                            <span className="text-white text-sm">{player?.name}</span>
-                            <span className="text-red-300 text-sm ml-2">{Math.ceil(penalty.timeLeft / 60)}:00</span>
+                          <div key={`${penalty.playerId}-${penalty.startTime}`} className="relative">
+                            <img 
+                              src={player?.image}
+                              alt={player?.name}
+                              className="w-20 h-28 object-contain rounded-lg shadow-lg border-2 border-red-600"
+                            />
+                            <div className="absolute -bottom-2 left-0 right-0 text-center">
+                              <span className="bg-red-900/80 text-white text-sm px-2 py-1 rounded-lg">
+                                {Math.ceil(penalty.timeLeft / 60)}:00
+                              </span>
+                            </div>
                           </div>
                         );
                       })}
                     </div>
                   )}
-                  {/* Ovládání rychlosti */}
-                  <div className="flex justify-center gap-2 mt-4">
-                    {gameSpeedOptions.map(speed => (
-                      <button
-                        key={speed}
-                        onClick={() => setGameSpeed(speed)}
-                        className={`px-3 py-1 rounded ${
-                          matchState.gameSpeed === speed
-                            ? 'bg-yellow-500 text-black font-bold'
-                            : 'bg-gray-700 text-white hover:bg-gray-600'
-                        } text-sm transition-colors`}
+
+                  {/* Soupeřův tým */}
+                  <div className="absolute left-1/2 right-0 top-0 bottom-0 grid grid-cols-3 gap-4 p-8">
+                    {/* Útočníci */}
+                    <div className="grid grid-rows-3 gap-4">
+                      {[1, 2, 3].map(i => (
+                        <div key={i} className="flex justify-center items-center">
+                          <div className="w-24 h-32 bg-gray-800 rounded-lg shadow-lg flex items-center justify-center text-4xl text-gray-600 transform hover:scale-110 transition-transform">
+                            ?
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                    {/* Obránci */}
+                    <div className="grid grid-rows-2 gap-8">
+                      {[1, 2].map(i => (
+                        <div key={i} className="flex justify-center items-center">
+                          <div className="w-24 h-32 bg-gray-800 rounded-lg shadow-lg flex items-center justify-center text-4xl text-gray-600 transform hover:scale-110 transition-transform">
+                            ?
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                    {/* Brankář */}
+                    <div className="flex justify-center items-center">
+                      <div className="w-24 h-32 bg-gray-800 rounded-lg shadow-lg flex items-center justify-center text-4xl text-gray-600 transform hover:scale-110 transition-transform">
+                        ?
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Pravá část - události */}
+              <div className="w-96 flex flex-col">
+                {/* Seznam událostí */}
+                <div className="bg-black/50 rounded-xl p-6 h-full overflow-y-auto">
+                  <h3 className="text-2xl font-bold text-yellow-400 sticky top-0 bg-black/50 backdrop-blur-sm p-2 rounded-lg mb-4">
+                    Průběh zápasu
+                  </h3>
+                  <div className="space-y-2">
+                    {matchState.events.map(event => (
+                      <div 
+                        key={event.id}
+                        className={`p-3 rounded ${
+                          event.type === 'goal' ? 'bg-green-900/50' :
+                          event.type === 'penalty' ? 'bg-red-900/50' :
+                          'bg-blue-900/50'
+                        }`}
                       >
-                        {speed}×
-                      </button>
-                    ))}
-                  </div>
-                </div>
-                <img src="/Images/HC_Lopaty_Praha.png" alt="HC Lopaty Praha" className="h-24 object-contain" />
-              </div>
-
-              {/* Vylepšená ledová plocha */}
-              <div className="relative w-full h-[600px] bg-[#e8f0f0] rounded-[200px] mb-8 overflow-hidden border-8 border-blue-900/30">
-                {/* Červené čáry */}
-                <div className="absolute left-0 right-0 top-1/2 h-1 bg-red-600 transform -translate-y-1/2"></div>
-                <div className="absolute left-1/3 right-1/3 top-0 bottom-0 border-l-2 border-r-2 border-red-600"></div>
-                
-                {/* Modré čáry */}
-                <div className="absolute w-1 h-full bg-blue-600 left-1/4"></div>
-                <div className="absolute w-1 h-full bg-blue-600 right-1/4"></div>
-                
-                {/* Kruhy na vhazování */}
-                <div className="absolute left-1/6 top-1/4 w-24 h-24 border-2 border-red-600 rounded-full"></div>
-                <div className="absolute left-1/6 bottom-1/4 w-24 h-24 border-2 border-red-600 rounded-full"></div>
-                <div className="absolute right-1/6 top-1/4 w-24 h-24 border-2 border-red-600 rounded-full"></div>
-                <div className="absolute right-1/6 bottom-1/4 w-24 h-24 border-2 border-red-600 rounded-full"></div>
-                <div className="absolute left-1/2 top-1/2 w-24 h-24 border-2 border-red-600 rounded-full transform -translate-x-1/2 -translate-y-1/2"></div>
-                
-                {/* Brankoviště */}
-                <div className="absolute left-8 top-1/2 w-16 h-32 border-2 border-red-600 rounded-r-lg transform -translate-y-1/2"></div>
-                <div className="absolute right-8 top-1/2 w-16 h-32 border-2 border-red-600 rounded-l-lg transform -translate-y-1/2"></div>
-
-                {/* Domácí tým - upravená formace podle trestů */}
-                <div className="absolute left-0 right-1/2 top-0 bottom-0 grid grid-cols-3 gap-4 p-8">
-                  {/* Brankář */}
-                  <div className="flex justify-center items-center">
-                    <div className="relative">
-                      <img 
-                        src={cards.find(card => card.id === selectedTeam.goalkeeper)?.image}
-                        alt="Brankář"
-                        className={`w-24 h-32 object-contain transform hover:scale-110 transition-transform rounded-lg shadow-lg
-                          ${matchState.penalties.some(p => p.playerId === selectedTeam.goalkeeper) ? 'opacity-50' : ''}`}
-                      />
-                      {/* Statistiky brankáře */}
-                      {matchState.playerStats.saves[selectedTeam.goalkeeper] > 0 && (
-                        <div className="absolute -bottom-6 left-0 right-0 text-center">
-                          <div className="bg-blue-900/80 text-white text-sm px-2 py-1 rounded-lg">
-                            {matchState.playerStats.saves[selectedTeam.goalkeeper]} zákroků
-                            <br />
-                            Úspěšnost: {matchState.playerStats.saveAccuracy[selectedTeam.goalkeeper]}%
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                  {/* Obránci */}
-                  <div className="grid grid-rows-2 gap-8">
-                    {selectedTeam.defenders.map(id => (
-                      <div key={id} className="flex justify-center items-center">
-                        <div className="relative">
-                          <img 
-                            src={cards.find(card => card.id === id)?.image}
-                            alt="Obránce"
-                            className={`w-24 h-32 object-contain transform hover:scale-110 transition-transform rounded-lg shadow-lg
-                              ${matchState.penalties.some(p => p.playerId === id) ? 'opacity-50' : ''}`}
-                          />
-                          {/* Góly a asistence */}
-                          <div className="absolute -bottom-6 left-0 right-0 flex justify-center gap-2">
-                            {Array.from({ length: matchState.playerStats.goals[id] || 0 }).map((_, i) => (
-                              <img key={i} src="/Images/puck.png" alt="Gól" className="w-4 h-4" />
-                            ))}
-                            {matchState.playerStats.assists[id] > 0 && (
-                              <span className="bg-yellow-500/80 text-black font-bold text-sm px-2 rounded-lg">
-                                A: {matchState.playerStats.assists[id]}
-                              </span>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                  {/* Útočníci */}
-                  <div className="grid grid-rows-3 gap-4">
-                    {selectedTeam.forwards.map(id => (
-                      <div key={id} className="flex justify-center items-center">
-                        <div className="relative">
-                          <img 
-                            src={cards.find(card => card.id === id)?.image}
-                            alt="Útočník"
-                            className={`w-24 h-32 object-contain transform hover:scale-110 transition-transform rounded-lg shadow-lg
-                              ${matchState.penalties.some(p => p.playerId === id) ? 'opacity-50' : ''}`}
-                          />
-                          {/* Góly a asistence */}
-                          <div className="absolute -bottom-6 left-0 right-0 flex justify-center gap-2">
-                            {Array.from({ length: matchState.playerStats.goals[id] || 0 }).map((_, i) => (
-                              <img key={i} src="/Images/puck.png" alt="Gól" className="w-4 h-4" />
-                            ))}
-                            {matchState.playerStats.assists[id] > 0 && (
-                              <span className="bg-yellow-500/80 text-black font-bold text-sm px-2 rounded-lg">
-                                A: {matchState.playerStats.assists[id]}
-                              </span>
-                            )}
-                          </div>
-                        </div>
+                        <span className="text-yellow-200 font-mono">{event.time}</span>
+                        <span className="mx-2 text-white">
+                          {event.player && `${event.player} - `}{event.message}
+                        </span>
                       </div>
                     ))}
                   </div>
                 </div>
 
-                {/* Vyloučení hráči */}
-                {matchState.penalties.length > 0 && (
-                  <div className="absolute bottom-4 left-4 flex gap-4">
-                    {matchState.penalties.map(penalty => {
-                      const player = cards.find(c => c.id === penalty.playerId);
-                      return (
-                        <div key={`${penalty.playerId}-${penalty.startTime}`} className="relative">
-                          <img 
-                            src={player?.image}
-                            alt={player?.name}
-                            className="w-20 h-28 object-contain rounded-lg shadow-lg border-2 border-red-600"
-                          />
-                          <div className="absolute -bottom-2 left-0 right-0 text-center">
-                            <span className="bg-red-900/80 text-white text-sm px-2 py-1 rounded-lg">
-                              {Math.ceil(penalty.timeLeft / 60)}:00
-                            </span>
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                )}
-
-                {/* Soupeřův tým */}
-                <div className="absolute left-1/2 right-0 top-0 bottom-0 grid grid-cols-3 gap-4 p-8">
-                  {/* Útočníci */}
-                  <div className="grid grid-rows-3 gap-4">
-                    {[1, 2, 3].map(i => (
-                      <div key={i} className="flex justify-center items-center">
-                        <div className="w-24 h-32 bg-gray-800 rounded-lg shadow-lg flex items-center justify-center text-4xl text-gray-600 transform hover:scale-110 transition-transform">
-                          ?
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                  {/* Obránci */}
-                  <div className="grid grid-rows-2 gap-8">
-                    {[1, 2].map(i => (
-                      <div key={i} className="flex justify-center items-center">
-                        <div className="w-24 h-32 bg-gray-800 rounded-lg shadow-lg flex items-center justify-center text-4xl text-gray-600 transform hover:scale-110 transition-transform">
-                          ?
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                  {/* Brankář */}
-                  <div className="flex justify-center items-center">
-                    <div className="w-24 h-32 bg-gray-800 rounded-lg shadow-lg flex items-center justify-center text-4xl text-gray-600 transform hover:scale-110 transition-transform">
-                      ?
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Seznam událostí */}
-              <div className="bg-black/50 rounded-xl p-6">
-                <h3 className="text-2xl font-bold text-yellow-400 mb-4">Průběh zápasu</h3>
-                <div className="space-y-2">
-                  {matchState.events.map(event => (
-                    <div 
-                      key={event.id}
-                      className={`p-3 rounded ${
-                        event.type === 'goal' ? 'bg-green-900/50' :
-                        event.type === 'penalty' ? 'bg-red-900/50' :
-                        'bg-blue-900/50'
-                      }`}
-                    >
-                      <span className="text-yellow-200 font-mono">{event.time}</span>
-                      <span className="mx-2 text-white">
-                        {event.player && `${event.player} - `}{event.message}
-                      </span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              {!matchState.isPlaying && (
-                <div className="mt-8 text-center">
+                {!matchState.isPlaying && (
                   <button
                     onClick={() => setShowMatch(false)}
-                    className="bg-yellow-500 hover:bg-yellow-600 text-black font-bold py-3 px-8 rounded-xl shadow-lg transform transition-all duration-300 hover:scale-105 active:scale-95"
+                    className="bg-yellow-500 hover:bg-yellow-600 text-black font-bold py-3 px-8 rounded-xl shadow-lg transform transition-all duration-300 hover:scale-105 active:scale-95 mt-4"
                   >
                     Zpět do menu
                   </button>
-                </div>
-              )}
+                )}
+              </div>
             </div>
           </div>
         )}
