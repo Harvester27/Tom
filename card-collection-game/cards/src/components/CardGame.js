@@ -705,29 +705,30 @@ const CardGame = () => {
               <div className="flex-1">
                 {/* Horní panel s logy, časomírou a ovládáním rychlosti */}
                 <div className="flex justify-between items-center mb-4 bg-black/50 p-4 rounded-xl">
-                  <div className="flex flex-col items-center gap-4">
+                  <div className="flex items-center gap-8">
                     <img src="/Images/Litvinov_Lancers.png" alt="Litvínov Lancers" className="h-20 object-contain" />
-                    {/* Tresty pro domácí tým */}
-                    <div className="flex gap-2">
-                      {matchState.penalties.map(penalty => {
-                        const player = cards.find(c => c.id === penalty.playerId);
-                        return (
-                          <div key={`${penalty.playerId}-${penalty.startTime}`} className="relative">
-                            <img 
-                              src={player?.image}
-                              alt={player?.name}
-                              className="w-12 h-16 object-contain rounded-lg shadow-lg border-2 border-red-600"
-                            />
-                            <div className="absolute -bottom-2 left-0 right-0 text-center">
-                              <div className="bg-red-900/80 text-white text-xs px-1 py-0.5 rounded-lg font-mono">
-                                {Math.floor(penalty.timeLeft / 60)}:
-                                {(penalty.timeLeft % 60).toString().padStart(2, '0')}
+                    {matchState.penalties.length > 0 && (
+                      <div className="flex gap-4">
+                        {matchState.penalties.map(penalty => {
+                          const player = cards.find(c => c.id === penalty.playerId);
+                          return (
+                            <div key={`${penalty.playerId}-${penalty.startTime}`} className="relative">
+                              <img 
+                                src={player?.image}
+                                alt={player?.name}
+                                className="w-24 h-32 object-contain rounded-lg shadow-lg border-2 border-red-600"
+                              />
+                              <div className="absolute -bottom-2 left-0 right-0 text-center">
+                                <div className="bg-red-900/80 text-white text-sm px-2 py-1 rounded-lg font-mono">
+                                  {Math.floor(penalty.timeLeft / 60)}:
+                                  {(penalty.timeLeft % 60).toString().padStart(2, '0')}
+                                </div>
                               </div>
                             </div>
-                          </div>
-                        );
-                      })}
-                    </div>
+                          );
+                        })}
+                      </div>
+                    )}
                   </div>
                   <div className="text-center">
                     <div className="text-4xl font-bold text-yellow-400 mb-2">
@@ -756,9 +757,7 @@ const CardGame = () => {
                       ))}
                     </div>
                   </div>
-                  <div className="flex flex-col items-center gap-4">
-                    <img src="/Images/HC_Lopaty_Praha.png" alt="HC Lopaty Praha" className="h-20 object-contain" />
-                  </div>
+                  <img src="/Images/HC_Lopaty_Praha.png" alt="HC Lopaty Praha" className="h-20 object-contain" />
                 </div>
 
                 {/* Vylepšená ledová plocha */}
@@ -861,29 +860,6 @@ const CardGame = () => {
                     </div>
                   </div>
 
-                  {/* Vyloučení hráči */}
-                  {matchState.penalties.length > 0 && (
-                    <div className="absolute bottom-4 left-4 flex gap-4">
-                      {matchState.penalties.map(penalty => {
-                        const player = cards.find(c => c.id === penalty.playerId);
-                        return (
-                          <div key={`${penalty.playerId}-${penalty.startTime}`} className="relative">
-                            <img 
-                              src={player?.image}
-                              alt={player?.name}
-                              className="w-20 h-28 object-contain rounded-lg shadow-lg border-2 border-red-600"
-                            />
-                            <div className="absolute -bottom-2 left-0 right-0 text-center">
-                              <span className="bg-red-900/80 text-white text-sm px-2 py-1 rounded-lg">
-                                {Math.ceil(penalty.timeLeft / 60)}:00
-                              </span>
-                            </div>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  )}
-
                   {/* Soupeřův tým */}
                   <div className="absolute left-1/2 right-0 top-0 bottom-0 grid grid-cols-3 gap-4 p-8">
                     {/* Útočníci */}
@@ -944,48 +920,4 @@ const CardGame = () => {
                                 event.position === 'goalkeeper' ? 'bg-blue-500/30 text-blue-200' :
                                 event.position === 'defender' ? 'bg-green-500/30 text-green-200' :
                                 'bg-yellow-500/30 text-yellow-200'
-                              }`}>
-                                {event.position === 'goalkeeper' ? 'B' :
-                                 event.position === 'defender' ? 'O' : 'Ú'}
-                              </span>
-                              <span className="font-bold text-white">{event.player}</span>
-                            </div>
-                            <p className="text-gray-300 mt-1">{event.message}</p>
-                            {event.assist && (
-                              <div className="flex items-center gap-2 mt-1 text-sm">
-                                <span className={`px-2 rounded ${
-                                  event.assistPosition === 'goalkeeper' ? 'bg-blue-500/30 text-blue-200' :
-                                  event.assistPosition === 'defender' ? 'bg-green-500/30 text-green-200' :
-                                  'bg-yellow-500/30 text-yellow-200'
-                                }`}>
-                                  {event.assistPosition === 'goalkeeper' ? 'B' :
-                                   event.assistPosition === 'defender' ? 'O' : 'Ú'}
-                                </span>
-                                <span className="text-gray-400">Asistence: {event.assist}</span>
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                {!matchState.isPlaying && (
-                  <button
-                    onClick={() => setShowMatch(false)}
-                    className="bg-yellow-500 hover:bg-yellow-600 text-black font-bold py-3 px-8 rounded-xl shadow-lg transform transition-all duration-300 hover:scale-105 active:scale-95 mt-4"
-                  >
-                    Zpět do menu
-                  </button>
-                )}
-              </div>
-            </div>
-          </div>
-        )}
-      </div>
-    </div>
-  );
-};
-
-export default CardGame;
+                              }`}
