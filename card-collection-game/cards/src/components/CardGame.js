@@ -34,10 +34,17 @@ const CardGame = () => {
   const [showMatch, setShowMatch] = useState(false);
   const [matchState, setMatchState] = useState({
     period: 1,
-    time: 1200, // 20 minut v sekundách
+    time: 1200,
     score: { home: 0, away: 0 },
     events: [],
-    isPlaying: false
+    isPlaying: false,
+    gameSpeed: 1,
+    playerStats: {
+      goals: {},      // {playerId: počet gólů}
+      assists: {},    // {playerId: počet asistencí}
+      saves: {},      // {playerId: počet zákroků}
+      saveAccuracy: {} // {playerId: přesnost zákroků v procentech}
+    }
   });
   
   const cards = [
@@ -54,6 +61,12 @@ const CardGame = () => {
     3: 30,
     5: 50,
     7: 70
+  };
+
+  const gameSpeedOptions = [1, 2, 4, 8, 16, 32, 64];
+
+  const setGameSpeed = (speed) => {
+    setMatchState(prev => ({ ...prev, gameSpeed: speed }));
   };
 
   const createConfetti = () => {
@@ -197,12 +210,31 @@ const CardGame = () => {
     };
     
     const player = randomPlayer();
-    return {
+    const event = {
       ...randomEvent,
       player: player.name,
+      playerId: player.id,
       time: formatTime(matchState.time),
       id: Date.now()
     };
+
+    // Přidáme asistenci pro náhodného spoluhráče při gólu
+    if (event.type === 'goal') {
+      const possibleAssisters = [
+        ...selectedTeam.forwards,
+        ...selectedTeam.defenders
+      ].filter(id => id !== player.id);
+      
+      if (possibleAssisters.length > 0) {
+        const assister = cards.find(card => 
+          card.id === possibleAssisters[Math.floor(Math.random() * possibleAssisters.length)]
+        );
+        event.assist = assister.name;
+        event.assistId = assister.id;
+      }
+    }
+
+    return event;
   };
 
   const startMatch = () => {
@@ -211,12 +243,13 @@ const CardGame = () => {
       setShowTeamSelection(false);
       setMatchState(prev => ({ ...prev, isPlaying: true }));
       
-      // Spustíme časomíru a generování událostí
       const timer = setInterval(() => {
         setMatchState(prev => {
+          // Použijeme gameSpeed pro rychlejší odpočet
+          const timeDecrease = prev.gameSpeed;
+          
           if (prev.time <= 0) {
             if (prev.period < 3) {
-              // Další třetina
               return {
                 ...prev,
                 period: prev.period + 1,
@@ -229,7 +262,6 @@ const CardGame = () => {
                 }]
               };
             } else {
-              // Konec zápasu
               clearInterval(timer);
               return {
                 ...prev,
@@ -244,30 +276,50 @@ const CardGame = () => {
             }
           }
 
-          // Generujeme náhodné události každých ~30 sekund
-          if (Math.random() < 0.03) {
+          if (Math.random() < 0.03 * prev.gameSpeed) {
             const event = generateGameEvent(selectedTeam);
+            const newStats = { ...prev.playerStats };
+
             if (event.type === 'goal') {
+              // Přidáme gól
+              newStats.goals[event.playerId] = (newStats.goals[event.playerId] || 0) + 1;
+              // Přidáme asistenci
+              if (event.assistId) {
+                newStats.assists[event.assistId] = (newStats.assists[event.assistId] || 0) + 1;
+              }
               return {
                 ...prev,
-                time: prev.time - 1,
+                time: prev.time - timeDecrease,
                 score: { ...prev.score, home: prev.score.home + 1 },
-                events: [event, ...prev.events]
+                events: [event, ...prev.events],
+                playerStats: newStats
+              };
+            } else if (event.type === 'save' && event.playerId === selectedTeam.goalkeeper) {
+              // Přidáme zákrok brankáři
+              newStats.saves[event.playerId] = (newStats.saves[event.playerId] || 0) + 1;
+              // Aktualizujeme úspěšnost zákroků (90-100%)
+              newStats.saveAccuracy[event.playerId] = 90 + Math.floor(Math.random() * 10);
+              return {
+                ...prev,
+                time: prev.time - timeDecrease,
+                events: [event, ...prev.events],
+                playerStats: newStats
               };
             }
+
             return {
               ...prev,
-              time: prev.time - 1,
+              time: prev.time - timeDecrease,
               events: [event, ...prev.events]
             };
           }
 
           return {
             ...prev,
-            time: prev.time - 1
+            time: prev.time - timeDecrease
           };
         });
-      }, 1000);
+      }, 1000 / matchState.gameSpeed);
 
       return () => clearInterval(timer);
     }
@@ -537,7 +589,7 @@ const CardGame = () => {
         {showMatch && (
           <div className="fixed inset-0 bg-black/95 flex flex-col items-center z-50 p-8 overflow-y-auto">
             <div className="w-full max-w-6xl">
-              {/* Horní panel s logy a časomírou */}
+              {/* Horní panel s logy, časomírou a ovládáním rychlosti */}
               <div className="flex justify-between items-center mb-8 bg-black/50 p-6 rounded-xl">
                 <img src="/Images/HC_Lopaty_Praha.png" alt="HC Lopaty Praha" className="h-24 object-contain" />
                 <div className="text-center">
@@ -550,35 +602,91 @@ const CardGame = () => {
                   <div className="text-xl text-yellow-200 mt-2">
                     {matchState.period}. třetina
                   </div>
+                  {/* Ovládání rychlosti */}
+                  <div className="flex justify-center gap-2 mt-4">
+                    {gameSpeedOptions.map(speed => (
+                      <button
+                        key={speed}
+                        onClick={() => setGameSpeed(speed)}
+                        className={`px-3 py-1 rounded ${
+                          matchState.gameSpeed === speed
+                            ? 'bg-yellow-500 text-black font-bold'
+                            : 'bg-gray-700 text-white hover:bg-gray-600'
+                        } text-sm transition-colors`}
+                      >
+                        {speed}×
+                      </button>
+                    ))}
+                  </div>
                 </div>
                 <img src="/Images/Litvinov_Lancers.png" alt="Litvínov Lancers" className="h-24 object-contain" />
               </div>
 
-              {/* Hrací plocha */}
-              <div className="relative w-full h-96 bg-gradient-to-b from-blue-900/30 to-blue-950/30 rounded-xl mb-8 overflow-hidden">
-                <div className="absolute inset-0 flex items-center justify-center">
-                  <div className="w-4/5 h-4/5 border-2 border-blue-400/20 rounded-full"></div>
-                </div>
+              {/* Vylepšená ledová plocha */}
+              <div className="relative w-full h-[600px] bg-[#e8f0f0] rounded-[200px] mb-8 overflow-hidden border-8 border-blue-900/30">
+                {/* Červené čáry */}
+                <div className="absolute left-0 right-0 top-1/2 h-1 bg-red-600 transform -translate-y-1/2"></div>
+                <div className="absolute left-1/3 right-1/3 top-0 bottom-0 border-l-2 border-r-2 border-red-600"></div>
                 
-                {/* Aktivní hráči na ledě */}
-                <div className="absolute inset-0 grid grid-cols-3 gap-4 p-8">
+                {/* Modré čáry */}
+                <div className="absolute w-1 h-full bg-blue-600 left-1/4"></div>
+                <div className="absolute w-1 h-full bg-blue-600 right-1/4"></div>
+                
+                {/* Kruhy na vhazování */}
+                <div className="absolute left-1/6 top-1/4 w-24 h-24 border-2 border-red-600 rounded-full"></div>
+                <div className="absolute left-1/6 bottom-1/4 w-24 h-24 border-2 border-red-600 rounded-full"></div>
+                <div className="absolute right-1/6 top-1/4 w-24 h-24 border-2 border-red-600 rounded-full"></div>
+                <div className="absolute right-1/6 bottom-1/4 w-24 h-24 border-2 border-red-600 rounded-full"></div>
+                <div className="absolute left-1/2 top-1/2 w-24 h-24 border-2 border-red-600 rounded-full transform -translate-x-1/2 -translate-y-1/2"></div>
+                
+                {/* Brankoviště */}
+                <div className="absolute left-8 top-1/2 w-16 h-32 border-2 border-red-600 rounded-r-lg transform -translate-y-1/2"></div>
+                <div className="absolute right-8 top-1/2 w-16 h-32 border-2 border-red-600 rounded-l-lg transform -translate-y-1/2"></div>
+
+                {/* Domácí tým */}
+                <div className="absolute left-0 right-1/2 top-0 bottom-0 grid grid-cols-3 gap-4 p-8">
                   {/* Brankář */}
                   <div className="flex justify-center items-center">
-                    <img 
-                      src={cards.find(card => card.id === selectedTeam.goalkeeper)?.image}
-                      alt="Brankář"
-                      className="w-20 h-24 object-contain transform hover:scale-110 transition-transform"
-                    />
+                    <div className="relative">
+                      <img 
+                        src={cards.find(card => card.id === selectedTeam.goalkeeper)?.image}
+                        alt="Brankář"
+                        className="w-24 h-32 object-contain transform hover:scale-110 transition-transform rounded-lg shadow-lg"
+                      />
+                      {/* Statistiky brankáře */}
+                      {matchState.playerStats.saves[selectedTeam.goalkeeper] > 0 && (
+                        <div className="absolute -bottom-6 left-0 right-0 text-center">
+                          <div className="bg-blue-900/80 text-white text-sm px-2 py-1 rounded-lg">
+                            {matchState.playerStats.saves[selectedTeam.goalkeeper]} zákroků
+                            <br />
+                            Úspěšnost: {matchState.playerStats.saveAccuracy[selectedTeam.goalkeeper]}%
+                          </div>
+                        </div>
+                      )}
+                    </div>
                   </div>
                   {/* Obránci */}
-                  <div className="grid grid-rows-2 gap-4">
+                  <div className="grid grid-rows-2 gap-8">
                     {selectedTeam.defenders.map(id => (
                       <div key={id} className="flex justify-center items-center">
-                        <img 
-                          src={cards.find(card => card.id === id)?.image}
-                          alt="Obránce"
-                          className="w-20 h-24 object-contain transform hover:scale-110 transition-transform"
-                        />
+                        <div className="relative">
+                          <img 
+                            src={cards.find(card => card.id === id)?.image}
+                            alt="Obránce"
+                            className="w-24 h-32 object-contain transform hover:scale-110 transition-transform rounded-lg shadow-lg"
+                          />
+                          {/* Góly a asistence */}
+                          <div className="absolute -bottom-6 left-0 right-0 flex justify-center gap-2">
+                            {Array.from({ length: matchState.playerStats.goals[id] || 0 }).map((_, i) => (
+                              <img key={i} src="/Images/puck.png" alt="Gól" className="w-4 h-4" />
+                            ))}
+                            {matchState.playerStats.assists[id] > 0 && (
+                              <span className="bg-yellow-500/80 text-black font-bold text-sm px-2 rounded-lg">
+                                A: {matchState.playerStats.assists[id]}
+                              </span>
+                            )}
+                          </div>
+                        </div>
                       </div>
                     ))}
                   </div>
@@ -586,13 +694,56 @@ const CardGame = () => {
                   <div className="grid grid-rows-3 gap-4">
                     {selectedTeam.forwards.map(id => (
                       <div key={id} className="flex justify-center items-center">
-                        <img 
-                          src={cards.find(card => card.id === id)?.image}
-                          alt="Útočník"
-                          className="w-20 h-24 object-contain transform hover:scale-110 transition-transform"
-                        />
+                        <div className="relative">
+                          <img 
+                            src={cards.find(card => card.id === id)?.image}
+                            alt="Útočník"
+                            className="w-24 h-32 object-contain transform hover:scale-110 transition-transform rounded-lg shadow-lg"
+                          />
+                          {/* Góly a asistence */}
+                          <div className="absolute -bottom-6 left-0 right-0 flex justify-center gap-2">
+                            {Array.from({ length: matchState.playerStats.goals[id] || 0 }).map((_, i) => (
+                              <img key={i} src="/Images/puck.png" alt="Gól" className="w-4 h-4" />
+                            ))}
+                            {matchState.playerStats.assists[id] > 0 && (
+                              <span className="bg-yellow-500/80 text-black font-bold text-sm px-2 rounded-lg">
+                                A: {matchState.playerStats.assists[id]}
+                              </span>
+                            )}
+                          </div>
+                        </div>
                       </div>
                     ))}
+                  </div>
+                </div>
+
+                {/* Soupeřův tým */}
+                <div className="absolute left-1/2 right-0 top-0 bottom-0 grid grid-cols-3 gap-4 p-8">
+                  {/* Útočníci */}
+                  <div className="grid grid-rows-3 gap-4">
+                    {[1, 2, 3].map(i => (
+                      <div key={i} className="flex justify-center items-center">
+                        <div className="w-24 h-32 bg-gray-800 rounded-lg shadow-lg flex items-center justify-center text-4xl text-gray-600 transform hover:scale-110 transition-transform">
+                          ?
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                  {/* Obránci */}
+                  <div className="grid grid-rows-2 gap-8">
+                    {[1, 2].map(i => (
+                      <div key={i} className="flex justify-center items-center">
+                        <div className="w-24 h-32 bg-gray-800 rounded-lg shadow-lg flex items-center justify-center text-4xl text-gray-600 transform hover:scale-110 transition-transform">
+                          ?
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                  {/* Brankář */}
+                  <div className="flex justify-center items-center">
+                    <div className="w-24 h-32 bg-gray-800 rounded-lg shadow-lg flex items-center justify-center text-4xl text-gray-600 transform hover:scale-110 transition-transform">
+                      ?
+                    </div>
                   </div>
                 </div>
               </div>
