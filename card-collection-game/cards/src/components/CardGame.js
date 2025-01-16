@@ -920,4 +920,24 @@ const CardGame = () => {
                                 event.position === 'goalkeeper' ? 'bg-blue-500/30 text-blue-200' :
                                 event.position === 'defender' ? 'bg-green-500/30 text-green-200' :
                                 'bg-yellow-500/30 text-yellow-200'
-                              }`}
+                              }`}>
+                                {event.player}
+                              </span>
+                              <p className="text-white ml-2">{event.message}</p>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
+export default CardGame;
