@@ -52,16 +52,23 @@ const CardGame = () => {
     },
     penalties: []
   });
-  const [cardLevels, setCardLevels] = useState(() => {
-    const savedLevels = localStorage.getItem('cardLevels');
-    return savedLevels ? JSON.parse(savedLevels) : {};
-  });
+  const [cardLevels, setCardLevels] = useState({});
   const [showDecision, setShowDecision] = useState(false);
   const [currentDecision, setCurrentDecision] = useState(null);
 
+  useEffect(() => {
+    // Načtení levelů karet z localStorage při prvním načtení
+    const savedLevels = localStorage.getItem('cardLevels');
+    if (savedLevels) {
+      setCardLevels(JSON.parse(savedLevels));
+    }
+  }, []);
+
   // Uložení levelů karet do localStorage při změně
   useEffect(() => {
-    localStorage.setItem('cardLevels', JSON.stringify(cardLevels));
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('cardLevels', JSON.stringify(cardLevels));
+    }
   }, [cardLevels]);
 
   const getCardLevel = (cardId) => {
