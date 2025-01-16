@@ -1489,6 +1489,49 @@ const CardGame = () => {
             </div>
           </div>
         )}
+
+        {showCollection && (
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
+            {cards.map((card) => (
+              <div
+                key={card.id}
+                className={`transform transition-all duration-300 hover:scale-105 cursor-pointer ${
+                  unlockedCards.some(c => c.id === card.id) ? '' : 'opacity-50'
+                }`}
+                onClick={() => unlockedCards.some(c => c.id === card.id) && setSelectedCard(card)}
+              >
+                <div className={`
+                  relative overflow-hidden rounded-lg shadow-xl
+                  ${unlockedCards.some(c => c.id === card.id) 
+                    ? 'bg-gradient-to-br from-yellow-500 to-yellow-700 p-0.5' 
+                    : 'bg-zinc-800 p-0.5'}
+                `}>
+                  {unlockedCards.some(c => c.id === card.id) ? (
+                    <div className="relative">
+                      <img
+                        src={card.image}
+                        alt={card.name}
+                        className="w-full h-56 object-contain rounded"
+                      />
+                      <div className="absolute top-2 right-2 w-8 h-8 rounded-full bg-gradient-to-br from-yellow-400 to-yellow-600 flex items-center justify-center border-2 border-yellow-300 shadow-lg">
+                        <span className="text-black font-bold text-sm">{getCardLevel(card.id)}</span>
+                      </div>
+                      {unlockedCards.filter(c => c.id === card.id).length > 1 && (
+                        <div className="absolute bottom-2 right-2 bg-black/70 px-2 py-1 rounded-full text-yellow-400 text-sm font-bold">
+                          {unlockedCards.filter(c => c.id === card.id).length}×
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    <div className="w-full h-56 flex items-center justify-center text-4xl text-gray-500">
+                      ?
+                    </div>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );
