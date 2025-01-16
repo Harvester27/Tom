@@ -147,7 +147,6 @@ const CardGame = () => {
     const drawnCards = [];
     
     for (let i = 0; i < size; i++) {
-      // Nejprve vybereme vzácnost karty
       const random = Math.random();
       let selectedRarity;
       let sum = 0;
@@ -160,9 +159,9 @@ const CardGame = () => {
         }
       }
 
-      // Pak vybereme náhodnou kartu z dané vzácnosti
       const cardsOfRarity = cards.filter(card => card.rarity === selectedRarity);
-      const randomCard = cardsOfRarity[Math.floor(Math.random() * cardsOfRarity.length)];
+      const randomCard = {...cardsOfRarity[Math.floor(Math.random() * cardsOfRarity.length)]};
+      randomCard.uniqueId = Date.now() + i; // Přidáme unikátní ID pro každou kartu
       drawnCards.push(randomCard);
     }
 
@@ -847,7 +846,7 @@ const CardGame = () => {
   };
 
   return (
-    <div className="min-h-screen bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-indigo-900 via-gray-900 to-black p-8">
+    <div className="min-h-screen bg-gradient-radial from-blue-900 via-blue-950 to-black text-white p-8">
       <style jsx global>{`
         @keyframes confetti-fall {
           0% {
@@ -938,37 +937,26 @@ const CardGame = () => {
             </>
           ) : (
             <>
-              {cards.map((card) => (
-                <div
-                  key={card.id}
-                  className="transform transition-all duration-300 hover:scale-105 cursor-pointer"
-                  onClick={() => unlockedCards.some(c => c.id === card.id) && setSelectedCard(card)}
-                >
-                  <div className={`
-                    relative overflow-hidden rounded-lg shadow-xl
-                    ${unlockedCards.some(c => c.id === card.id) 
-                      ? 'bg-gradient-to-br from-yellow-500 to-yellow-700 p-0.5' 
-                      : 'bg-zinc-800 p-0.5'}
-                  `}>
-                    {unlockedCards.some(c => c.id === card.id) ? (
-                      <div className="relative">
-                        <img
-                          src={card.image}
-                          alt={card.name}
-                          className="w-full h-56 object-contain rounded"
-                        />
-                        <div className="absolute top-2 right-2 w-8 h-8 rounded-full bg-gradient-to-br from-yellow-400 to-yellow-600 flex items-center justify-center border-2 border-yellow-300 shadow-lg">
-                          <span className="text-black font-bold text-sm">{getCardLevel(card.id)}</span>
-                        </div>
+              {currentCards.length > 0 && (
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
+                  {currentCards.map((card) => (
+                    <div
+                      key={card.uniqueId || card.id}
+                      className="relative group cursor-pointer transform hover:scale-105 transition-transform"
+                      onClick={() => setSelectedCard(card)}
+                    >
+                      <img
+                        src={card.image}
+                        alt={card.name}
+                        className="w-full h-auto rounded-lg shadow-lg"
+                      />
+                      <div className="absolute top-2 right-2 w-8 h-8 bg-gradient-to-br from-yellow-400 to-yellow-600 rounded-full flex items-center justify-center text-black font-bold shadow-lg">
+                        {getCardLevel(card.id)}
                       </div>
-                    ) : (
-                      <div className="w-full h-56 flex items-center justify-center text-4xl text-gray-500">
-                        ?
-                      </div>
-                    )}
-                  </div>
+                    </div>
+                  ))}
                 </div>
-              ))}
+              )}
             </>
           )}
         </div>
