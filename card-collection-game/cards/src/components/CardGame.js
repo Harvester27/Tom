@@ -345,15 +345,15 @@ const CardGame = () => {
       
       const timer = setInterval(() => {
         setMatchState(prev => {
-          const timeDecrease = 1; // Vždy snížíme čas o 1 sekundu
+          const timeDecrease = prev.gameSpeed;
           
-          // Aktualizace trestů - snížíme o 1 sekundu a aplikujeme gameSpeed
+          // Aktualizace trestů
           const updatedPenalties = prev.penalties
             .map(penalty => ({
               ...penalty,
-              timeLeft: Math.max(0, penalty.timeLeft - 1)
+              timeLeft: Math.max(0, penalty.timeLeft - timeDecrease)
             }))
-            .filter(penalty => penalty.timeLeft > 0);
+            .filter(penalty => penalty.timeLeft > 0); // Odstraníme tresty, které vypršely
 
           if (prev.time <= 0) {
             if (prev.period < 3) {
@@ -361,7 +361,7 @@ const CardGame = () => {
                 ...prev,
                 period: prev.period + 1,
                 time: 1200,
-                penalties: updatedPenalties,
+                penalties: updatedPenalties, // Zachováme aktivní tresty mezi třetinami
                 events: [...prev.events, { 
                   type: 'period',
                   message: `Konec ${prev.period}. třetiny!`,
@@ -374,7 +374,7 @@ const CardGame = () => {
               return {
                 ...prev,
                 isPlaying: false,
-                penalties: [],
+                penalties: [], // Vynulujeme tresty na konci zápasu
                 events: [...prev.events, {
                   type: 'end',
                   message: 'Konec zápasu!',
@@ -434,7 +434,7 @@ const CardGame = () => {
             penalties: updatedPenalties
           };
         });
-      }, 1000 / matchState.gameSpeed); // Interval se bude spouštět častěji podle gameSpeed
+      }, 1000); // Interval každou sekundu
 
       return () => clearInterval(timer);
     }
