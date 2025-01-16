@@ -24,6 +24,10 @@ const CardGame = () => {
   const [currentCards, setCurrentCards] = useState([]);
   const [confetti, setConfetti] = useState([]);
   const [money, setMoney] = useState(100);
+  const [level, setLevel] = useState(1);
+  const [xp, setXp] = useState(0);
+  const [showRewards, setShowRewards] = useState(false);
+  const [matchResult, setMatchResult] = useState(null);
   const [selectedCard, setSelectedCard] = useState(null);
   const [showTeamSelection, setShowTeamSelection] = useState(false);
   const [selectedTeam, setSelectedTeam] = useState({
@@ -333,6 +337,7 @@ const CardGame = () => {
       setMatchState(prev => ({ 
         ...prev, 
         isPlaying: true,
+        score: { home: 0, away: 0 },
         playerStats: {
           goals: {},
           assists: {},
@@ -340,7 +345,7 @@ const CardGame = () => {
           saveAccuracy: {},
           shots: {}
         },
-        penalties: [] // Reset trestů při začátku nového zápasu
+        penalties: []
       }));
       
       const timer = setInterval(() => {
@@ -353,7 +358,7 @@ const CardGame = () => {
               ...penalty,
               timeLeft: Math.max(0, penalty.timeLeft - timeDecrease)
             }))
-            .filter(penalty => penalty.timeLeft > 0); // Odstraníme tresty, které vypršely
+            .filter(penalty => penalty.timeLeft > 0);
 
           if (prev.time <= 0) {
             if (prev.period < 3) {
@@ -361,7 +366,7 @@ const CardGame = () => {
                 ...prev,
                 period: prev.period + 1,
                 time: 1200,
-                penalties: updatedPenalties, // Zachováme aktivní tresty mezi třetinami
+                penalties: updatedPenalties,
                 events: [...prev.events, { 
                   type: 'period',
                   message: `Konec ${prev.period}. třetiny!`,
@@ -371,10 +376,30 @@ const CardGame = () => {
               };
             } else {
               clearInterval(timer);
+              // Určíme výsledek zápasu
+              const result = prev.score.home > prev.score.away ? 'victory' : 'defeat';
+              setMatchResult(result);
+              setShowRewards(true);
+              
+              // Přidáme XP a peníze podle výsledku
+              const xpReward = result === 'victory' ? 20 : 5;
+              const moneyReward = result === 'victory' ? 50 : 20;
+              
+              setXp(currentXp => {
+                const newXp = currentXp + xpReward;
+                if (newXp >= 20) {
+                  setLevel(currentLevel => currentLevel + 1);
+                  return newXp - 20;
+                }
+                return newXp;
+              });
+              
+              setMoney(current => current + moneyReward);
+              
               return {
                 ...prev,
                 isPlaying: false,
-                penalties: [], // Vynulujeme tresty na konci zápasu
+                penalties: [],
                 events: [...prev.events, {
                   type: 'end',
                   message: 'Konec zápasu!',
@@ -434,7 +459,7 @@ const CardGame = () => {
             penalties: updatedPenalties
           };
         });
-      }, 1000); // Interval každou sekundu
+      }, 1000);
 
       return () => clearInterval(timer);
     }
@@ -934,6 +959,51 @@ const CardGame = () => {
                     ))}
                   </div>
                 </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {showRewards && (
+          <div className="fixed inset-0 bg-black/95 flex items-center justify-center z-50">
+            <div className="bg-gradient-to-b from-yellow-900/50 to-yellow-800/30 p-8 rounded-2xl max-w-md w-full mx-4 border border-yellow-500/20">
+              <h2 className="text-4xl font-bold text-center mb-6 bg-gradient-to-r from-yellow-400 to-yellow-600 text-transparent bg-clip-text">
+                {matchResult === 'victory' ? 'Vítězství!' : 'Prohra'}
+              </h2>
+              
+              <div className="space-y-6">
+                <div className="bg-black/30 p-4 rounded-xl">
+                  <h3 className="text-yellow-400 text-xl mb-2">Odměny:</h3>
+                  <div className="space-y-2">
+                    <p className="text-white">
+                      Peníze: <span className="text-yellow-400">+{matchResult === 'victory' ? '50' : '20'} Kč</span>
+                    </p>
+                    <p className="text-white">
+                      Zkušenosti: <span className="text-yellow-400">+{matchResult === 'victory' ? '20' : '5'} XP</span>
+                    </p>
+                  </div>
+                </div>
+
+                <div className="bg-black/30 p-4 rounded-xl">
+                  <h3 className="text-yellow-400 text-xl mb-2">Level {level}</h3>
+                  <div className="bg-gray-900 rounded-full h-4 overflow-hidden">
+                    <div 
+                      className="bg-gradient-to-r from-yellow-500 to-yellow-600 h-full transition-all duration-1000"
+                      style={{ width: `${(xp / 20) * 100}%` }}
+                    ></div>
+                  </div>
+                  <p className="text-center text-yellow-200 mt-2">{xp}/20 XP</p>
+                </div>
+
+                <button
+                  onClick={() => {
+                    setShowRewards(false);
+                    setShowMatch(false);
+                  }}
+                  className="w-full bg-gradient-to-r from-yellow-500 to-yellow-600 hover:from-yellow-600 hover:to-yellow-700 text-black font-bold py-3 px-6 rounded-xl shadow-lg transform transition-all duration-300 hover:scale-105 active:scale-95"
+                >
+                  Pokračovat
+                </button>
               </div>
             </div>
           </div>
