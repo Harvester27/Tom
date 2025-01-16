@@ -107,6 +107,13 @@ const CardGame = () => {
     { id: 9, name: "Sommer", image: "/Images/Sommer1.jpg", rarity: "rare", position: "goalkeeper", baseLevel: 1 }
   ];
 
+  const rarityProbabilities = {
+    common: 0.6,
+    rare: 0.25,
+    epic: 0.1,
+    legendary: 0.05
+  };
+
   const packPrices = {
     3: 30,
     5: 50,
@@ -906,7 +913,7 @@ const CardGame = () => {
         </header>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 justify-items-center mb-8">
-          {!showCollection ? (
+          {!showCollection && !showMatch && !showTeamSelection && (
             <>
               {[3, 5, 7].map((packSize) => (
                 <div
@@ -935,29 +942,37 @@ const CardGame = () => {
                 </div>
               ))}
             </>
-          ) : (
-            <>
-              {currentCards.length > 0 && (
-                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
-                  {currentCards.map((card) => (
-                    <div
-                      key={card.uniqueId || card.id}
-                      className="relative group cursor-pointer transform hover:scale-105 transition-transform"
-                      onClick={() => setSelectedCard(card)}
-                    >
-                      <img
-                        src={card.image}
-                        alt={card.name}
-                        className="w-full h-auto rounded-lg shadow-lg"
-                      />
-                      <div className="absolute top-2 right-2 w-8 h-8 bg-gradient-to-br from-yellow-400 to-yellow-600 rounded-full flex items-center justify-center text-black font-bold shadow-lg">
-                        {getCardLevel(card.id)}
-                      </div>
+          )}
+
+          {currentCards.length > 0 && !showCollection && !showMatch && !showTeamSelection && (
+            <div className="fixed inset-0 bg-black/80 flex flex-col items-center justify-center z-50 p-8">
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 mb-8">
+                {currentCards.map((card) => (
+                  <div
+                    key={card.uniqueId || card.id}
+                    className="relative group cursor-pointer transform hover:scale-105 transition-transform"
+                    onClick={() => setSelectedCard(card)}
+                  >
+                    <img
+                      src={card.image}
+                      alt={card.name}
+                      className="w-full h-auto rounded-lg shadow-lg"
+                    />
+                    <div className="absolute top-2 right-2 w-8 h-8 bg-gradient-to-br from-yellow-400 to-yellow-600 rounded-full flex items-center justify-center text-black font-bold shadow-lg">
+                      {getCardLevel(card.id)}
                     </div>
-                  ))}
-                </div>
-              )}
-            </>
+                  </div>
+                ))}
+              </div>
+              <button
+                onClick={collectCards}
+                className="bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 
+                  text-white font-bold py-3 px-8 rounded-xl shadow-lg transform transition-all duration-300 
+                  hover:scale-105 active:scale-95"
+              >
+                Přesunout do sbírky
+              </button>
+            </div>
           )}
         </div>
 
