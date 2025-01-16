@@ -345,15 +345,15 @@ const CardGame = () => {
       
       const timer = setInterval(() => {
         setMatchState(prev => {
-          const timeDecrease = prev.gameSpeed;
+          const timeDecrease = 1; // Vždy snížíme čas o 1 sekundu
           
-          // Aktualizace trestů
+          // Aktualizace trestů - snížíme o 1 sekundu a aplikujeme gameSpeed
           const updatedPenalties = prev.penalties
             .map(penalty => ({
               ...penalty,
-              timeLeft: Math.max(0, penalty.timeLeft - timeDecrease)
+              timeLeft: Math.max(0, penalty.timeLeft - 1)
             }))
-            .filter(penalty => penalty.timeLeft > 0); // Odstraníme tresty, které vypršely
+            .filter(penalty => penalty.timeLeft > 0);
 
           if (prev.time <= 0) {
             if (prev.period < 3) {
@@ -361,7 +361,7 @@ const CardGame = () => {
                 ...prev,
                 period: prev.period + 1,
                 time: 1200,
-                penalties: updatedPenalties, // Zachováme aktivní tresty mezi třetinami
+                penalties: updatedPenalties,
                 events: [...prev.events, { 
                   type: 'period',
                   message: `Konec ${prev.period}. třetiny!`,
@@ -374,7 +374,7 @@ const CardGame = () => {
               return {
                 ...prev,
                 isPlaying: false,
-                penalties: [], // Vynulujeme tresty na konci zápasu
+                penalties: [],
                 events: [...prev.events, {
                   type: 'end',
                   message: 'Konec zápasu!',
@@ -402,7 +402,8 @@ const CardGame = () => {
                 time: prev.time - timeDecrease,
                 score: { ...prev.score, home: prev.score.home + 1 },
                 events: [event, ...prev.events],
-                playerStats: newStats
+                playerStats: newStats,
+                penalties: updatedPenalties
               };
             } else if (event.type === 'save' && event.playerId === selectedTeam.goalkeeper) {
               newStats.saves[event.playerId] = (newStats.saves[event.playerId] || 0) + 1;
@@ -414,14 +415,16 @@ const CardGame = () => {
                 ...prev,
                 time: prev.time - timeDecrease,
                 events: [event, ...prev.events],
-                playerStats: newStats
+                playerStats: newStats,
+                penalties: updatedPenalties
               };
             }
 
             return {
               ...prev,
               time: prev.time - timeDecrease,
-              events: [event, ...prev.events]
+              events: [event, ...prev.events],
+              penalties: updatedPenalties
             };
           }
 
@@ -431,7 +434,7 @@ const CardGame = () => {
             penalties: updatedPenalties
           };
         });
-      }, 1000 / matchState.gameSpeed);
+      }, 1000 / matchState.gameSpeed); // Interval se bude spouštět častěji podle gameSpeed
 
       return () => clearInterval(timer);
     }
