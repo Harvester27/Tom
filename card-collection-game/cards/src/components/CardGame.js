@@ -267,8 +267,8 @@ const CardGame = () => {
 
     // Přidáme čas události
     const period = Math.floor(eventTime / 1200) + 1;
-    const baseMinutes = (period - 1) * 20;
-    const periodSeconds = eventTime % 1200;
+    const baseMinutes = (period - 1) * 20; // Základní minuty podle třetiny (0, 20, 40)
+    const periodSeconds = eventTime % 1200; // Sekundy v aktuální třetině
     const mins = baseMinutes + Math.floor(periodSeconds / 60);
     const secs = periodSeconds % 60;
     const eventTimeFormatted = `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
@@ -623,6 +623,24 @@ const CardGame = () => {
     if (isTeamComplete()) {
       setShowMatch(true);
       setShowTeamSelection(false);
+      
+      // Vypočítáme sílu týmů (součet levelů útočníků a obránců)
+      const homeTeamStrength = selectedTeam.forwards.reduce((sum, id) => sum + getCardLevel(id), 0) +
+                              selectedTeam.defenders.reduce((sum, id) => sum + getCardLevel(id), 0);
+      
+      const awayTeamStrength = opponentTeam.forwards.reduce((sum, p) => sum + p.level, 0) +
+                              opponentTeam.defenders.reduce((sum, p) => sum + p.level, 0);
+      
+      // Základní počet střel je 15-25, plus bonus podle síly týmu
+      const baseMinShots = 15;
+      const baseMaxShots = 25;
+      
+      // Silnější tým dostane více střel
+      const homeShots = Math.floor(Math.random() * (baseMaxShots - baseMinShots + 1)) + baseMinShots +
+                       Math.floor(homeTeamStrength / 2);
+      const awayShots = Math.floor(Math.random() * (baseMaxShots - baseMinShots + 1)) + baseMinShots +
+                       Math.floor(awayTeamStrength / 2);
+
       setMatchState(prev => {
         // Generujeme počáteční události pro první třetinu
         const initialEventTimes = [];
@@ -638,9 +656,14 @@ const CardGame = () => {
           playerStats: {
             goals: {},
             assists: {},
-            saves: {},
-            saveAccuracy: {},
-            shots: {}
+            saves: {
+              [selectedTeam.goalkeeper]: homeShots,
+              [opponentTeam.goalkeeper.id]: awayShots
+            },
+            shots: {
+              [selectedTeam.goalkeeper]: homeShots,
+              [opponentTeam.goalkeeper.id]: awayShots
+            }
           },
           penalties: [],
           scheduledEvents: initialEventTimes.sort((a, b) => b - a) // Seřadíme sestupně
