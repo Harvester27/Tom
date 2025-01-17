@@ -35,6 +35,7 @@ const CardGame = () => {
     defenders: [],
     forwards: []
   });
+  const [activePosition, setActivePosition] = useState(null);
   const [showMatch, setShowMatch] = useState(false);
   const [matchState, setMatchState] = useState({
     period: 1,
@@ -205,39 +206,20 @@ const CardGame = () => {
   const selectPlayer = (card) => {
     if (!showTeamSelection) return;
 
-    setSelectedTeam(prev => {
-      const newTeam = { ...prev };
-      
-      // Pokud je hráč již vybrán, odeberte ho
-      if (prev.goalkeeper === card.id || 
-          prev.defenders.includes(card.id) || 
-          prev.forwards.includes(card.id)) {
-        if (prev.goalkeeper === card.id) newTeam.goalkeeper = null;
-        if (prev.defenders.includes(card.id)) newTeam.defenders = prev.defenders.filter(id => id !== card.id);
-        if (prev.forwards.includes(card.id)) newTeam.forwards = prev.forwards.filter(id => id !== card.id);
-        return newTeam;
-      }
-
-      // Přidejte hráče do správné kategorie
-      switch (card.position) {
-        case 'goalkeeper':
-          if (newTeam.goalkeeper === null) {
-            newTeam.goalkeeper = card.id;
-          }
-          break;
-        case 'defender':
-          if (newTeam.defenders.length < 2 && !newTeam.defenders.includes(card.id)) {
-            newTeam.defenders.push(card.id);
-          }
-          break;
-        case 'forward':
-          if (newTeam.forwards.length < 3 && !newTeam.forwards.includes(card.id)) {
-            newTeam.forwards.push(card.id);
-          }
-          break;
-      }
-      return newTeam;
-    });
+    if (activePosition === 'goalkeeper') {
+      setSelectedTeam(prev => ({ ...prev, goalkeeper: card.id }));
+    } else if (activePosition?.startsWith('defender')) {
+      const index = parseInt(activePosition.split('-')[1]);
+      const newDefenders = [...selectedTeam.defenders];
+      newDefenders[index] = card.id;
+      setSelectedTeam(prev => ({ ...prev, defenders: newDefenders }));
+    } else if (activePosition?.startsWith('forward')) {
+      const index = parseInt(activePosition.split('-')[1]);
+      const newForwards = [...selectedTeam.forwards];
+      newForwards[index] = card.id;
+      setSelectedTeam(prev => ({ ...prev, forwards: newForwards }));
+    }
+    setActivePosition(null);
   };
 
   const isTeamComplete = () => {
@@ -247,8 +229,11 @@ const CardGame = () => {
   };
 
   const formatTime = (seconds) => {
-    const mins = Math.floor(seconds / 60);
-    const secs = seconds % 60;
+    // Převedeme čas na formát 00:00-60:00 podle třetiny
+    const period = Math.floor((1200 - seconds) / 1200) + 1;
+    const periodSeconds = (period - 1) * 1200 + (1200 - seconds);
+    const mins = Math.floor(periodSeconds / 60);
+    const secs = periodSeconds % 60;
     return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
   };
 
@@ -769,7 +754,6 @@ const CardGame = () => {
     setUnlockedCards(prev => prev.filter((_, index) => 
       index !== prev.findIndex(c => c.id === cardToSell.id)
     ));
-    setSelectedCard(null);
   };
 
   // Funkce pro navigaci mezi duplikáty
@@ -1061,61 +1045,141 @@ const CardGame = () => {
           <div className="fixed inset-0 bg-black/90 flex flex-col items-center justify-center z-50 p-8">
             <h2 className="text-3xl font-bold text-yellow-400 mb-8">Vyberte svou sestavu</h2>
             <div className="grid grid-cols-3 gap-8 mb-8">
+              {/* Brankář */}
               <div className="text-center">
                 <h3 className="text-xl font-bold text-yellow-200 mb-4">Brankář ({selectedTeam.goalkeeper ? '1/1' : '0/1'})</h3>
-                <div className="grid gap-4">
-                  {cards.filter(card => card.position === 'goalkeeper' && unlockedCards.some(c => c.id === card.id)).map(card => (
-                    <div
-                      key={card.id}
-                      onClick={() => selectPlayer(card)}
-                      className={`cursor-pointer transform transition-all duration-300 hover:scale-105 
-                        ${selectedTeam.goalkeeper === card.id ? 'ring-4 ring-green-500' : ''}`}
-                    >
-                      <img src={card.image} alt={card.name} className="w-32 h-40 object-contain rounded-lg" />
+                <div 
+                  className={`w-32 h-40 mx-auto cursor-pointer rounded-lg ${!selectedTeam.goalkeeper ? 'border-2 border-dashed border-yellow-500/50' : ''}`}
+                  onClick={() => setActivePosition('goalkeeper')}
+                >
+                  {selectedTeam.goalkeeper ? (
+                    <div className="relative">
+                      <img 
+                        src={cards.find(card => card.id === selectedTeam.goalkeeper)?.image} 
+                        alt="Brankář" 
+                        className="w-32 h-40 object-contain rounded-lg"
+                      />
+                      <div className="absolute top-2 right-2 w-6 h-6 rounded-full bg-gradient-to-br from-yellow-400 to-yellow-600 flex items-center justify-center">
+                        <span className="text-black text-xs font-bold">{getCardLevel(selectedTeam.goalkeeper)}</span>
+                      </div>
                     </div>
-                  ))}
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center">
+                      <span className="text-yellow-500/50 text-4xl">+</span>
+                    </div>
+                  )}
                 </div>
               </div>
+
+              {/* Obránci */}
               <div className="text-center">
                 <h3 className="text-xl font-bold text-yellow-200 mb-4">Obránci ({selectedTeam.defenders.length}/2)</h3>
                 <div className="grid gap-4">
-                  {cards.filter(card => card.position === 'defender' && unlockedCards.some(c => c.id === card.id)).map(card => (
+                  {[0, 1].map((index) => (
                     <div
-                      key={card.id}
-                      onClick={() => selectPlayer(card)}
-                      className={`cursor-pointer transform transition-all duration-300 hover:scale-105 
-                        ${selectedTeam.defenders.includes(card.id) ? 'ring-4 ring-green-500' : ''}`}
+                      key={index}
+                      className={`w-32 h-40 mx-auto cursor-pointer rounded-lg ${!selectedTeam.defenders[index] ? 'border-2 border-dashed border-yellow-500/50' : ''}`}
+                      onClick={() => setActivePosition(`defender-${index}`)}
                     >
-                      <img src={card.image} alt={card.name} className="w-32 h-40 object-contain rounded-lg" />
+                      {selectedTeam.defenders[index] ? (
+                        <div className="relative">
+                          <img 
+                            src={cards.find(card => card.id === selectedTeam.defenders[index])?.image} 
+                            alt="Obránce" 
+                            className="w-32 h-40 object-contain rounded-lg"
+                          />
+                          <div className="absolute top-2 right-2 w-6 h-6 rounded-full bg-gradient-to-br from-yellow-400 to-yellow-600 flex items-center justify-center">
+                            <span className="text-black text-xs font-bold">{getCardLevel(selectedTeam.defenders[index])}</span>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center">
+                          <span className="text-yellow-500/50 text-4xl">+</span>
+                        </div>
+                      )}
                     </div>
                   ))}
                 </div>
               </div>
+
+              {/* Útočníci */}
               <div className="text-center">
                 <h3 className="text-xl font-bold text-yellow-200 mb-4">Útočníci ({selectedTeam.forwards.length}/3)</h3>
                 <div className="grid gap-4">
-                  {cards.filter(card => card.position === 'forward' && unlockedCards.some(c => c.id === card.id)).map(card => (
+                  {[0, 1, 2].map((index) => (
                     <div
-                      key={card.id}
-                      onClick={() => selectPlayer(card)}
-                      className={`cursor-pointer transform transition-all duration-300 hover:scale-105 
-                        ${selectedTeam.forwards.includes(card.id) ? 'ring-4 ring-green-500' : ''}`}
+                      key={index}
+                      className={`w-32 h-40 mx-auto cursor-pointer rounded-lg ${!selectedTeam.forwards[index] ? 'border-2 border-dashed border-yellow-500/50' : ''}`}
+                      onClick={() => setActivePosition(`forward-${index}`)}
                     >
-                      <img src={card.image} alt={card.name} className="w-32 h-40 object-contain rounded-lg" />
+                      {selectedTeam.forwards[index] ? (
+                        <div className="relative">
+                          <img 
+                            src={cards.find(card => card.id === selectedTeam.forwards[index])?.image} 
+                            alt="Útočník" 
+                            className="w-32 h-40 object-contain rounded-lg"
+                          />
+                          <div className="absolute top-2 right-2 w-6 h-6 rounded-full bg-gradient-to-br from-yellow-400 to-yellow-600 flex items-center justify-center">
+                            <span className="text-black text-xs font-bold">{getCardLevel(selectedTeam.forwards[index])}</span>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center">
+                          <span className="text-yellow-500/50 text-4xl">+</span>
+                        </div>
+                      )}
                     </div>
                   ))}
                 </div>
               </div>
             </div>
-            <div className="flex gap-4">
+
+            {/* Seznam dostupných karet pro vybranou pozici */}
+            {activePosition && (
+              <div className="bg-black/50 p-4 rounded-xl">
+                <h3 className="text-xl font-bold text-yellow-200 mb-4">Dostupné karty</h3>
+                <div className="grid grid-cols-5 gap-4">
+                  {cards
+                    .filter(card => {
+                      if (activePosition === 'goalkeeper') return card.position === 'goalkeeper';
+                      if (activePosition.startsWith('defender')) return card.position === 'defender';
+                      if (activePosition.startsWith('forward')) return card.position === 'forward';
+                      return false;
+                    })
+                    .filter(card => unlockedCards.some(c => c.id === card.id))
+                    .map(card => (
+                      <div
+                        key={card.id}
+                        onClick={() => selectPlayer(card)}
+                        className="cursor-pointer transform transition-all duration-300 hover:scale-105"
+                      >
+                        <div className="relative">
+                          <img src={card.image} alt={card.name} className="w-32 h-40 object-contain rounded-lg" />
+                          <div className="absolute top-2 right-2 w-6 h-6 rounded-full bg-gradient-to-br from-yellow-400 to-yellow-600 flex items-center justify-center">
+                            <span className="text-black text-xs font-bold">{getCardLevel(card.id)}</span>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                </div>
+              </div>
+            )}
+
+            <div className="flex gap-4 mt-8">
               <button
-                onClick={() => setShowTeamSelection(false)}
+                onClick={() => {
+                  setShowTeamSelection(false);
+                  setActivePosition(null);
+                }}
                 className="bg-red-500 hover:bg-red-600 text-white font-bold py-3 px-8 rounded-xl shadow-lg transform transition-all duration-300 hover:scale-105 active:scale-95"
               >
                 Zrušit
               </button>
               <button
-                onClick={startMatch}
+                onClick={() => {
+                  startMatch();
+                  setActivePosition(null);
+                }}
                 disabled={!isTeamComplete()}
                 className={`bg-gradient-to-r ${isTeamComplete() ? 'from-green-500 to-green-600 hover:from-green-600 hover:to-green-700' : 'from-gray-500 to-gray-600 cursor-not-allowed'} 
                   text-white font-bold py-3 px-8 rounded-xl shadow-lg transform transition-all duration-300 
@@ -1245,6 +1309,9 @@ const CardGame = () => {
                             className={`w-24 h-32 object-contain transform hover:scale-110 transition-transform rounded-lg shadow-lg
                               ${matchState.penalties.some(p => p.playerId === selectedTeam.goalkeeper) ? 'opacity-50' : ''}`}
                           />
+                          <div className="absolute top-2 right-2 w-6 h-6 rounded-full bg-gradient-to-br from-yellow-400 to-yellow-600 flex items-center justify-center">
+                            <span className="text-black text-xs font-bold">{getCardLevel(selectedTeam.goalkeeper)}</span>
+                          </div>
                           {/* Statistiky brankáře */}
                           {matchState.playerStats.saves[selectedTeam.goalkeeper] > 0 && (
                             <div className="absolute -bottom-6 left-0 right-0 text-center">
@@ -1270,6 +1337,9 @@ const CardGame = () => {
                                 className={`w-24 h-32 object-contain transform hover:scale-110 transition-transform rounded-lg shadow-lg
                                   ${matchState.penalties.some(p => p.playerId === id) ? 'opacity-50' : ''}`}
                               />
+                              <div className="absolute top-2 right-2 w-6 h-6 rounded-full bg-gradient-to-br from-yellow-400 to-yellow-600 flex items-center justify-center">
+                                <span className="text-black text-xs font-bold">{getCardLevel(id)}</span>
+                              </div>
                               {/* Góly a asistence */}
                               <div className="absolute -bottom-6 left-0 right-0 flex justify-center gap-2">
                                 {Array.from({ length: matchState.playerStats.goals[id] || 0 }).map((_, i) => (
@@ -1296,6 +1366,9 @@ const CardGame = () => {
                                 className={`w-24 h-32 object-contain transform hover:scale-110 transition-transform rounded-lg shadow-lg
                                   ${matchState.penalties.some(p => p.playerId === id) ? 'opacity-50' : ''}`}
                               />
+                              <div className="absolute top-2 right-2 w-6 h-6 rounded-full bg-gradient-to-br from-yellow-400 to-yellow-600 flex items-center justify-center">
+                                <span className="text-black text-xs font-bold">{getCardLevel(id)}</span>
+                              </div>
                               {/* Góly a asistence */}
                               <div className="absolute -bottom-6 left-0 right-0 flex justify-center gap-2">
                                 {Array.from({ length: matchState.playerStats.goals[id] || 0 }).map((_, i) => (
