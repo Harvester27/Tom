@@ -1508,17 +1508,21 @@ const CardGame = () => {
                               ? 'bg-red-900/40 border-l-4 border-red-500'
                               : event.type === 'save'
                               ? 'bg-blue-900/40 border-l-4 border-blue-500'
+                              : event.type === 'period'
+                              ? 'bg-white/10'
                               : 'bg-gray-800/40'
                           }`}
                         >
                           <div className="flex items-center justify-between mb-2">
                             <div className="flex items-center gap-2">
                               <span className="text-gray-400 font-mono">{event.time}</span>
-                              <img 
-                                src={event.isHomeTeam ? "/Images/Litvinov_Lancers.png" : "/Images/HC_Lopaty_Praha.png"} 
-                                alt={event.isHomeTeam ? "Litvínov Lancers" : "HC Lopaty Praha"}
-                                className="h-6 object-contain"
-                              />
+                              {event.type !== 'period' && (
+                                <img 
+                                  src={event.isHomeTeam ? "/Images/Litvinov_Lancers.png" : "/Images/HC_Lopaty_Praha.png"} 
+                                  alt={event.isHomeTeam ? "Litvínov Lancers" : "HC Lopaty Praha"}
+                                  className="h-6 object-contain"
+                                />
+                              )}
                             </div>
                             {event.type === 'goal' && (
                               <div className="flex items-center gap-2">
