@@ -267,10 +267,9 @@ const CardGame = () => {
 
     // Přidáme čas události
     const period = Math.floor(eventTime / 1200) + 1;
-    const baseMinutes = (period - 1) * 20; // Základní minuty podle třetiny (0, 20, 40)
-    const periodSeconds = eventTime % 1200; // Sekundy v aktuální třetině
-    const mins = baseMinutes + Math.floor(periodSeconds / 60);
-    const secs = periodSeconds % 60;
+    const totalSeconds = eventTime;
+    const mins = Math.floor(totalSeconds / 60);
+    const secs = totalSeconds % 60;
     const eventTimeFormatted = `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
 
     const powerPlay = matchState.penalties.length > 0;
@@ -630,16 +629,6 @@ const CardGame = () => {
       
       const awayTeamStrength = opponentTeam.forwards.reduce((sum, p) => sum + p.level, 0) +
                               opponentTeam.defenders.reduce((sum, p) => sum + p.level, 0);
-      
-      // Základní počet střel je 15-25, plus bonus podle síly týmu
-      const baseMinShots = 15;
-      const baseMaxShots = 25;
-      
-      // Silnější tým dostane více střel
-      const homeShots = Math.floor(Math.random() * (baseMaxShots - baseMinShots + 1)) + baseMinShots +
-                       Math.floor(homeTeamStrength / 2);
-      const awayShots = Math.floor(Math.random() * (baseMaxShots - baseMinShots + 1)) + baseMinShots +
-                       Math.floor(awayTeamStrength / 2);
 
       setMatchState(prev => {
         // Generujeme počáteční události pro první třetinu
@@ -657,16 +646,18 @@ const CardGame = () => {
             goals: {},
             assists: {},
             saves: {
-              [selectedTeam.goalkeeper]: homeShots,
-              [opponentTeam.goalkeeper.id]: awayShots
+              [selectedTeam.goalkeeper]: 0,
+              [opponentTeam.goalkeeper.id]: 0
             },
             shots: {
-              [selectedTeam.goalkeeper]: homeShots,
-              [opponentTeam.goalkeeper.id]: awayShots
+              [selectedTeam.goalkeeper]: 0,
+              [opponentTeam.goalkeeper.id]: 0
             }
           },
           penalties: [],
-          scheduledEvents: initialEventTimes.sort((a, b) => b - a) // Seřadíme sestupně
+          scheduledEvents: initialEventTimes.sort((a, b) => b - a), // Seřadíme sestupně
+          homeTeamStrength,
+          awayTeamStrength
         };
       });
     }
@@ -687,7 +678,38 @@ const CardGame = () => {
         return times.sort((a, b) => b - a); // Seřadíme sestupně pro snadnější kontrolu
       };
 
-      const timer = setInterval(() => {
+      // Timer pro přidávání střel mimo události
+      const shotTimer = setInterval(() => {
+        setMatchState(prev => {
+          // Šance na střelu závisí na síle týmu
+          const homeChance = prev.homeTeamStrength / 100;
+          const awayChance = prev.awayTeamStrength / 100;
+
+          // Náhodně určíme, jestli padne střela
+          const homeShot = Math.random() < homeChance;
+          const awayShot = Math.random() < awayChance;
+
+          return {
+            ...prev,
+            playerStats: {
+              ...prev.playerStats,
+              shots: {
+                ...prev.playerStats.shots,
+                [selectedTeam.goalkeeper]: prev.playerStats.shots[selectedTeam.goalkeeper] + (awayShot ? 1 : 0),
+                [opponentTeam.goalkeeper.id]: prev.playerStats.shots[opponentTeam.goalkeeper.id] + (homeShot ? 1 : 0)
+              },
+              saves: {
+                ...prev.playerStats.saves,
+                [selectedTeam.goalkeeper]: prev.playerStats.saves[selectedTeam.goalkeeper] + (awayShot ? 1 : 0),
+                [opponentTeam.goalkeeper.id]: prev.playerStats.saves[opponentTeam.goalkeeper.id] + (homeShot ? 1 : 0)
+              }
+            }
+          };
+        });
+      }, 3000); // Každé 3 sekundy kontrolujeme možnost střely
+
+      // Hlavní herní timer
+      const gameTimer = setInterval(() => {
         setMatchState(prev => {
           const timeDecrease = prev.gameSpeed;
           const newTime = prev.time - timeDecrease;
@@ -711,12 +733,13 @@ const CardGame = () => {
                 events: [...prev.events, { 
                   type: 'period',
                   message: `Konec ${prev.period}. třetiny!`,
-                  time: `${prev.period === 1 ? '20' : prev.period === 2 ? '40' : '60'}:00`, // Upravený čas podle třetiny
+                  time: `${prev.period === 1 ? '20' : prev.period === 2 ? '40' : '60'}:00`,
                   id: Date.now()
                 }]
               };
             } else {
-              clearInterval(timer);
+              clearInterval(gameTimer);
+              clearInterval(shotTimer);
               const result = prev.score.home > prev.score.away ? 'victory' : 'defeat';
               setMatchResult(result);
               setShowRewards(true);
@@ -787,7 +810,10 @@ const CardGame = () => {
         });
       }, 1000);
 
-      return () => clearInterval(timer);
+      return () => {
+        clearInterval(gameTimer);
+        clearInterval(shotTimer);
+      };
     }
   }, [matchState.isPlaying]);
 
