@@ -1450,27 +1450,27 @@ const CardGame = () => {
     }
   };
 
+  // Funkce pro seřazení týmů podle bodů a skóre
+  const sortTeams = (teams) => {
+    return [...teams].sort((a, b) => {
+      // 1. Porovnání podle bodů
+      if (b.points !== a.points) return b.points - a.points;
+      
+      // 2. Porovnání podle skóre (rozdíl vstřelených a obdržených gólů)
+      const aGoalDiff = a.score.for - a.score.against;
+      const bGoalDiff = b.score.for - b.score.against;
+      if (bGoalDiff !== aGoalDiff) return bGoalDiff - aGoalDiff;
+      
+      // 3. Porovnání podle počtu vstřelených gólů
+      if (b.score.for !== a.score.for) return b.score.for - a.score.for;
+      
+      // 4. Náhodné pořadí při shodě všech kritérií
+      return Math.random() - 0.5;
+    });
+  };
+
   // Funkce pro generování playoff zápasů
   const generatePlayoffMatches = () => {
-    // Seřadíme týmy v každé skupině podle bodů
-    const sortTeams = (teams) => {
-      return [...teams].sort((a, b) => {
-        // 1. Porovnání podle bodů
-        if (b.points !== a.points) return b.points - a.points;
-        
-        // 2. Porovnání podle skóre (rozdíl vstřelených a obdržených gólů)
-        const aGoalDiff = a.score.for - a.score.against;
-        const bGoalDiff = b.score.for - b.score.against;
-        if (bGoalDiff !== aGoalDiff) return bGoalDiff - aGoalDiff;
-        
-        // 3. Porovnání podle počtu vstřelených gólů
-        if (b.score.for !== a.score.for) return b.score.for - a.score.for;
-        
-        // 4. Náhodné pořadí při shodě všech kritérií
-        return Math.random() - 0.5;
-      });
-    };
-
     const groupA = sortTeams(tournamentState.groups.A);
     const groupB = sortTeams(tournamentState.groups.B);
 
