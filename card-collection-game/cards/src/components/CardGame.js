@@ -1210,10 +1210,29 @@ const CardGame = () => {
           currentMatchIndex: prev.currentMatchIndex + 1
         }));
 
-        // Po skončení zápasu se vrátíme do turnajového menu
+        // Po skončení zápasu se vrátíme do turnajového menu a vynulujeme stav zápasu
         setTimeout(() => {
           setShowMatch(false);
           setShowTournament(true);
+          setMatchState(prev => ({
+            ...prev,
+            period: 1,
+            time: 1200,
+            score: { home: 0, away: 0 },
+            events: [],
+            isPlaying: false,
+            gameSpeed: 1,
+            playerStats: {
+              goals: {},
+              assists: {},
+              saves: {},
+              saveAccuracy: {},
+              shots: {}
+            },
+            penalties: [],
+            scheduledEvents: [],
+            currentOpponent: null
+          }));
           
           // Kontrola, jestli jsme dokončili skupinovou fázi
           if (tournamentState.currentMatchIndex === tournamentState.matches.groups.length - 1) {
@@ -2312,6 +2331,25 @@ const CardGame = () => {
                   onClick={() => {
                     setShowRewards(false);
                     setShowMatch(false);
+                    setMatchState(prev => ({
+                      ...prev,
+                      period: 1,
+                      time: 1200,
+                      score: { home: 0, away: 0 },
+                      events: [],
+                      isPlaying: false,
+                      gameSpeed: 1,
+                      playerStats: {
+                        goals: {},
+                        assists: {},
+                        saves: {},
+                        saveAccuracy: {},
+                        shots: {}
+                      },
+                      penalties: [],
+                      scheduledEvents: [],
+                      currentOpponent: null
+                    }));
                   }}
                   className="w-full bg-gradient-to-r from-yellow-500 to-yellow-600 hover:from-yellow-600 hover:to-yellow-700 text-black font-bold py-3 px-6 rounded-xl shadow-lg transform transition-all duration-300 hover:scale-105 active:scale-95"
                 >
