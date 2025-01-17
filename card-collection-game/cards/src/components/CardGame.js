@@ -265,6 +265,10 @@ const CardGame = () => {
       goalkeeper: isHomeTeam ? selectedTeam.goalkeeper : opponentTeam.goalkeeper
     };
 
+    // Přidáme čas události
+    const currentTime = matchState.time;
+    const eventTime = formatTime(currentTime);
+
     const powerPlay = matchState.penalties.length > 0;
     const baseChance = powerPlay 
       ? (isHomeTeam === matchState.penalties[0].isHomeTeam ? 0.4 : 0.6)
@@ -328,7 +332,7 @@ const CardGame = () => {
           level: shooterLevel,
           assistLevel: assist ? assistLevel : null,
           message: `Góóól! Střelec: ${isHomeTeam ? cards.find(c => c.id === shooter).name : shooter.name} ${selectedShotType}${assist ? `, asistence: ${isHomeTeam ? cards.find(c => c.id === assist).name : assist.name}` : ''}!`,
-          time: formatTime(matchState.time),
+          time: eventTime,
           id: Date.now()
         };
       } else {
@@ -347,7 +351,7 @@ const CardGame = () => {
           player: isHomeTeam ? opponentTeam.goalkeeper.name : cards.find(c => c.id === selectedTeam.goalkeeper).name,
           level: opposingGoalieLevel,
           message: `${selectedSaveType.charAt(0).toUpperCase() + selectedSaveType.slice(1)} předvedl ${isHomeTeam ? opponentTeam.goalkeeper.name : cards.find(c => c.id === selectedTeam.goalkeeper).name}!`,
-          time: formatTime(matchState.time),
+          time: eventTime,
           id: Date.now()
         };
       }
@@ -371,7 +375,7 @@ const CardGame = () => {
         player: isHomeTeam ? cards.find(c => c.id === hitter).name : hitter.name,
         level: hitterLevel,
         message: `${isHomeTeam ? cards.find(c => c.id === hitter).name : hitter.name} předvádí ${selectedHitType}!`,
-        time: formatTime(matchState.time),
+        time: eventTime,
         id: Date.now()
       };
     } else if (selectedEventType === 'block') {
@@ -392,7 +396,7 @@ const CardGame = () => {
         player: isHomeTeam ? cards.find(c => c.id === blocker).name : blocker.name,
         level: blockerLevel,
         message: `${isHomeTeam ? cards.find(c => c.id === blocker).name : blocker.name} ${selectedBlockType}!`,
-        time: formatTime(matchState.time),
+        time: eventTime,
         id: Date.now()
       };
     } else if (selectedEventType === 'pass') {
@@ -415,7 +419,7 @@ const CardGame = () => {
         player: isHomeTeam ? cards.find(c => c.id === passer).name : passer.name,
         level: passerLevel,
         message: `${isHomeTeam ? cards.find(c => c.id === passer).name : passer.name} předvádí ${selectedPassType}!`,
-        time: formatTime(matchState.time),
+        time: eventTime,
         id: Date.now()
       };
     } else if (selectedEventType === 'penalty') {
@@ -440,6 +444,7 @@ const CardGame = () => {
         player: isHomeTeam ? cards.find(c => c.id === penalizedPlayer).name : penalizedPlayer.name,
         level: isHomeTeam ? getCardLevel(penalizedPlayer) : penalizedPlayer.level,
         message: `${penalty.text} - ${isHomeTeam ? cards.find(c => c.id === penalizedPlayer).name : penalizedPlayer.name} ${penalty.desc}`,
+        time: eventTime,
         duration: 120,
         playerId: isHomeTeam ? penalizedPlayer : penalizedPlayer.id,
         timeLeft: 120,
@@ -605,8 +610,10 @@ const CardGame = () => {
         const numEvents = Math.floor(Math.random() * (12 - 5 + 1)) + 5; // 5-12 událostí
         const times = [];
         for (let i = 0; i < numEvents; i++) {
-          // Generujeme časy v sekundách, ale ukládáme je v milisekundách pro přesnější porovnání
-          times.push(Math.floor(Math.random() * 1200) * 1000);
+          // Generujeme časy v sekundách pro aktuální třetinu
+          const minTime = matchState.period === 1 ? 5 : (matchState.period - 1) * 1200 + 5;
+          const maxTime = matchState.period * 1200;
+          times.push(Math.floor(Math.random() * (maxTime - minTime) + minTime));
         }
         return times.sort((a, b) => b - a); // Seřadíme sestupně pro snadnější kontrolu
       };
@@ -615,7 +622,7 @@ const CardGame = () => {
         setMatchState(prev => {
           const timeDecrease = prev.gameSpeed;
           const newTime = prev.time - timeDecrease;
-          const currentTimeMs = (1200 - newTime) * 1000; // Převedeme aktuální čas na milisekundy
+          const currentTimeMs = (1200 - newTime); // Převedeme aktuální čas na sekundy
 
           // Aktualizace penalt
           const updatedPenalties = prev.penalties.map(penalty => ({
@@ -635,7 +642,7 @@ const CardGame = () => {
                 events: [...prev.events, { 
                   type: 'period',
                   message: `Konec ${prev.period}. třetiny!`,
-                  time: '00:00',
+                  time: formatTime(0), // Konec třetiny je v čase 20:00, 40:00 nebo 60:00
                   id: Date.now()
                 }]
               };
@@ -673,7 +680,7 @@ const CardGame = () => {
             }
           }
 
-          // Kontrola, zda má nastat událost - porovnáváme v milisekundách
+          // Kontrola, zda má nastat událost
           while (prev.scheduledEvents.length > 0 && prev.scheduledEvents[prev.scheduledEvents.length - 1] <= currentTimeMs) {
             const event = generateGameEvent();
             prev.scheduledEvents.pop(); // Odstraníme použitý čas
