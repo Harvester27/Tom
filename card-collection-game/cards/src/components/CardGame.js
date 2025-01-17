@@ -251,7 +251,7 @@ const CardGame = () => {
     ]
   };
 
-  const generateGameEvent = () => {
+  const generateGameEvent = (eventTime) => {
     const isHomeTeam = Math.random() < 0.5;
     const team = isHomeTeam ? selectedTeam : opponentTeam;
     
@@ -266,8 +266,11 @@ const CardGame = () => {
     };
 
     // Přidáme čas události
-    const currentTime = matchState.time;
-    const eventTime = formatTime(currentTime);
+    const period = Math.floor(eventTime / 1200) + 1;
+    const periodSeconds = eventTime;
+    const mins = Math.floor(periodSeconds / 60);
+    const secs = periodSeconds % 60;
+    const eventTimeFormatted = `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
 
     const powerPlay = matchState.penalties.length > 0;
     const baseChance = powerPlay 
@@ -332,7 +335,7 @@ const CardGame = () => {
           level: shooterLevel,
           assistLevel: assist ? assistLevel : null,
           message: `Góóól! Střelec: ${isHomeTeam ? cards.find(c => c.id === shooter).name : shooter.name} ${selectedShotType}${assist ? `, asistence: ${isHomeTeam ? cards.find(c => c.id === assist).name : assist.name}` : ''}!`,
-          time: eventTime,
+          time: eventTimeFormatted,
           id: Date.now()
         };
       } else {
@@ -351,7 +354,7 @@ const CardGame = () => {
           player: isHomeTeam ? opponentTeam.goalkeeper.name : cards.find(c => c.id === selectedTeam.goalkeeper).name,
           level: opposingGoalieLevel,
           message: `${selectedSaveType.charAt(0).toUpperCase() + selectedSaveType.slice(1)} předvedl ${isHomeTeam ? opponentTeam.goalkeeper.name : cards.find(c => c.id === selectedTeam.goalkeeper).name}!`,
-          time: eventTime,
+          time: eventTimeFormatted,
           id: Date.now()
         };
       }
@@ -375,7 +378,7 @@ const CardGame = () => {
         player: isHomeTeam ? cards.find(c => c.id === hitter).name : hitter.name,
         level: hitterLevel,
         message: `${isHomeTeam ? cards.find(c => c.id === hitter).name : hitter.name} předvádí ${selectedHitType}!`,
-        time: eventTime,
+        time: eventTimeFormatted,
         id: Date.now()
       };
     } else if (selectedEventType === 'block') {
@@ -396,7 +399,7 @@ const CardGame = () => {
         player: isHomeTeam ? cards.find(c => c.id === blocker).name : blocker.name,
         level: blockerLevel,
         message: `${isHomeTeam ? cards.find(c => c.id === blocker).name : blocker.name} ${selectedBlockType}!`,
-        time: eventTime,
+        time: eventTimeFormatted,
         id: Date.now()
       };
     } else if (selectedEventType === 'pass') {
@@ -419,7 +422,7 @@ const CardGame = () => {
         player: isHomeTeam ? cards.find(c => c.id === passer).name : passer.name,
         level: passerLevel,
         message: `${isHomeTeam ? cards.find(c => c.id === passer).name : passer.name} předvádí ${selectedPassType}!`,
-        time: eventTime,
+        time: eventTimeFormatted,
         id: Date.now()
       };
     } else if (selectedEventType === 'penalty') {
@@ -444,7 +447,7 @@ const CardGame = () => {
         player: isHomeTeam ? cards.find(c => c.id === penalizedPlayer).name : penalizedPlayer.name,
         level: isHomeTeam ? getCardLevel(penalizedPlayer) : penalizedPlayer.level,
         message: `${penalty.text} - ${isHomeTeam ? cards.find(c => c.id === penalizedPlayer).name : penalizedPlayer.name} ${penalty.desc}`,
-        time: eventTime,
+        time: eventTimeFormatted,
         duration: 120,
         playerId: isHomeTeam ? penalizedPlayer : penalizedPlayer.id,
         timeLeft: 120,
@@ -642,7 +645,7 @@ const CardGame = () => {
                 events: [...prev.events, { 
                   type: 'period',
                   message: `Konec ${prev.period}. třetiny!`,
-                  time: formatTime(0), // Konec třetiny je v čase 20:00, 40:00 nebo 60:00
+                  time: `${prev.period === 1 ? '20' : prev.period === 2 ? '40' : '60'}:00`, // Upravený čas podle třetiny
                   id: Date.now()
                 }]
               };
@@ -652,20 +655,6 @@ const CardGame = () => {
               setMatchResult(result);
               setShowRewards(true);
               
-              const xpReward = result === 'victory' ? 20 : 5;
-              const moneyReward = result === 'victory' ? 50 : 20;
-              
-              setXp(currentXp => {
-                const newXp = currentXp + xpReward;
-                if (newXp >= 20) {
-                  setLevel(currentLevel => currentLevel + 1);
-                  return newXp - 20;
-                }
-                return newXp;
-              });
-              
-              setMoney(current => current + moneyReward);
-              
               return {
                 ...prev,
                 isPlaying: false,
@@ -673,7 +662,7 @@ const CardGame = () => {
                 events: [...prev.events, {
                   type: 'end',
                   message: 'Konec zápasu!',
-                  time: '00:00',
+                  time: '60:00',
                   id: Date.now()
                 }]
               };
@@ -682,7 +671,8 @@ const CardGame = () => {
 
           // Kontrola, zda má nastat událost
           while (prev.scheduledEvents.length > 0 && prev.scheduledEvents[prev.scheduledEvents.length - 1] <= currentTimeMs) {
-            const event = generateGameEvent();
+            const eventTime = prev.scheduledEvents[prev.scheduledEvents.length - 1];
+            const event = generateGameEvent(eventTime);
             prev.scheduledEvents.pop(); // Odstraníme použitý čas
 
             if (event) {
