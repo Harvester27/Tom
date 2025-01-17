@@ -37,6 +37,29 @@ const CardGame = () => {
   });
   const [activePosition, setActivePosition] = useState(null);
   const [showMatch, setShowMatch] = useState(false);
+  const [showTournament, setShowTournament] = useState(false);
+  const [tournamentState, setTournamentState] = useState({
+    groups: {
+      A: [
+        { name: "Kafáč Bílina", points: 0, score: { for: 0, against: 0 } },
+        { name: "North Blades", points: 0, score: { for: 0, against: 0 } },
+        { name: "Litvínov Lancers", points: 0, score: { for: 0, against: 0 } }
+      ],
+      B: [
+        { name: "Gin Tonic", points: 0, score: { for: 0, against: 0 } },
+        { name: "Gurmáni Žatec", points: 0, score: { for: 0, against: 0 } },
+        { name: "Predátors Nymburk", points: 0, score: { for: 0, against: 0 } }
+      ]
+    },
+    matches: {
+      groups: [], // Zápasy ve skupinách
+      playoff: [], // Zápasy v playoff
+      current: null // Aktuální zápas
+    },
+    phase: 'groups', // groups, playoff, finished
+    currentMatchIndex: 0
+  });
+  const [cardLevels, setCardLevels] = useState({});
   const [matchState, setMatchState] = useState({
     period: 1,
     time: 1200,
@@ -54,7 +77,6 @@ const CardGame = () => {
     penalties: [],
     scheduledEvents: [] // Přidáme nové pole pro naplánované události
   });
-  const [cardLevels, setCardLevels] = useState({});
 
   useEffect(() => {
     // Načtení levelů karet z localStorage při prvním načtení
@@ -902,6 +924,46 @@ const CardGame = () => {
     setSelectedCard(sameCards[newIndex]);
   };
 
+  const startTournament = () => {
+    if (canPlayMatch()) {
+      setShowTournament(true);
+      // Vygenerujeme zápasy ve skupinách
+      const groupMatches = [];
+      
+      // Skupina A
+      for (let i = 0; i < tournamentState.groups.A.length; i++) {
+        for (let j = i + 1; j < tournamentState.groups.A.length; j++) {
+          groupMatches.push({
+            home: tournamentState.groups.A[i].name,
+            away: tournamentState.groups.A[j].name,
+            group: 'A',
+            score: null
+          });
+        }
+      }
+      
+      // Skupina B
+      for (let i = 0; i < tournamentState.groups.B.length; i++) {
+        for (let j = i + 1; j < tournamentState.groups.B.length; j++) {
+          groupMatches.push({
+            home: tournamentState.groups.B[i].name,
+            away: tournamentState.groups.B[j].name,
+            group: 'B',
+            score: null
+          });
+        }
+      }
+      
+      setTournamentState(prev => ({
+        ...prev,
+        matches: {
+          ...prev.matches,
+          groups: groupMatches
+        }
+      }));
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gradient-radial from-blue-900 via-blue-950 to-black text-white p-8">
       <style jsx global>{`
@@ -973,7 +1035,7 @@ const CardGame = () => {
                   Hrát zápas {!canPlayMatch() && '(Neúplná sestava)'}
                 </button>
                 <button
-                  onClick={() => canPlayMatch() ? alert('Můžete začít turnaj!') : alert('Pro turnaj potřebujete: 1 brankáře, 2 obránce a 3 útočníky!')}
+                  onClick={() => canPlayMatch() ? startTournament() : alert('Pro turnaj potřebujete: 1 brankáře, 2 obránce a 3 útočníky!')}
                   className={`bg-gradient-to-r ${canPlayMatch() ? 'from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700' : 'from-gray-500 to-gray-600 cursor-not-allowed'} 
                     text-white font-bold py-3 px-8 rounded-xl shadow-lg transform transition-all duration-300 
                     ${canPlayMatch() ? 'hover:scale-105 active:scale-95' : ''} border-2 border-white/20`}
@@ -1178,7 +1240,7 @@ const CardGame = () => {
                 Hrát zápas {!canPlayMatch() && '(Neúplná sestava)'}
               </button>
               <button
-                onClick={() => canPlayMatch() ? alert('Můžete začít turnaj!') : alert('Pro turnaj potřebujete: 1 brankáře, 2 obránce a 3 útočníky!')}
+                onClick={() => canPlayMatch() ? startTournament() : alert('Pro turnaj potřebujete: 1 brankáře, 2 obránce a 3 útočníky!')}
                 className={`bg-gradient-to-r ${canPlayMatch() ? 'from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700' : 'from-gray-500 to-gray-600 cursor-not-allowed'} 
                   text-white font-bold py-3 px-6 rounded-xl shadow-lg transform transition-all duration-300 
                   ${canPlayMatch() ? 'hover:scale-105 active:scale-95' : ''}`}
@@ -1798,6 +1860,81 @@ const CardGame = () => {
                 </div>
               </div>
             ))}
+          </div>
+        )}
+
+        {showTournament && (
+          <div className="fixed inset-0 bg-black/90 flex flex-col items-center justify-center z-50 p-8">
+            <div className="w-full max-w-7xl mx-auto">
+              <h2 className="text-4xl font-bold text-yellow-400 mb-8 text-center">Hokejový turnaj</h2>
+              
+              {/* Skupiny */}
+              <div className="grid grid-cols-2 gap-8 mb-8">
+                {/* Skupina A */}
+                <div className="bg-black/50 p-6 rounded-xl">
+                  <h3 className="text-2xl font-bold text-yellow-400 mb-4">Skupina A</h3>
+                  <div className="space-y-4">
+                    {tournamentState.groups.A.map((team, index) => (
+                      <div key={team.name} className="flex justify-between items-center bg-black/30 p-4 rounded-lg">
+                        <span className="text-white">{team.name}</span>
+                        <div className="flex gap-4">
+                          <span className="text-yellow-400">{team.points} bodů</span>
+                          <span className="text-gray-400">{team.score.for}:{team.score.against}</span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Skupina B */}
+                <div className="bg-black/50 p-6 rounded-xl">
+                  <h3 className="text-2xl font-bold text-yellow-400 mb-4">Skupina B</h3>
+                  <div className="space-y-4">
+                    {tournamentState.groups.B.map((team, index) => (
+                      <div key={team.name} className="flex justify-between items-center bg-black/30 p-4 rounded-lg">
+                        <span className="text-white">{team.name}</span>
+                        <div className="flex gap-4">
+                          <span className="text-yellow-400">{team.points} bodů</span>
+                          <span className="text-gray-400">{team.score.for}:{team.score.against}</span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              {/* Následující zápas */}
+              {tournamentState.matches.groups.length > 0 && (
+                <div className="bg-black/50 p-6 rounded-xl mb-8">
+                  <h3 className="text-2xl font-bold text-yellow-400 mb-4">Následující zápas</h3>
+                  <div className="flex justify-between items-center bg-black/30 p-6 rounded-lg">
+                    <div className="text-xl text-white">{tournamentState.matches.groups[0].home}</div>
+                    <div className="text-2xl text-yellow-400 font-bold">vs</div>
+                    <div className="text-xl text-white">{tournamentState.matches.groups[0].away}</div>
+                  </div>
+                  <div className="flex justify-center mt-4">
+                    <button
+                      onClick={() => {
+                        // Zde bude logika pro spuštění zápasu
+                      }}
+                      className="bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 
+                        text-white font-bold py-3 px-8 rounded-xl shadow-lg transform transition-all duration-300 
+                        hover:scale-105 active:scale-95"
+                    >
+                      Hrát zápas
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {/* Playoff pavouk (bude zobrazen později) */}
+              {tournamentState.phase === 'playoff' && (
+                <div className="bg-black/50 p-6 rounded-xl">
+                  <h3 className="text-2xl font-bold text-yellow-400 mb-4">Playoff</h3>
+                  {/* Zde bude struktura playoff */}
+                </div>
+              )}
+            </div>
           </div>
         )}
       </div>
