@@ -593,7 +593,7 @@ const CardGame = () => {
         const initialEventTimes = [];
         const numEvents = Math.floor(Math.random() * (12 - 5 + 1)) + 5; // 5-12 událostí
         for (let i = 0; i < numEvents; i++) {
-          initialEventTimes.push(Math.floor(Math.random() * 1200));
+          initialEventTimes.push(Math.floor(Math.random() * 1200) * 1000); // Ukládáme v milisekundách
         }
         return { 
           ...prev, 
@@ -620,7 +620,8 @@ const CardGame = () => {
         const numEvents = Math.floor(Math.random() * (12 - 5 + 1)) + 5; // 5-12 událostí
         const times = [];
         for (let i = 0; i < numEvents; i++) {
-          times.push(Math.floor(Math.random() * 1200)); // Náhodný čas v třetině (0-1200 sekund)
+          // Generujeme časy v sekundách, ale ukládáme je v milisekundách pro přesnější porovnání
+          times.push(Math.floor(Math.random() * 1200) * 1000);
         }
         return times.sort((a, b) => b - a); // Seřadíme sestupně pro snadnější kontrolu
       };
@@ -629,6 +630,7 @@ const CardGame = () => {
         setMatchState(prev => {
           const timeDecrease = prev.gameSpeed;
           const newTime = prev.time - timeDecrease;
+          const currentTimeMs = (1200 - newTime) * 1000; // Převedeme aktuální čas na milisekundy
 
           // Aktualizace penalt
           const updatedPenalties = prev.penalties.map(penalty => ({
@@ -686,8 +688,8 @@ const CardGame = () => {
             }
           }
 
-          // Kontrola, zda má nastat událost
-          if (prev.scheduledEvents.length > 0 && prev.scheduledEvents[prev.scheduledEvents.length - 1] >= newTime) {
+          // Kontrola, zda má nastat událost - porovnáváme v milisekundách
+          while (prev.scheduledEvents.length > 0 && prev.scheduledEvents[prev.scheduledEvents.length - 1] <= currentTimeMs) {
             const event = generateGameEvent();
             prev.scheduledEvents.pop(); // Odstraníme použitý čas
 
