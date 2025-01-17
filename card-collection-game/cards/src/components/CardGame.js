@@ -325,7 +325,22 @@ const CardGame = () => {
       const selectedShotType = shotTypes[Math.floor(Math.random() * shotTypes.length)];
 
       if (Math.random() < goalChance) {
-        // Přidáme gól do skóre podle toho, který tým skóroval
+        // Aktualizujeme statistiky
+        setMatchState(prev => ({
+          ...prev,
+          playerStats: {
+            ...prev.playerStats,
+            goals: {
+              ...prev.playerStats.goals,
+              [shooter]: (prev.playerStats.goals[shooter] || 0) + 1
+            },
+            assists: assist ? {
+              ...prev.playerStats.assists,
+              [assist]: (prev.playerStats.assists[assist] || 0) + 1
+            } : prev.playerStats.assists
+          }
+        }));
+
         return {
           type: 'goal',
           isHomeTeam,
@@ -1495,7 +1510,7 @@ const CardGame = () => {
                       Průběh zápasu
                     </h3>
                     <div className="space-y-4 max-h-[calc(90vh-200px)] overflow-y-auto pr-4">
-                      {matchState.events.map(event => (
+                      {[...matchState.events].reverse().map(event => (
                         <div
                           key={event.id}
                           className={`p-4 rounded-lg ${
