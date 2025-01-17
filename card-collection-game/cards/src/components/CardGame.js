@@ -534,7 +534,6 @@ const CardGame = () => {
 
   const handleDecision = (option) => {
     const success = Math.random() < option.successRate;
-    const isHomeTeam = true; // Speciální události jsou vždy pro domácí tým
     
     setShowDecision(false);
     setCurrentDecision(null);
