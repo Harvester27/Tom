@@ -925,43 +925,44 @@ const CardGame = () => {
       setShowMatch(true);
       setShowTeamSelection(false);
       
-      // Vypočítáme sílu týmů (součet levelů útočníků a obránců)
-      const homeTeamStrength = selectedTeam.forwards.reduce((sum, id) => sum + getCardLevel(id), 0) +
-                              selectedTeam.defenders.reduce((sum, id) => sum + getCardLevel(id), 0);
-      
-      const awayTeamStrength = opponentTeam.forwards.reduce((sum, p) => sum + p.level, 0) +
-                              opponentTeam.defenders.reduce((sum, p) => sum + p.level, 0);
-
-      setMatchState(prev => {
-        // Generujeme počáteční události pro první třetinu
-        const initialEventTimes = [];
-        const numEvents = Math.floor(Math.random() * (12 - 5 + 1)) + 5; // 5-12 událostí
-        for (let i = 0; i < numEvents; i++) {
-          // Generujeme časy mezi 5 a 1200 sekundami pro první třetinu
-          initialEventTimes.push(Math.floor(Math.random() * (1200 - 5) + 5));
-        }
-        return { 
-          ...prev, 
-          isPlaying: true,
-          score: { home: 0, away: 0 },
-          playerStats: {
-            goals: {},
-            assists: {},
-            saves: {
-              [selectedTeam.goalkeeper]: 0,
-              [opponentTeam.goalkeeper.id]: 0
+      // Pokud jsme v turnaji, nastavíme soupeře podle aktuálního zápasu
+      const currentMatch = tournamentState.matches.groups[tournamentState.currentMatchIndex];
+      if (currentMatch) {
+        const isHomeTeam = currentMatch.home === selectedTeam.name;
+        const opponentName = isHomeTeam ? currentMatch.away : currentMatch.home;
+        const opponent = getTeamByName(opponentName);
+        
+        setMatchState(prev => {
+          const initialEventTimes = [];
+          const numEvents = Math.floor(Math.random() * (12 - 5 + 1)) + 5;
+          for (let i = 0; i < numEvents; i++) {
+            initialEventTimes.push(Math.floor(Math.random() * (1200 - 5) + 5));
+          }
+          return { 
+            ...prev, 
+            isPlaying: true,
+            score: { home: 0, away: 0 },
+            playerStats: {
+              goals: {},
+              assists: {},
+              saves: {
+                [selectedTeam.goalkeeper]: 0,
+                [opponent.goalkeeper.id]: 0
+              },
+              shots: {
+                [selectedTeam.goalkeeper]: 0,
+                [opponent.goalkeeper.id]: 0
+              }
             },
-            shots: {
-              [selectedTeam.goalkeeper]: 0,
-              [opponentTeam.goalkeeper.id]: 0
-            }
-          },
-          penalties: [],
-          scheduledEvents: initialEventTimes.sort((a, b) => b - a), // Seřadíme sestupně
-          homeTeamStrength,
-          awayTeamStrength
-        };
-      });
+            penalties: [],
+            scheduledEvents: initialEventTimes.sort((a, b) => b - a),
+            currentOpponent: opponent
+          };
+        });
+      } else {
+        // Standardní zápas mimo turnaj
+        // ... existing code for normal match ...
+      }
     }
   };
 
@@ -1154,6 +1155,38 @@ const CardGame = () => {
       return () => {
         clearInterval(gameTimer);
       };
+    } else if (showMatch && !matchState.isPlaying && tournamentState.currentMatchIndex !== undefined) {
+      // Po skončení zápasu v turnaji aktualizujeme výsledky
+      const currentMatch = tournamentState.matches.groups[tournamentState.currentMatchIndex];
+      if (currentMatch) {
+        const homeTeam = getTeamByName(currentMatch.home);
+        const awayTeam = getTeamByName(currentMatch.away);
+        const score = { home: matchState.score.home, away: matchState.score.away };
+        
+        updateTournamentStandings(homeTeam, awayTeam, score);
+        
+        setTournamentState(prev => ({
+          ...prev,
+          matches: {
+            ...prev.matches,
+            groups: prev.matches.groups.map((match, index) => 
+              index === prev.currentMatchIndex ? { ...match, score } : match
+            )
+          },
+          currentMatchIndex: prev.currentMatchIndex + 1
+        }));
+
+        // Po skončení zápasu se vrátíme do turnajového menu
+        setTimeout(() => {
+          setShowMatch(false);
+          setShowTournament(true);
+          
+          // Kontrola, jestli jsme dokončili skupinovou fázi
+          if (tournamentState.currentMatchIndex === tournamentState.matches.groups.length - 1) {
+            generatePlayoffMatches();
+          }
+        }, 2000);
+      }
     }
   }, [matchState.isPlaying]);
 
@@ -1335,13 +1368,19 @@ const CardGame = () => {
     const currentMatch = tournamentState.matches.groups[tournamentState.currentMatchIndex];
     if (!currentMatch) return;
 
+    // Pokud hraje hráčův tým, zobrazíme výběr sestavy
+    if (currentMatch.home === selectedTeam.name || currentMatch.away === selectedTeam.name) {
+      setShowTournament(false);
+      setShowTeamSelection(true);
+      return;
+    }
+
     const homeTeam = getTeamByName(currentMatch.home);
     const awayTeam = getTeamByName(currentMatch.away);
     
     const score = playTournamentMatch(homeTeam, awayTeam);
     updateTournamentStandings(homeTeam, awayTeam, score);
 
-    // Aktualizujeme seznam zápasů
     setTournamentState(prev => ({
       ...prev,
       matches: {
@@ -1353,7 +1392,6 @@ const CardGame = () => {
       currentMatchIndex: prev.currentMatchIndex + 1
     }));
 
-    // Kontrola, jestli jsme dokončili skupinovou fázi
     if (tournamentState.currentMatchIndex === tournamentState.matches.groups.length - 1) {
       generatePlayoffMatches();
     }
