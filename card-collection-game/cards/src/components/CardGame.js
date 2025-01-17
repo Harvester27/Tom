@@ -1187,7 +1187,15 @@ const CardGame = () => {
       if (currentMatch) {
         const homeTeam = getTeamByName(currentMatch.home);
         const awayTeam = getTeamByName(currentMatch.away);
-        const score = { home: matchState.score.home, away: matchState.score.away };
+        
+        // Zjistíme, jestli je hráčův tým domácí nebo hostující
+        const isPlayerHomeTeam = currentMatch.home === selectedTeam.name;
+        
+        // Pokud je hráčův tým domácí, použijeme skóre tak jak je
+        // Pokud je hostující, musíme skóre prohodit
+        const score = isPlayerHomeTeam 
+          ? { home: matchState.score.home, away: matchState.score.away }
+          : { home: matchState.score.away, away: matchState.score.home };
         
         updateTournamentStandings(homeTeam, awayTeam, score);
         
