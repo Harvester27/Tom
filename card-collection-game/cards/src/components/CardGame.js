@@ -53,8 +53,6 @@ const CardGame = () => {
     penalties: []
   });
   const [cardLevels, setCardLevels] = useState({});
-  const [showDecision, setShowDecision] = useState(false);
-  const [currentDecision, setCurrentDecision] = useState(null);
 
   useEffect(() => {
     // Načtení levelů karet z localStorage při prvním načtení
@@ -336,25 +334,6 @@ const CardGame = () => {
 
       if (Math.random() < goalChance) {
         // Přidáme gól do skóre podle toho, který tým skóroval
-        setMatchState(prev => ({
-          ...prev,
-          score: {
-            home: prev.score.home + (isHomeTeam ? 1 : 0),
-            away: prev.score.away + (!isHomeTeam ? 1 : 0)
-          },
-          events: [...prev.events, {
-            type: 'goal',
-            isHomeTeam,
-            player: isHomeTeam ? cards.find(c => c.id === shooter).name : shooter.name,
-            assist: assist ? (isHomeTeam ? cards.find(c => c.id === assist).name : assist.name) : null,
-            level: shooterLevel,
-            assistLevel: assist ? assistLevel : null,
-            message: `Góóól! Střelec: ${isHomeTeam ? cards.find(c => c.id === shooter).name : shooter.name} ${selectedShotType}${assist ? `, asistence: ${isHomeTeam ? cards.find(c => c.id === assist).name : assist.name}` : ''}!`,
-            time: formatTime(prev.time),
-            id: Date.now()
-          }]
-        }));
-
         return {
           type: 'goal',
           isHomeTeam,
@@ -362,7 +341,9 @@ const CardGame = () => {
           assist: assist ? (isHomeTeam ? cards.find(c => c.id === assist).name : assist.name) : null,
           level: shooterLevel,
           assistLevel: assist ? assistLevel : null,
-          message: `Góóól! Střelec: ${isHomeTeam ? cards.find(c => c.id === shooter).name : shooter.name} ${selectedShotType}${assist ? `, asistence: ${isHomeTeam ? cards.find(c => c.id === assist).name : assist.name}` : ''}!`
+          message: `Góóól! Střelec: ${isHomeTeam ? cards.find(c => c.id === shooter).name : shooter.name} ${selectedShotType}${assist ? `, asistence: ${isHomeTeam ? cards.find(c => c.id === assist).name : assist.name}` : ''}!`,
+          time: formatTime(matchState.time),
+          id: Date.now()
         };
       } else {
         const saveTypes = [
@@ -379,7 +360,9 @@ const CardGame = () => {
           isHomeTeam: !isHomeTeam,
           player: isHomeTeam ? opponentTeam.goalkeeper.name : cards.find(c => c.id === selectedTeam.goalkeeper).name,
           level: opposingGoalieLevel,
-          message: `${selectedSaveType.charAt(0).toUpperCase() + selectedSaveType.slice(1)} předvedl ${isHomeTeam ? opponentTeam.goalkeeper.name : cards.find(c => c.id === selectedTeam.goalkeeper).name}!`
+          message: `${selectedSaveType.charAt(0).toUpperCase() + selectedSaveType.slice(1)} předvedl ${isHomeTeam ? opponentTeam.goalkeeper.name : cards.find(c => c.id === selectedTeam.goalkeeper).name}!`,
+          time: formatTime(matchState.time),
+          id: Date.now()
         };
       }
     } else if (selectedEventType === 'hit') {
@@ -401,7 +384,9 @@ const CardGame = () => {
         isHomeTeam,
         player: isHomeTeam ? cards.find(c => c.id === hitter).name : hitter.name,
         level: hitterLevel,
-        message: `${isHomeTeam ? cards.find(c => c.id === hitter).name : hitter.name} předvádí ${selectedHitType}!`
+        message: `${isHomeTeam ? cards.find(c => c.id === hitter).name : hitter.name} předvádí ${selectedHitType}!`,
+        time: formatTime(matchState.time),
+        id: Date.now()
       };
     } else if (selectedEventType === 'block') {
       const blocker = activePlayers.defenders[Math.floor(Math.random() * activePlayers.defenders.length)];
@@ -420,7 +405,9 @@ const CardGame = () => {
         isHomeTeam,
         player: isHomeTeam ? cards.find(c => c.id === blocker).name : blocker.name,
         level: blockerLevel,
-        message: `${isHomeTeam ? cards.find(c => c.id === blocker).name : blocker.name} ${selectedBlockType}!`
+        message: `${isHomeTeam ? cards.find(c => c.id === blocker).name : blocker.name} ${selectedBlockType}!`,
+        time: formatTime(matchState.time),
+        id: Date.now()
       };
     } else if (selectedEventType === 'pass') {
       const passer = [...activePlayers.forwards, ...activePlayers.defenders][
@@ -441,7 +428,9 @@ const CardGame = () => {
         isHomeTeam,
         player: isHomeTeam ? cards.find(c => c.id === passer).name : passer.name,
         level: passerLevel,
-        message: `${isHomeTeam ? cards.find(c => c.id === passer).name : passer.name} předvádí ${selectedPassType}!`
+        message: `${isHomeTeam ? cards.find(c => c.id === passer).name : passer.name} předvádí ${selectedPassType}!`,
+        time: formatTime(matchState.time),
+        id: Date.now()
       };
     } else if (selectedEventType === 'penalty') {
       const penalizedPlayer = [...activePlayers.forwards, ...activePlayers.defenders][
@@ -466,7 +455,9 @@ const CardGame = () => {
         level: isHomeTeam ? getCardLevel(penalizedPlayer) : penalizedPlayer.level,
         message: `${penalty.text} - ${isHomeTeam ? cards.find(c => c.id === penalizedPlayer).name : penalizedPlayer.name} ${penalty.desc}`,
         duration: 120,
-        playerId: isHomeTeam ? penalizedPlayer : penalizedPlayer.id
+        playerId: isHomeTeam ? penalizedPlayer : penalizedPlayer.id,
+        timeLeft: 120,
+        startTime: Date.now()
       };
     }
   };
@@ -535,9 +526,6 @@ const CardGame = () => {
   const handleDecision = (option) => {
     const success = Math.random() < option.successRate;
     
-    setShowDecision(false);
-    setCurrentDecision(null);
-
     if (success) {
       if (currentDecision.type === 'breakaway' || currentDecision.type === 'powerplay') {
         // Přidáme gól domácímu týmu
@@ -553,7 +541,7 @@ const CardGame = () => {
             player: currentDecision.player.name,
             level: getCardLevel(currentDecision.player.id),
             message: `Góóól! ${currentDecision.player.name} využívá ${currentDecision.type === 'breakaway' ? 'samostatný únik' : 'přesilovou hru'}!`,
-            time: formatTime(prev.time),
+            time: formatTime(matchState.time),
             id: Date.now()
           }]
         }));
@@ -569,7 +557,7 @@ const CardGame = () => {
             player: opponentTeam.goalkeeper.name,
             level: opponentTeam.goalkeeper.level,
             message: `${opponentTeam.goalkeeper.name} chytá pokus ${currentDecision.player.name}!`,
-            time: formatTime(prev.time),
+            time: formatTime(matchState.time),
             id: Date.now()
           }]
         }));
@@ -587,7 +575,7 @@ const CardGame = () => {
             player: "Útočník HC Lopaty Praha",
             level: 1,
             message: `Góóól! Útočník HC Lopaty Praha využívá neúspěšnou obranu!`,
-            time: formatTime(prev.time),
+            time: formatTime(matchState.time),
             id: Date.now()
           }]
         }));
@@ -738,7 +726,7 @@ const CardGame = () => {
   };
 
   useEffect(() => {
-    if (matchState.isPlaying && !showDecision) {
+    if (matchState.isPlaying) {
       const timer = setInterval(() => {
         setMatchState(prev => {
           const timeDecrease = prev.gameSpeed;
@@ -766,12 +754,10 @@ const CardGame = () => {
               };
             } else {
               clearInterval(timer);
-              // Určíme výsledek zápasu
               const result = prev.score.home > prev.score.away ? 'victory' : 'defeat';
               setMatchResult(result);
               setShowRewards(true);
               
-              // Přidáme XP a peníze podle výsledku
               const xpReward = result === 'victory' ? 20 : 5;
               const moneyReward = result === 'victory' ? 50 : 20;
               
@@ -800,11 +786,39 @@ const CardGame = () => {
             }
           }
 
-          // Generování speciální události pouze pokud není aktivní rozhodnutí
-          if (Math.random() < 0.01 && !showDecision) { // Sníženo z 0.05 na 0.01 (1% šance)
-            setShowDecision(true);
-            setCurrentDecision(generateSpecialEvent(selectedTeam));
-            return prev; // Zachováme současný stav
+          const event = generateGameEvent();
+          if (event) {
+            if (event.type === 'penalty') {
+              return {
+                ...prev,
+                time: newTime,
+                events: [...prev.events, event],
+                penalties: [...updatedPenalties, {
+                  playerId: event.playerId,
+                  timeLeft: event.duration,
+                  isHomeTeam: event.isHomeTeam,
+                  startTime: Date.now()
+                }]
+              };
+            } else if (event.type === 'goal') {
+              return {
+                ...prev,
+                time: newTime,
+                score: {
+                  home: prev.score.home + (event.isHomeTeam ? 1 : 0),
+                  away: prev.score.away + (!event.isHomeTeam ? 1 : 0)
+                },
+                events: [...prev.events, event],
+                penalties: updatedPenalties
+              };
+            } else {
+              return {
+                ...prev,
+                time: newTime,
+                events: [...prev.events, event],
+                penalties: updatedPenalties
+              };
+            }
           }
 
           return {
@@ -817,7 +831,7 @@ const CardGame = () => {
 
       return () => clearInterval(timer);
     }
-  }, [matchState.isPlaying, showDecision]);
+  }, [matchState.isPlaying]);
 
   // Ceny prodeje karet podle vzácnosti
   const sellPrices = {
@@ -1545,35 +1559,6 @@ const CardGame = () => {
                   </div>
                 </div>
               </div>
-
-              {showDecision && currentDecision && (
-                <div className="fixed inset-0 bg-black/90 flex items-center justify-center z-50">
-                  <div className="bg-gradient-to-br from-blue-900/90 to-blue-800/80 p-8 rounded-2xl max-w-2xl w-full mx-4 border border-blue-500/20">
-                    <h2 className="text-4xl font-bold text-center mb-6 text-blue-300">
-                      {currentDecision.title}
-                    </h2>
-                    <p className="text-white text-xl text-center mb-8">
-                      {currentDecision.description}
-                    </p>
-                    <div className="grid grid-cols-2 gap-6">
-                      {currentDecision.options.map(option => (
-                        <button
-                          key={option.id}
-                          onClick={() => handleDecision(option)}
-                          className="bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 
-                            text-white font-bold py-4 px-8 rounded-xl shadow-lg transform transition-all duration-300 
-                            hover:scale-105 active:scale-95"
-                        >
-                          <div className="text-xl mb-2">{option.text}</div>
-                          <div className="text-sm opacity-75">
-                            Šance na úspěch: {Math.round(option.successRate * 100)}%
-                          </div>
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-              )}
             </div>
           </div>
         )}
