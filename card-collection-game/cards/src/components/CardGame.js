@@ -335,6 +335,26 @@ const CardGame = () => {
       const selectedShotType = shotTypes[Math.floor(Math.random() * shotTypes.length)];
 
       if (Math.random() < goalChance) {
+        // Přidáme gól do skóre podle toho, který tým skóroval
+        setMatchState(prev => ({
+          ...prev,
+          score: {
+            home: prev.score.home + (isHomeTeam ? 1 : 0),
+            away: prev.score.away + (!isHomeTeam ? 1 : 0)
+          },
+          events: [...prev.events, {
+            type: 'goal',
+            isHomeTeam,
+            player: isHomeTeam ? cards.find(c => c.id === shooter).name : shooter.name,
+            assist: isHomeTeam ? cards.find(c => c.id === assist).name : assist.name,
+            level: shooterLevel,
+            assistLevel: assistLevel,
+            message: `Góóól! ${isHomeTeam ? cards.find(c => c.id === shooter).name : shooter.name} skóruje ${selectedShotType}! Asistuje ${isHomeTeam ? cards.find(c => c.id === assist).name : assist.name}!`,
+            time: formatTime(prev.time),
+            id: Date.now()
+          }]
+        }));
+
         return {
           type: 'goal',
           isHomeTeam,
@@ -729,12 +749,6 @@ const CardGame = () => {
     if (matchState.isPlaying && !showDecision) {
       const timer = setInterval(() => {
         setMatchState(prev => {
-          // Pokud se zobrazí rozhodnutí, zastavíme časovač
-          if (showDecision) {
-            clearInterval(timer);
-            return prev;
-          }
-
           const timeDecrease = prev.gameSpeed;
           const newTime = prev.time - timeDecrease;
 
@@ -1199,7 +1213,7 @@ const CardGame = () => {
 
         {showMatch && (
           <div className="fixed inset-0 bg-black/90 flex flex-col items-center justify-center z-50 p-4">
-            <div className="w-[90%] max-w-7xl mx-auto">
+            <div className="w-full max-w-[95vw] mx-auto"> {/* Změněno z w-[90%] na w-full a max-w-[95vw] */}
               <div className="flex gap-4">
                 {/* Levá část - časomíra a hřiště */}
                 <div className="flex-1">
@@ -1395,24 +1409,33 @@ const CardGame = () => {
                     <div className="absolute left-1/2 right-0 top-0 bottom-0 grid grid-cols-3 gap-4 p-8">
                       {/* Útočníci */}
                       <div className="grid grid-rows-3 gap-4">
-                        {[
-                          { name: "Lopatka 'Rychlík' Rýčový", number: "13", level: 1 },
-                          { name: "Krumpáč 'Střela' Kopáčový", number: "88", level: 1 },
-                          { name: "Motyka 'Tank' Hrabalský", number: "91", level: 1 }
-                        ].map(player => (
+                        {opponentTeam.forwards.map(player => (
                           <div key={player.name} className="flex justify-center items-center">
-                            <div className="w-24 h-32 bg-gradient-to-br from-gray-800 to-gray-900 rounded-lg shadow-lg flex flex-col items-center justify-center text-gray-400 transform hover:scale-110 transition-transform relative overflow-hidden">
-                              <div className="absolute top-0 left-0 w-full bg-gradient-to-r from-red-600 to-red-800 py-1">
-                                <span className="text-white text-xs font-bold">{player.number}</span>
+                            <div className="relative">
+                              <div className="w-24 h-32 bg-gradient-to-br from-gray-800 to-gray-900 rounded-lg shadow-lg flex flex-col items-center justify-center text-gray-400 transform hover:scale-110 transition-transform relative overflow-hidden">
+                                <div className="absolute top-0 left-0 w-full bg-gradient-to-r from-red-600 to-red-800 py-1">
+                                  <span className="text-white text-xs font-bold">{player.number}</span>
+                                </div>
+                                <div className="text-5xl font-bold mb-2">?</div>
+                                <div className="absolute top-2 right-2 w-6 h-6 rounded-full bg-gradient-to-br from-yellow-400 to-yellow-600 flex items-center justify-center">
+                                  <span className="text-black text-xs font-bold">{player.level}</span>
+                                </div>
+                                <div className="absolute bottom-0 left-0 w-full bg-gradient-to-r from-gray-900 to-gray-800 p-1">
+                                  <p className="text-[8px] text-center text-gray-300 font-bold leading-tight">
+                                    {player.name}
+                                  </p>
+                                </div>
                               </div>
-                              <div className="text-5xl font-bold mb-2">?</div>
-                              <div className="absolute top-2 right-2 w-6 h-6 rounded-full bg-gradient-to-br from-yellow-400 to-yellow-600 flex items-center justify-center">
-                                <span className="text-black text-xs font-bold">{player.level}</span>
-                              </div>
-                              <div className="absolute bottom-0 left-0 w-full bg-gradient-to-r from-gray-900 to-gray-800 p-1">
-                                <p className="text-[8px] text-center text-gray-300 font-bold leading-tight">
-                                  {player.name}
-                                </p>
+                              {/* Góly a asistence pro útočníky Lopat */}
+                              <div className="absolute -bottom-6 left-0 right-0 flex justify-center gap-2">
+                                {Array.from({ length: matchState.playerStats.goals[player.id] || 0 }).map((_, i) => (
+                                  <img key={i} src="/Images/puck.png" alt="Gól" className="w-4 h-4" />
+                                ))}
+                                {matchState.playerStats.assists[player.id] > 0 && (
+                                  <span className="bg-yellow-500/80 text-black font-bold text-sm px-2 rounded-lg">
+                                    A: {matchState.playerStats.assists[player.id]}
+                                  </span>
+                                )}
                               </div>
                             </div>
                           </div>
@@ -1420,23 +1443,33 @@ const CardGame = () => {
                       </div>
                       {/* Obránci */}
                       <div className="grid grid-rows-2 gap-8">
-                        {[
-                          { name: "Hrábě 'Zeď' Zahradnický", number: "44", level: 3 },
-                          { name: "Sekera 'Drtič' Štípačový", number: "77", level: 2 }
-                        ].map(player => (
+                        {opponentTeam.defenders.map(player => (
                           <div key={player.name} className="flex justify-center items-center">
-                            <div className="w-24 h-32 bg-gradient-to-br from-gray-800 to-gray-900 rounded-lg shadow-lg flex flex-col items-center justify-center text-gray-400 transform hover:scale-110 transition-transform relative overflow-hidden">
-                              <div className="absolute top-0 left-0 w-full bg-gradient-to-r from-blue-600 to-blue-800 py-1">
-                                <span className="text-white text-xs font-bold">{player.number}</span>
+                            <div className="relative">
+                              <div className="w-24 h-32 bg-gradient-to-br from-gray-800 to-gray-900 rounded-lg shadow-lg flex flex-col items-center justify-center text-gray-400 transform hover:scale-110 transition-transform relative overflow-hidden">
+                                <div className="absolute top-0 left-0 w-full bg-gradient-to-r from-blue-600 to-blue-800 py-1">
+                                  <span className="text-white text-xs font-bold">{player.number}</span>
+                                </div>
+                                <div className="text-5xl font-bold mb-2">?</div>
+                                <div className="absolute top-2 right-2 w-6 h-6 rounded-full bg-gradient-to-br from-yellow-400 to-yellow-600 flex items-center justify-center">
+                                  <span className="text-black text-xs font-bold">{player.level}</span>
+                                </div>
+                                <div className="absolute bottom-0 left-0 w-full bg-gradient-to-r from-gray-900 to-gray-800 p-1">
+                                  <p className="text-[8px] text-center text-gray-300 font-bold leading-tight">
+                                    {player.name}
+                                  </p>
+                                </div>
                               </div>
-                              <div className="text-5xl font-bold mb-2">?</div>
-                              <div className="absolute top-2 right-2 w-6 h-6 rounded-full bg-gradient-to-br from-yellow-400 to-yellow-600 flex items-center justify-center">
-                                <span className="text-black text-xs font-bold">{player.level}</span>
-                              </div>
-                              <div className="absolute bottom-0 left-0 w-full bg-gradient-to-r from-gray-900 to-gray-800 p-1">
-                                <p className="text-[8px] text-center text-gray-300 font-bold leading-tight">
-                                  {player.name}
-                                </p>
+                              {/* Góly a asistence pro obránce Lopat */}
+                              <div className="absolute -bottom-6 left-0 right-0 flex justify-center gap-2">
+                                {Array.from({ length: matchState.playerStats.goals[player.id] || 0 }).map((_, i) => (
+                                  <img key={i} src="/Images/puck.png" alt="Gól" className="w-4 h-4" />
+                                ))}
+                                {matchState.playerStats.assists[player.id] > 0 && (
+                                  <span className="bg-yellow-500/80 text-black font-bold text-sm px-2 rounded-lg">
+                                    A: {matchState.playerStats.assists[player.id]}
+                                  </span>
+                                )}
                               </div>
                             </div>
                           </div>
@@ -1444,19 +1477,33 @@ const CardGame = () => {
                       </div>
                       {/* Brankář */}
                       <div className="flex justify-center items-center">
-                        <div className="w-24 h-32 bg-gradient-to-br from-gray-800 to-gray-900 rounded-lg shadow-lg flex flex-col items-center justify-center text-gray-400 transform hover:scale-110 transition-transform relative overflow-hidden">
-                          <div className="absolute top-0 left-0 w-full bg-gradient-to-r from-yellow-600 to-yellow-800 py-1">
-                            <span className="text-white text-xs font-bold">1</span>
+                        <div className="relative">
+                          <div className="w-24 h-32 bg-gradient-to-br from-gray-800 to-gray-900 rounded-lg shadow-lg flex flex-col items-center justify-center text-gray-400 transform hover:scale-110 transition-transform relative overflow-hidden">
+                            <div className="absolute top-0 left-0 w-full bg-gradient-to-r from-yellow-600 to-yellow-800 py-1">
+                              <span className="text-white text-xs font-bold">{opponentTeam.goalkeeper.number}</span>
+                            </div>
+                            <div className="text-5xl font-bold mb-2">?</div>
+                            <div className="absolute top-2 right-2 w-6 h-6 rounded-full bg-gradient-to-br from-yellow-400 to-yellow-600 flex items-center justify-center">
+                              <span className="text-black text-xs font-bold">{opponentTeam.goalkeeper.level}</span>
+                            </div>
+                            <div className="absolute bottom-0 left-0 w-full bg-gradient-to-r from-gray-900 to-gray-800 p-1">
+                              <p className="text-[8px] text-center text-gray-300 font-bold leading-tight">
+                                {opponentTeam.goalkeeper.name}
+                              </p>
+                            </div>
                           </div>
-                          <div className="text-5xl font-bold mb-2">?</div>
-                          <div className="absolute top-2 right-2 w-6 h-6 rounded-full bg-gradient-to-br from-yellow-400 to-yellow-600 flex items-center justify-center">
-                            <span className="text-black text-xs font-bold">3</span>
-                          </div>
-                          <div className="absolute bottom-0 left-0 w-full bg-gradient-to-r from-gray-900 to-gray-800 p-1">
-                            <p className="text-[8px] text-center text-gray-300 font-bold leading-tight">
-                              Kolečko "Betonář" Vozíkový
-                            </p>
-                          </div>
+                          {/* Statistiky brankáře Lopat */}
+                          {matchState.playerStats.saves[opponentTeam.goalkeeper.id] > 0 && (
+                            <div className="absolute -bottom-6 left-0 right-0 text-center">
+                              <div className="bg-blue-900/80 text-white text-sm px-2 py-1 rounded-lg">
+                                {matchState.playerStats.saves[opponentTeam.goalkeeper.id]} zákroků
+                                <br />
+                                Úspěšnost: {matchState.playerStats.shots[opponentTeam.goalkeeper.id] > 0 
+                                  ? Math.round((matchState.playerStats.saves[opponentTeam.goalkeeper.id] / matchState.playerStats.shots[opponentTeam.goalkeeper.id]) * 100)
+                                  : 100}%
+                              </div>
+                            </div>
+                          )}
                         </div>
                       </div>
                     </div>
@@ -1464,13 +1511,12 @@ const CardGame = () => {
                 </div>
 
                 {/* Pravá část - události */}
-                <div className="w-[500px] flex flex-col"> {/* Zvětšená šířka pro události */}
-                  {/* Seznam událostí */}
+                <div className="w-[500px] flex flex-col">
                   <div className="bg-gradient-to-b from-black/50 to-black/30 rounded-xl p-8 h-full overflow-y-auto">
                     <h3 className="text-3xl font-bold text-yellow-400 sticky top-0 bg-black/50 backdrop-blur-sm p-4 rounded-lg mb-6 border-b border-yellow-500/20">
                       Průběh zápasu
                     </h3>
-                    <div className="space-y-4"> {/* Větší mezery mezi událostmi */}
+                    <div className="space-y-4">
                       {matchState.events.map(event => (
                         <div
                           key={event.id}
@@ -1485,7 +1531,14 @@ const CardGame = () => {
                           }`}
                         >
                           <div className="flex items-center justify-between mb-2">
-                            <span className="text-gray-400 font-mono">{event.time}</span>
+                            <div className="flex items-center gap-2">
+                              <span className="text-gray-400 font-mono">{event.time}</span>
+                              <img 
+                                src={event.isHomeTeam ? "/Images/Litvinov_Lancers.png" : "/Images/HC_Lopaty_Praha.png"} 
+                                alt={event.isHomeTeam ? "Litvínov Lancers" : "HC Lopaty Praha"}
+                                className="h-6 object-contain"
+                              />
+                            </div>
                             {event.type === 'goal' && (
                               <div className="flex items-center gap-2">
                                 <span className="text-yellow-400 font-bold">Level {event.level}</span>
