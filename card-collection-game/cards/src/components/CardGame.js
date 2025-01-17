@@ -299,16 +299,8 @@ const CardGame = () => {
   const [showTournament, setShowTournament] = useState(false);
   const [tournamentState, setTournamentState] = useState({
     groups: {
-      A: [
-        { team: teamKafacBilina, points: 0, score: { for: 0, against: 0 } },
-        { team: teamNorthBlades, points: 0, score: { for: 0, against: 0 } },
-        { team: selectedTeam, points: 0, score: { for: 0, against: 0 } }
-      ],
-      B: [
-        { team: teamGinTonic, points: 0, score: { for: 0, against: 0 } },
-        { team: teamGurmaniZatec, points: 0, score: { for: 0, against: 0 } },
-        { team: teamPredatorsNymburk, points: 0, score: { for: 0, against: 0 } }
-      ]
+      A: [],
+      B: []
     },
     matches: {
       groups: [],
@@ -1172,40 +1164,61 @@ const CardGame = () => {
   const startTournament = () => {
     if (canPlayMatch()) {
       setShowTournament(true);
-      // Vygenerujeme zápasy ve skupinách
-      const groupMatches = [];
-      
-      // Skupina A
-      for (let i = 0; i < tournamentState.groups.A.length; i++) {
-        for (let j = i + 1; j < tournamentState.groups.A.length; j++) {
-          groupMatches.push({
-            home: tournamentState.groups.A[i].team.name,
-            away: tournamentState.groups.A[j].team.name,
-            group: 'A',
-            score: null
-          });
-        }
-      }
-      
-      // Skupina B
-      for (let i = 0; i < tournamentState.groups.B.length; i++) {
-        for (let j = i + 1; j < tournamentState.groups.B.length; j++) {
-          groupMatches.push({
-            home: tournamentState.groups.B[i].team.name,
-            away: tournamentState.groups.B[j].team.name,
-            group: 'B',
-            score: null
-          });
-        }
-      }
-      
+      // Nastavíme týmy do skupin
       setTournamentState(prev => ({
         ...prev,
-        matches: {
-          ...prev.matches,
-          groups: groupMatches
+        groups: {
+          A: [
+            { team: teamKafacBilina, points: 0, score: { for: 0, against: 0 } },
+            { team: teamNorthBlades, points: 0, score: { for: 0, against: 0 } },
+            { team: selectedTeam, points: 0, score: { for: 0, against: 0 } }
+          ],
+          B: [
+            { team: teamGinTonic, points: 0, score: { for: 0, against: 0 } },
+            { team: teamGurmaniZatec, points: 0, score: { for: 0, against: 0 } },
+            { team: teamPredatorsNymburk, points: 0, score: { for: 0, against: 0 } }
+          ]
         }
       }));
+
+      // Vygenerujeme zápasy ve skupinách
+      setTimeout(() => {
+        setTournamentState(prev => {
+          const groupMatches = [];
+          
+          // Skupina A
+          for (let i = 0; i < prev.groups.A.length; i++) {
+            for (let j = i + 1; j < prev.groups.A.length; j++) {
+              groupMatches.push({
+                home: prev.groups.A[i].team.name,
+                away: prev.groups.A[j].team.name,
+                group: 'A',
+                score: null
+              });
+            }
+          }
+          
+          // Skupina B
+          for (let i = 0; i < prev.groups.B.length; i++) {
+            for (let j = i + 1; j < prev.groups.B.length; j++) {
+              groupMatches.push({
+                home: prev.groups.B[i].team.name,
+                away: prev.groups.B[j].team.name,
+                group: 'B',
+                score: null
+              });
+            }
+          }
+          
+          return {
+            ...prev,
+            matches: {
+              ...prev.matches,
+              groups: groupMatches
+            }
+          };
+        });
+      }, 100);
     }
   };
 
