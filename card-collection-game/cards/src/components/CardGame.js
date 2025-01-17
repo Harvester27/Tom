@@ -697,9 +697,9 @@ const CardGame = () => {
           const minTime = (period - 1) * 1200 + 5;
           const maxTime = period * 1200;
           
-          // Základní počet střel je 15-25, plus bonus podle síly týmu
-          const homeBaseShots = Math.floor(Math.random() * 11) + 15; // 15-25 střel
-          const awayBaseShots = Math.floor(Math.random() * 11) + 15; // 15-25 střel
+          // Základní počet střel je 8-12, plus bonus podle síly týmu
+          const homeBaseShots = Math.floor(Math.random() * 5) + 8; // 8-12 střel
+          const awayBaseShots = Math.floor(Math.random() * 5) + 8; // 8-12 střel
 
           // Přidáme bonus střel podle síly týmu (každých 5 bodů síly = +1 střela)
           const homeShots = homeBaseShots + Math.floor(homeTeamStrength / 5);
