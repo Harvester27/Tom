@@ -346,10 +346,10 @@ const CardGame = () => {
             type: 'goal',
             isHomeTeam,
             player: isHomeTeam ? cards.find(c => c.id === shooter).name : shooter.name,
-            assist: isHomeTeam ? cards.find(c => c.id === assist).name : assist.name,
+            assist: assist ? (isHomeTeam ? cards.find(c => c.id === assist).name : assist.name) : null,
             level: shooterLevel,
-            assistLevel: assistLevel,
-            message: `Góóól! ${isHomeTeam ? cards.find(c => c.id === shooter).name : shooter.name} skóruje ${selectedShotType}! Asistuje ${isHomeTeam ? cards.find(c => c.id === assist).name : assist.name}!`,
+            assistLevel: assist ? assistLevel : null,
+            message: `Góóól! Střelec: ${isHomeTeam ? cards.find(c => c.id === shooter).name : shooter.name} ${selectedShotType}${assist ? `, asistence: ${isHomeTeam ? cards.find(c => c.id === assist).name : assist.name}` : ''}!`,
             time: formatTime(prev.time),
             id: Date.now()
           }]
@@ -359,10 +359,10 @@ const CardGame = () => {
           type: 'goal',
           isHomeTeam,
           player: isHomeTeam ? cards.find(c => c.id === shooter).name : shooter.name,
-          assist: isHomeTeam ? cards.find(c => c.id === assist).name : assist.name,
+          assist: assist ? (isHomeTeam ? cards.find(c => c.id === assist).name : assist.name) : null,
           level: shooterLevel,
-          assistLevel: assistLevel,
-          message: `Góóól! ${isHomeTeam ? cards.find(c => c.id === shooter).name : shooter.name} skóruje ${selectedShotType}! Asistuje ${isHomeTeam ? cards.find(c => c.id === assist).name : assist.name}!`
+          assistLevel: assist ? assistLevel : null,
+          message: `Góóól! Střelec: ${isHomeTeam ? cards.find(c => c.id === shooter).name : shooter.name} ${selectedShotType}${assist ? `, asistence: ${isHomeTeam ? cards.find(c => c.id === assist).name : assist.name}` : ''}!`
         };
       } else {
         const saveTypes = [
@@ -719,18 +719,11 @@ const CardGame = () => {
             };
           }
 
-          // Šance na speciální událost (5% při každém tiknutí)
-          if (!showDecision && Math.random() < 0.05) {
-            const specialEvent = generateSpecialEvent(selectedTeam);
-            if (specialEvent) {
-              setCurrentDecision(specialEvent);
-              setShowDecision(true);
-              return {
-                ...prev,
-                time: prev.time - timeDecrease,
-                penalties: updatedPenalties
-              };
-            }
+          // Generování speciální události pouze pokud není aktivní rozhodnutí
+          if (Math.random() < 0.01 && !showDecision) { // Sníženo z 0.05 na 0.01 (1% šance)
+            setShowDecision(true);
+            setCurrentDecision(generateSpecialEvent(selectedTeam));
+            return prev; // Zachováme současný stav
           }
 
           return {
@@ -809,7 +802,7 @@ const CardGame = () => {
           }
 
           // Generování speciální události pouze pokud není aktivní rozhodnutí
-          if (Math.random() < 0.05 && !showDecision) {
+          if (Math.random() < 0.01 && !showDecision) { // Sníženo z 0.05 na 0.01 (1% šance)
             setShowDecision(true);
             setCurrentDecision(generateSpecialEvent(selectedTeam));
             return prev; // Zachováme současný stav
@@ -1512,11 +1505,11 @@ const CardGame = () => {
 
                 {/* Pravá část - události */}
                 <div className="w-[500px] flex flex-col">
-                  <div className="bg-gradient-to-b from-black/50 to-black/30 rounded-xl p-8 h-full overflow-y-auto">
+                  <div className="bg-gradient-to-b from-black/50 to-black/30 rounded-xl p-8 h-full">
                     <h3 className="text-3xl font-bold text-yellow-400 sticky top-0 bg-black/50 backdrop-blur-sm p-4 rounded-lg mb-6 border-b border-yellow-500/20">
                       Průběh zápasu
                     </h3>
-                    <div className="space-y-4">
+                    <div className="space-y-4 max-h-[calc(90vh-200px)] overflow-y-auto pr-4">
                       {matchState.events.map(event => (
                         <div
                           key={event.id}
@@ -1541,10 +1534,16 @@ const CardGame = () => {
                             </div>
                             {event.type === 'goal' && (
                               <div className="flex items-center gap-2">
-                                <span className="text-yellow-400 font-bold">Level {event.level}</span>
-                                {event.assistLevel && (
-                                  <span className="text-yellow-400 font-bold">A: Level {event.assistLevel}</span>
-                                )}
+                                <div className="flex flex-col items-end">
+                                  <span className="text-yellow-400 font-bold">
+                                    {event.player} (Level {event.level})
+                                  </span>
+                                  {event.assist && (
+                                    <span className="text-yellow-400/80 text-sm">
+                                      Asistence: {event.assist} (Level {event.assistLevel})
+                                    </span>
+                                  )}
+                                </div>
                               </div>
                             )}
                           </div>
