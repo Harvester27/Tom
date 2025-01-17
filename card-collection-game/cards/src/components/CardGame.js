@@ -267,8 +267,10 @@ const CardGame = () => {
 
     // Přidáme čas události
     const period = Math.floor(eventTime / 1200) + 1;
-    const mins = Math.floor(eventTime / 60);
-    const secs = eventTime % 60;
+    const baseMinutes = (period - 1) * 20;
+    const periodSeconds = eventTime % 1200;
+    const mins = baseMinutes + Math.floor(periodSeconds / 60);
+    const secs = periodSeconds % 60;
     const eventTimeFormatted = `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
 
     const powerPlay = matchState.penalties.length > 0;
@@ -308,6 +310,19 @@ const CardGame = () => {
       const opposingGoalieLevel = isHomeTeam 
         ? opponentTeam.goalkeeper.level 
         : getCardLevel(selectedTeam.goalkeeper);
+
+      // Aktualizujeme statistiky střel
+      setMatchState(prev => ({
+        ...prev,
+        playerStats: {
+          ...prev.playerStats,
+          shots: {
+            ...prev.playerStats.shots,
+            [isHomeTeam ? opponentTeam.goalkeeper.id : selectedTeam.goalkeeper]: 
+              (prev.playerStats.shots[isHomeTeam ? opponentTeam.goalkeeper.id : selectedTeam.goalkeeper] || 0) + 1
+          }
+        }
+      }));
 
       const goalChance = baseChance + 
         (shooterLevel * 0.05) + 
@@ -353,6 +368,19 @@ const CardGame = () => {
           id: Date.now()
         };
       } else {
+        // Aktualizujeme statistiky zákroků
+        setMatchState(prev => ({
+          ...prev,
+          playerStats: {
+            ...prev.playerStats,
+            saves: {
+              ...prev.playerStats.saves,
+              [isHomeTeam ? opponentTeam.goalkeeper.id : selectedTeam.goalkeeper]: 
+                (prev.playerStats.saves[isHomeTeam ? opponentTeam.goalkeeper.id : selectedTeam.goalkeeper] || 0) + 1
+            }
+          }
+        }));
+
         const saveTypes = [
           "fantastický zákrok lapačkou",
           "pohotový zákrok betony",
