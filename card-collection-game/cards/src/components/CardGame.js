@@ -2,263 +2,6 @@
 
 import React, { useState, useEffect } from 'react';
 
-const ConfettiParticle = ({ color }) => {
-  const style = {
-    position: 'fixed',
-    width: '8px',
-    height: '8px',
-    backgroundColor: color,
-    borderRadius: '50%',
-    pointerEvents: 'none',
-    animation: `confetti-fall ${2 + Math.random() * 2}s linear forwards`,
-    left: `${Math.random() * 100}vw`,
-    top: '-10px',
-  };
-
-  return <div style={style} />;
-};
-
-const CardGame = () => {
-  const [unlockedCards, setUnlockedCards] = useState([]);
-  const [showCollection, setShowCollection] = useState(false);
-  const [currentCards, setCurrentCards] = useState([]);
-  const [confetti, setConfetti] = useState([]);
-  const [money, setMoney] = useState(100);
-  const [level, setLevel] = useState(1);
-  const [xp, setXp] = useState(0);
-  const [showRewards, setShowRewards] = useState(false);
-  const [matchResult, setMatchResult] = useState(null);
-  const [selectedCard, setSelectedCard] = useState(null);
-  const [showTeamSelection, setShowTeamSelection] = useState(false);
-  const [selectedTeam, setSelectedTeam] = useState({
-    goalkeeper: null,
-    defenders: [],
-    forwards: []
-  });
-  const [activePosition, setActivePosition] = useState(null);
-  const [showMatch, setShowMatch] = useState(false);
-  const [showTournament, setShowTournament] = useState(false);
-  const [tournamentState, setTournamentState] = useState({
-    groups: {
-      A: [
-        { team: teamKafacBilina, points: 0, score: { for: 0, against: 0 } },
-        { team: teamNorthBlades, points: 0, score: { for: 0, against: 0 } },
-        { team: selectedTeam, points: 0, score: { for: 0, against: 0 } }
-      ],
-      B: [
-        { team: teamGinTonic, points: 0, score: { for: 0, against: 0 } },
-        { team: teamGurmaniZatec, points: 0, score: { for: 0, against: 0 } },
-        { team: teamPredatorsNymburk, points: 0, score: { for: 0, against: 0 } }
-      ]
-    },
-    matches: {
-      groups: [], // Zápasy ve skupinách
-      playoff: [], // Zápasy v playoff
-      current: null // Aktuální zápas
-    },
-    phase: 'groups', // groups, playoff, finished
-    currentMatchIndex: 0
-  });
-  const [cardLevels, setCardLevels] = useState({});
-  const [matchState, setMatchState] = useState({
-    period: 1,
-    time: 1200,
-    score: { home: 0, away: 0 },
-    events: [],
-    isPlaying: false,
-    gameSpeed: 1,
-    playerStats: {
-      goals: {},
-      assists: {},
-      saves: {},
-      saveAccuracy: {},
-      shots: {}
-    },
-    penalties: [],
-    scheduledEvents: [] // Přidáme nové pole pro naplánované události
-  });
-
-  useEffect(() => {
-    // Načtení levelů karet z localStorage při prvním načtení
-    const savedLevels = localStorage.getItem('cardLevels');
-    if (savedLevels) {
-      setCardLevels(JSON.parse(savedLevels));
-    }
-  }, []);
-
-  // Uložení levelů karet do localStorage při změně
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      localStorage.setItem('cardLevels', JSON.stringify(cardLevels));
-    }
-  }, [cardLevels]);
-
-  const getCardLevel = (cardId) => {
-    const card = cards.find(c => c.id === cardId);
-    return (cardLevels[cardId] || 0) + (card?.baseLevel || 1);
-  };
-
-  const getUpgradeCost = (currentLevel) => {
-    return currentLevel * 50; // Každý level stojí o 50 Kč více
-  };
-
-  const upgradeCard = (cardId) => {
-    const currentLevel = getCardLevel(cardId);
-    const cost = getUpgradeCost(currentLevel);
-    
-    if (money >= cost) {
-      setMoney(prev => prev - cost);
-      setCardLevels(prev => ({
-        ...prev,
-        [cardId]: currentLevel + 1
-      }));
-    } else {
-      alert('Nemáte dostatek peněz na vylepšení karty!');
-    }
-  };
-
-  const cards = [
-    { id: 1, name: "Štěpánovský", image: "/Images/Stepanovsky1.jpg", rarity: "common", position: "defender", baseLevel: 1 },
-    { id: 2, name: "Nováková", image: "/Images/Novakova1.jpg", rarity: "common", position: "goalkeeper", baseLevel: 1 },
-    { id: 3, name: "Coufal", image: "/Images/Coufal3.jpg", rarity: "legendary", position: "defender", baseLevel: 10 },
-    { id: 4, name: "Dlugopolský", image: "/Images/Dlugopolsky1.jpg", rarity: "rare", position: "forward", baseLevel: 1 },
-    { id: 5, name: "Petrov", image: "/Images/Petrov1.jpg", rarity: "common", position: "forward", baseLevel: 1 },
-    { id: 6, name: "Nistor", image: "/Images/Nistor1.jpg", rarity: "rare", position: "goalkeeper", baseLevel: 1 },
-    { id: 7, name: "Materna", image: "/Images/Materna1.jpg", rarity: "epic", position: "forward", baseLevel: 1 },
-    { id: 8, name: "Coufal", image: "/Images/Coufal1.jpg", rarity: "common", position: "defender", baseLevel: 1 },
-    { id: 9, name: "Sommer", image: "/Images/Sommer1.jpg", rarity: "rare", position: "forward", baseLevel: 1 }
-  ];
-
-  const rarityProbabilities = {
-    common: 0.6,
-    rare: 0.25,
-    epic: 0.1,
-    legendary: 0.05
-  };
-
-  const packPrices = {
-    3: 30,
-    5: 50,
-    7: 70
-  };
-
-  const gameSpeedOptions = [1, 2, 4, 8, 16, 32, 64];
-
-  const setGameSpeed = (speed) => {
-    setMatchState(prev => ({ ...prev, gameSpeed: speed }));
-  };
-
-  const createConfetti = () => {
-    const colors = ['#FFD700', '#FFA500', '#FF4500'];
-    const particles = Array.from({ length: 50 }, (_, i) => ({
-      id: `confetti-${Date.now()}-${i}`,
-      color: colors[Math.floor(Math.random() * colors.length)]
-    }));
-    setConfetti(particles);
-    
-    setTimeout(() => {
-      setConfetti([]);
-    }, 4000);
-  };
-
-  const openPack = (size) => {
-    if (currentCards.length > 0) {
-      alert('Nejdřív přesuňte rozbalené karty do sbírky!');
-      return;
-    }
-
-    if (money < packPrices[size]) {
-      alert('Nemáte dostatek peněz!');
-      return;
-    }
-
-    setMoney(prev => prev - packPrices[size]);
-    const drawnCards = [];
-    
-    for (let i = 0; i < size; i++) {
-      const random = Math.random();
-      let selectedRarity;
-      let sum = 0;
-      
-      for (const [rarity, probability] of Object.entries(rarityProbabilities)) {
-        sum += probability;
-        if (random <= sum) {
-          selectedRarity = rarity;
-          break;
-        }
-      }
-
-      const cardsOfRarity = cards.filter(card => card.rarity === selectedRarity);
-      const randomCard = {...cardsOfRarity[Math.floor(Math.random() * cardsOfRarity.length)]};
-      randomCard.uniqueId = Date.now() + i; // Přidáme unikátní ID pro každou kartu
-      drawnCards.push(randomCard);
-    }
-
-    setCurrentCards(drawnCards);
-    createConfetti();
-  };
-
-  const collectCards = () => {
-    if (currentCards.length > 0) {
-      setUnlockedCards(prev => [...prev, ...currentCards]);
-      setCurrentCards([]);
-    }
-  };
-
-  const canPlayMatch = () => {
-    const unlockedPlayersByPosition = unlockedCards
-      .reduce((acc, card) => {
-        acc[card.position] = (acc[card.position] || 0) + 1;
-        return acc;
-      }, {});
-
-    return (unlockedPlayersByPosition.goalkeeper >= 1 &&
-            unlockedPlayersByPosition.defender >= 2 &&
-            unlockedPlayersByPosition.forward >= 3);
-  };
-
-  const startTeamSelection = () => {
-    if (canPlayMatch()) {
-      setShowTeamSelection(true);
-    } else {
-      alert('Pro zápas potřebujete: 1 brankáře, 2 obránce a 3 útočníky!');
-    }
-  };
-
-  const selectPlayer = (card) => {
-    if (!showTeamSelection) return;
-
-    if (activePosition === 'goalkeeper') {
-      setSelectedTeam(prev => ({ ...prev, goalkeeper: card.id }));
-    } else if (activePosition?.startsWith('defender')) {
-      const index = parseInt(activePosition.split('-')[1]);
-      const newDefenders = [...selectedTeam.defenders];
-      newDefenders[index] = card.id;
-      setSelectedTeam(prev => ({ ...prev, defenders: newDefenders }));
-    } else if (activePosition?.startsWith('forward')) {
-      const index = parseInt(activePosition.split('-')[1]);
-      const newForwards = [...selectedTeam.forwards];
-      newForwards[index] = card.id;
-      setSelectedTeam(prev => ({ ...prev, forwards: newForwards }));
-    }
-    setActivePosition(null);
-  };
-
-  const isTeamComplete = () => {
-    return selectedTeam.goalkeeper !== null && 
-           selectedTeam.defenders.length === 2 && 
-           selectedTeam.forwards.length === 3;
-  };
-
-  const formatTime = (seconds) => {
-    // Převedeme čas na formát 00:00-60:00 podle třetiny
-    const period = Math.floor((1200 - seconds) / 1200) + 1;
-    const periodSeconds = (period - 1) * 1200 + (1200 - seconds);
-    const mins = Math.floor(periodSeconds / 60);
-    const secs = periodSeconds % 60;
-    return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
-  };
-
   // Definice týmů pro turnaj
   const teamGinTonic = {
     goalkeeper: { 
@@ -505,7 +248,6 @@ const CardGame = () => {
     ]
   };
 
-  // Definice soupeřova týmu
   const opponentTeam = {
     goalkeeper: { id: 'opp_gk', name: "Kolečko 'Betonář' Vozíkový", number: "1", level: 3, image: "/Images/question_mark.png" },
     defenders: [
@@ -517,6 +259,263 @@ const CardGame = () => {
       { id: 'opp_fw2', name: "Krumpáč 'Střela' Kopáčový", number: "88", level: 1, image: "/Images/question_mark.png" },
       { id: 'opp_fw3', name: "Motyka 'Tank' Hrabalský", number: "91", level: 1, image: "/Images/question_mark.png" }
     ]
+};
+
+const ConfettiParticle = ({ color }) => {
+  const style = {
+    position: 'fixed',
+    width: '8px',
+    height: '8px',
+    backgroundColor: color,
+    borderRadius: '50%',
+    pointerEvents: 'none',
+    animation: `confetti-fall ${2 + Math.random() * 2}s linear forwards`,
+    left: `${Math.random() * 100}vw`,
+    top: '-10px',
+  };
+
+  return <div style={style} />;
+};
+
+const CardGame = () => {
+  const [unlockedCards, setUnlockedCards] = useState([]);
+  const [showCollection, setShowCollection] = useState(false);
+  const [currentCards, setCurrentCards] = useState([]);
+  const [confetti, setConfetti] = useState([]);
+  const [money, setMoney] = useState(100);
+  const [level, setLevel] = useState(1);
+  const [xp, setXp] = useState(0);
+  const [showRewards, setShowRewards] = useState(false);
+  const [matchResult, setMatchResult] = useState(null);
+  const [selectedCard, setSelectedCard] = useState(null);
+  const [showTeamSelection, setShowTeamSelection] = useState(false);
+  const [selectedTeam, setSelectedTeam] = useState({
+    goalkeeper: null,
+    defenders: [],
+    forwards: []
+  });
+  const [activePosition, setActivePosition] = useState(null);
+  const [showMatch, setShowMatch] = useState(false);
+  const [showTournament, setShowTournament] = useState(false);
+  const [tournamentState, setTournamentState] = useState({
+    groups: {
+      A: [
+        { team: teamKafacBilina, points: 0, score: { for: 0, against: 0 } },
+        { team: teamNorthBlades, points: 0, score: { for: 0, against: 0 } },
+        { team: selectedTeam, points: 0, score: { for: 0, against: 0 } }
+      ],
+      B: [
+        { team: teamGinTonic, points: 0, score: { for: 0, against: 0 } },
+        { team: teamGurmaniZatec, points: 0, score: { for: 0, against: 0 } },
+        { team: teamPredatorsNymburk, points: 0, score: { for: 0, against: 0 } }
+      ]
+    },
+    matches: {
+      groups: [],
+      playoff: [],
+      current: null
+    },
+    phase: 'groups',
+    currentMatchIndex: 0
+  });
+  const [cardLevels, setCardLevels] = useState({});
+  const [matchState, setMatchState] = useState({
+    period: 1,
+    time: 1200,
+    score: { home: 0, away: 0 },
+    events: [],
+    isPlaying: false,
+    gameSpeed: 1,
+    playerStats: {
+      goals: {},
+      assists: {},
+      saves: {},
+      saveAccuracy: {},
+      shots: {}
+    },
+    penalties: [],
+    scheduledEvents: []
+  });
+
+  useEffect(() => {
+    // Načtení levelů karet z localStorage při prvním načtení
+    const savedLevels = localStorage.getItem('cardLevels');
+    if (savedLevels) {
+      setCardLevels(JSON.parse(savedLevels));
+    }
+  }, []);
+
+  // Uložení levelů karet do localStorage při změně
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('cardLevels', JSON.stringify(cardLevels));
+    }
+  }, [cardLevels]);
+
+  const getCardLevel = (cardId) => {
+    const card = cards.find(c => c.id === cardId);
+    return (cardLevels[cardId] || 0) + (card?.baseLevel || 1);
+  };
+
+  const getUpgradeCost = (currentLevel) => {
+    return currentLevel * 50; // Každý level stojí o 50 Kč více
+  };
+
+  const upgradeCard = (cardId) => {
+    const currentLevel = getCardLevel(cardId);
+    const cost = getUpgradeCost(currentLevel);
+    
+    if (money >= cost) {
+      setMoney(prev => prev - cost);
+      setCardLevels(prev => ({
+        ...prev,
+        [cardId]: currentLevel + 1
+      }));
+    } else {
+      alert('Nemáte dostatek peněz na vylepšení karty!');
+    }
+  };
+
+  const cards = [
+    { id: 1, name: "Štěpánovský", image: "/Images/Stepanovsky1.jpg", rarity: "common", position: "defender", baseLevel: 1 },
+    { id: 2, name: "Nováková", image: "/Images/Novakova1.jpg", rarity: "common", position: "goalkeeper", baseLevel: 1 },
+    { id: 3, name: "Coufal", image: "/Images/Coufal3.jpg", rarity: "legendary", position: "defender", baseLevel: 10 },
+    { id: 4, name: "Dlugopolský", image: "/Images/Dlugopolsky1.jpg", rarity: "rare", position: "forward", baseLevel: 1 },
+    { id: 5, name: "Petrov", image: "/Images/Petrov1.jpg", rarity: "common", position: "forward", baseLevel: 1 },
+    { id: 6, name: "Nistor", image: "/Images/Nistor1.jpg", rarity: "rare", position: "goalkeeper", baseLevel: 1 },
+    { id: 7, name: "Materna", image: "/Images/Materna1.jpg", rarity: "epic", position: "forward", baseLevel: 1 },
+    { id: 8, name: "Coufal", image: "/Images/Coufal1.jpg", rarity: "common", position: "defender", baseLevel: 1 },
+    { id: 9, name: "Sommer", image: "/Images/Sommer1.jpg", rarity: "rare", position: "forward", baseLevel: 1 }
+  ];
+
+  const rarityProbabilities = {
+    common: 0.6,
+    rare: 0.25,
+    epic: 0.1,
+    legendary: 0.05
+  };
+
+  const packPrices = {
+    3: 30,
+    5: 50,
+    7: 70
+  };
+
+  const gameSpeedOptions = [1, 2, 4, 8, 16, 32, 64];
+
+  const setGameSpeed = (speed) => {
+    setMatchState(prev => ({ ...prev, gameSpeed: speed }));
+  };
+
+  const createConfetti = () => {
+    const colors = ['#FFD700', '#FFA500', '#FF4500'];
+    const particles = Array.from({ length: 50 }, (_, i) => ({
+      id: `confetti-${Date.now()}-${i}`,
+      color: colors[Math.floor(Math.random() * colors.length)]
+    }));
+    setConfetti(particles);
+    
+    setTimeout(() => {
+      setConfetti([]);
+    }, 4000);
+  };
+
+  const openPack = (size) => {
+    if (currentCards.length > 0) {
+      alert('Nejdřív přesuňte rozbalené karty do sbírky!');
+      return;
+    }
+
+    if (money < packPrices[size]) {
+      alert('Nemáte dostatek peněz!');
+      return;
+    }
+
+    setMoney(prev => prev - packPrices[size]);
+    const drawnCards = [];
+    
+    for (let i = 0; i < size; i++) {
+      const random = Math.random();
+      let selectedRarity;
+      let sum = 0;
+      
+      for (const [rarity, probability] of Object.entries(rarityProbabilities)) {
+        sum += probability;
+        if (random <= sum) {
+          selectedRarity = rarity;
+          break;
+        }
+      }
+
+      const cardsOfRarity = cards.filter(card => card.rarity === selectedRarity);
+      const randomCard = {...cardsOfRarity[Math.floor(Math.random() * cardsOfRarity.length)]};
+      randomCard.uniqueId = Date.now() + i; // Přidáme unikátní ID pro každou kartu
+      drawnCards.push(randomCard);
+    }
+
+    setCurrentCards(drawnCards);
+    createConfetti();
+  };
+
+  const collectCards = () => {
+    if (currentCards.length > 0) {
+      setUnlockedCards(prev => [...prev, ...currentCards]);
+      setCurrentCards([]);
+    }
+  };
+
+  const canPlayMatch = () => {
+    const unlockedPlayersByPosition = unlockedCards
+      .reduce((acc, card) => {
+        acc[card.position] = (acc[card.position] || 0) + 1;
+        return acc;
+      }, {});
+
+    return (unlockedPlayersByPosition.goalkeeper >= 1 &&
+            unlockedPlayersByPosition.defender >= 2 &&
+            unlockedPlayersByPosition.forward >= 3);
+  };
+
+  const startTeamSelection = () => {
+    if (canPlayMatch()) {
+      setShowTeamSelection(true);
+    } else {
+      alert('Pro zápas potřebujete: 1 brankáře, 2 obránce a 3 útočníky!');
+    }
+  };
+
+  const selectPlayer = (card) => {
+    if (!showTeamSelection) return;
+
+    if (activePosition === 'goalkeeper') {
+      setSelectedTeam(prev => ({ ...prev, goalkeeper: card.id }));
+    } else if (activePosition?.startsWith('defender')) {
+      const index = parseInt(activePosition.split('-')[1]);
+      const newDefenders = [...selectedTeam.defenders];
+      newDefenders[index] = card.id;
+      setSelectedTeam(prev => ({ ...prev, defenders: newDefenders }));
+    } else if (activePosition?.startsWith('forward')) {
+      const index = parseInt(activePosition.split('-')[1]);
+      const newForwards = [...selectedTeam.forwards];
+      newForwards[index] = card.id;
+      setSelectedTeam(prev => ({ ...prev, forwards: newForwards }));
+    }
+    setActivePosition(null);
+  };
+
+  const isTeamComplete = () => {
+    return selectedTeam.goalkeeper !== null && 
+           selectedTeam.defenders.length === 2 && 
+           selectedTeam.forwards.length === 3;
+  };
+
+  const formatTime = (seconds) => {
+    // Převedeme čas na formát 00:00-60:00 podle třetiny
+    const period = Math.floor((1200 - seconds) / 1200) + 1;
+    const periodSeconds = (period - 1) * 1200 + (1200 - seconds);
+    const mins = Math.floor(periodSeconds / 60);
+    const secs = periodSeconds % 60;
+    return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
   };
 
   const generateGameEvent = (eventTime) => {
