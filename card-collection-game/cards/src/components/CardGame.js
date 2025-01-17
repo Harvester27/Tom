@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 
   // Definice týmů pro turnaj
   const teamGinTonic = {
+    name: "Gin Tonic",
     goalkeeper: { 
       id: 'gin_gk', 
       name: "Martina 'Kočka' Chytilová", 
@@ -53,6 +54,7 @@ import React, { useState, useEffect } from 'react';
   };
 
   const teamGurmaniZatec = {
+    name: "Gurmáni Žatec",
     goalkeeper: { 
       id: 'gurmani_gk', 
       name: "Michal 'Šéfkuchař' Kuchařský", 
@@ -102,6 +104,7 @@ import React, { useState, useEffect } from 'react';
   };
 
   const teamKafacBilina = {
+    name: "Kafáč Bílina",
     goalkeeper: { 
       id: 'kafac_gk', 
       name: "Josef 'Legenda' Káva", 
@@ -151,6 +154,7 @@ import React, { useState, useEffect } from 'react';
   };
 
   const teamPredatorsNymburk = {
+    name: "Predátors Nymburk",
     goalkeeper: { 
       id: 'predators_gk', 
       name: "David 'Nováček' Novotný", 
@@ -200,6 +204,7 @@ import React, { useState, useEffect } from 'react';
   };
 
   const teamNorthBlades = {
+    name: "North Blades",
     goalkeeper: { 
       id: 'north_gk', 
       name: "Erik 'Ledovec' Andersson", 
@@ -249,17 +254,54 @@ import React, { useState, useEffect } from 'react';
   };
 
   const opponentTeam = {
-    goalkeeper: { id: 'opp_gk', name: "Kolečko 'Betonář' Vozíkový", number: "1", level: 3, image: "/Images/question_mark.png" },
+    name: "HC Lopaty Praha",
+    goalkeeper: {
+      id: 'opp_gk',
+      name: "Kolečko 'Betonář' Vozíkový",
+      number: "1",
+      level: 3,
+      image: "/Images/question_mark.png"
+    },
     defenders: [
-      { id: 'opp_def1', name: "Hrábě 'Zeď' Zahradnický", number: "44", level: 3, image: "/Images/question_mark.png" },
-      { id: 'opp_def2', name: "Sekera 'Drtič' Štípačový", number: "77", level: 2, image: "/Images/question_mark.png" }
+      {
+        id: 'opp_def1',
+        name: "Hrábě 'Zeď' Zahradnický",
+        number: "44",
+        level: 3,
+        image: "/Images/question_mark.png"
+      },
+      {
+        id: 'opp_def2',
+        name: "Sekera 'Drtič' Štípačový",
+        number: "77",
+        level: 2,
+        image: "/Images/question_mark.png"
+      }
     ],
     forwards: [
-      { id: 'opp_fw1', name: "Lopatka 'Rychlík' Rýčový", number: "13", level: 1, image: "/Images/question_mark.png" },
-      { id: 'opp_fw2', name: "Krumpáč 'Střela' Kopáčový", number: "88", level: 1, image: "/Images/question_mark.png" },
-      { id: 'opp_fw3', name: "Motyka 'Tank' Hrabalský", number: "91", level: 1, image: "/Images/question_mark.png" }
+      {
+        id: 'opp_fw1',
+        name: "Lopatka 'Rychlík' Rýčový",
+        number: "13",
+        level: 1,
+        image: "/Images/question_mark.png"
+      },
+      {
+        id: 'opp_fw2',
+        name: "Krumpáč 'Střela' Kopáčový",
+        number: "88",
+        level: 1,
+        image: "/Images/question_mark.png"
+      },
+      {
+        id: 'opp_fw3',
+        name: "Motyka 'Tank' Hrabalský",
+        number: "91",
+        level: 1,
+        image: "/Images/question_mark.png"
+      }
     ]
-};
+  };
 
 const ConfettiParticle = ({ color }) => {
   const style = {
@@ -290,6 +332,7 @@ const CardGame = () => {
   const [selectedCard, setSelectedCard] = useState(null);
   const [showTeamSelection, setShowTeamSelection] = useState(false);
   const [selectedTeam, setSelectedTeam] = useState({
+    name: "Litvínov Lancers",
     goalkeeper: null,
     defenders: [],
     forwards: []
