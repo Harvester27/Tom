@@ -271,7 +271,6 @@ const CardGame = () => {
     const isHomeTeam = Math.random() < 0.5;
     const team = isHomeTeam ? selectedTeam : opponentTeam;
     
-    // Získání všech aktivních hráčů (ti, kteří nejsou vyloučeni)
     const activePlayers = {
       forwards: isHomeTeam 
         ? selectedTeam.forwards.filter(id => !matchState.penalties.some(p => p.playerId === id))
@@ -282,17 +281,34 @@ const CardGame = () => {
       goalkeeper: isHomeTeam ? selectedTeam.goalkeeper : opponentTeam.goalkeeper
     };
 
-    // Zohlednění počtu hráčů na ledě při generování události
     const powerPlay = matchState.penalties.length > 0;
     const baseChance = powerPlay 
       ? (isHomeTeam === matchState.penalties[0].isHomeTeam ? 0.4 : 0.6)
       : 0.5;
 
-    // Generování události s ohledem na level hráčů
-    const eventTypes = ['shot', 'penalty'];
-    const eventType = eventTypes[Math.floor(Math.random() * eventTypes.length)];
+    // Rozšířený seznam typů událostí
+    const eventTypes = [
+      { type: 'shot', weight: 40 },
+      { type: 'penalty', weight: 10 },
+      { type: 'hit', weight: 15 },
+      { type: 'block', weight: 15 },
+      { type: 'pass', weight: 20 }
+    ];
 
-    if (eventType === 'shot') {
+    // Vážený výběr typu události
+    const totalWeight = eventTypes.reduce((sum, event) => sum + event.weight, 0);
+    let random = Math.random() * totalWeight;
+    let selectedEventType;
+    
+    for (const eventType of eventTypes) {
+      random -= eventType.weight;
+      if (random <= 0) {
+        selectedEventType = eventType.type;
+        break;
+      }
+    }
+
+    if (selectedEventType === 'shot') {
       const shooter = activePlayers.forwards[Math.floor(Math.random() * activePlayers.forwards.length)];
       const assist = activePlayers.forwards.concat(activePlayers.defenders)
         .filter(p => p !== shooter)[Math.floor(Math.random() * (activePlayers.forwards.length + activePlayers.defenders.length - 1))];
@@ -303,14 +319,22 @@ const CardGame = () => {
         ? opponentTeam.goalkeeper.level 
         : getCardLevel(selectedTeam.goalkeeper);
 
-      // Šance na gól se zvyšuje s levelem střelce a nahrávače, snižuje s levelem brankáře
       const goalChance = baseChance + 
         (shooterLevel * 0.05) + 
         (assistLevel * 0.02) - 
         (opposingGoalieLevel * 0.03);
 
+      const shotTypes = [
+        "střela zápěstím",
+        "golfák",
+        "příklepem",
+        "backhandem",
+        "mezi betony",
+        "pod víko"
+      ];
+      const selectedShotType = shotTypes[Math.floor(Math.random() * shotTypes.length)];
+
       if (Math.random() < goalChance) {
-        // Gól
         return {
           type: 'goal',
           isHomeTeam,
@@ -318,28 +342,99 @@ const CardGame = () => {
           assist: isHomeTeam ? cards.find(c => c.id === assist).name : assist.name,
           level: shooterLevel,
           assistLevel: assistLevel,
-          message: `Góóól! Střílí ${isHomeTeam ? cards.find(c => c.id === shooter).name : shooter.name} s asistencí od ${isHomeTeam ? cards.find(c => c.id === assist).name : assist.name}!`
+          message: `Góóól! ${isHomeTeam ? cards.find(c => c.id === shooter).name : shooter.name} skóruje ${selectedShotType}! Asistuje ${isHomeTeam ? cards.find(c => c.id === assist).name : assist.name}!`
         };
       } else {
-        // Zákrok brankáře
+        const saveTypes = [
+          "fantastický zákrok lapačkou",
+          "pohotový zákrok betony",
+          "bleskový přesun a zákrok",
+          "skvělý zákrok vyrážečkou",
+          "neuvěřitelný rozklek"
+        ];
+        const selectedSaveType = saveTypes[Math.floor(Math.random() * saveTypes.length)];
+
         return {
           type: 'save',
           isHomeTeam: !isHomeTeam,
           player: isHomeTeam ? opponentTeam.goalkeeper.name : cards.find(c => c.id === selectedTeam.goalkeeper).name,
           level: opposingGoalieLevel,
-          message: `Výborný zákrok brankáře ${isHomeTeam ? opponentTeam.goalkeeper.name : cards.find(c => c.id === selectedTeam.goalkeeper).name}!`
+          message: `${selectedSaveType.charAt(0).toUpperCase() + selectedSaveType.slice(1)} předvedl ${isHomeTeam ? opponentTeam.goalkeeper.name : cards.find(c => c.id === selectedTeam.goalkeeper).name}!`
         };
       }
-    } else if (eventType === 'penalty') {
+    } else if (selectedEventType === 'hit') {
+      const hitter = [...activePlayers.forwards, ...activePlayers.defenders][
+        Math.floor(Math.random() * (activePlayers.forwards.length + activePlayers.defenders.length))
+      ];
+      const hitterLevel = isHomeTeam ? getCardLevel(hitter) : hitter.level;
+      
+      const hitTypes = [
+        "tvrdý bodyček u mantinelu",
+        "čistý hit na modré čáře",
+        "drtivý střet ve středním pásmu",
+        "důrazný souboj v rohu kluziště"
+      ];
+      const selectedHitType = hitTypes[Math.floor(Math.random() * hitTypes.length)];
+
+      return {
+        type: 'hit',
+        isHomeTeam,
+        player: isHomeTeam ? cards.find(c => c.id === hitter).name : hitter.name,
+        level: hitterLevel,
+        message: `${isHomeTeam ? cards.find(c => c.id === hitter).name : hitter.name} předvádí ${selectedHitType}!`
+      };
+    } else if (selectedEventType === 'block') {
+      const blocker = activePlayers.defenders[Math.floor(Math.random() * activePlayers.defenders.length)];
+      const blockerLevel = isHomeTeam ? getCardLevel(blocker) : blocker.level;
+      
+      const blockTypes = [
+        "obětavě blokuje střelu",
+        "skvěle čte hru a zachycuje přihrávku",
+        "výborně brání v přečíslení",
+        "chytře vystupuje proti útočníkovi"
+      ];
+      const selectedBlockType = blockTypes[Math.floor(Math.random() * blockTypes.length)];
+
+      return {
+        type: 'block',
+        isHomeTeam,
+        player: isHomeTeam ? cards.find(c => c.id === blocker).name : blocker.name,
+        level: blockerLevel,
+        message: `${isHomeTeam ? cards.find(c => c.id === blocker).name : blocker.name} ${selectedBlockType}!`
+      };
+    } else if (selectedEventType === 'pass') {
+      const passer = [...activePlayers.forwards, ...activePlayers.defenders][
+        Math.floor(Math.random() * (activePlayers.forwards.length + activePlayers.defenders.length))
+      ];
+      const passerLevel = isHomeTeam ? getCardLevel(passer) : passer.level;
+      
+      const passTypes = [
+        "krásnou přihrávku do jízdy",
+        "chytrou nahrávku do volného prostoru",
+        "rychlou kombinaci na jeden dotek",
+        "přesnou přihrávku přes celé kluziště"
+      ];
+      const selectedPassType = passTypes[Math.floor(Math.random() * passTypes.length)];
+
+      return {
+        type: 'pass',
+        isHomeTeam,
+        player: isHomeTeam ? cards.find(c => c.id === passer).name : passer.name,
+        level: passerLevel,
+        message: `${isHomeTeam ? cards.find(c => c.id === passer).name : passer.name} předvádí ${selectedPassType}!`
+      };
+    } else if (selectedEventType === 'penalty') {
       const penalizedPlayer = [...activePlayers.forwards, ...activePlayers.defenders][
         Math.floor(Math.random() * (activePlayers.forwards.length + activePlayers.defenders.length))
       ];
       
       const penalties = [
-        "Vyloučení na 2 minuty za hákování",
-        "Vyloučení na 2 minuty za sekání",
-        "Vyloučení na 2 minuty za držení",
-        "Vyloučení na 2 minuty za nedovolené bránění"
+        { text: "Vyloučení na 2 minuty za hákování", desc: "po souboji u mantinelu" },
+        { text: "Vyloučení na 2 minuty za sekání", desc: "při snaze zastavit útok" },
+        { text: "Vyloučení na 2 minuty za držení", desc: "při bránění protiútoku" },
+        { text: "Vyloučení na 2 minuty za nedovolené bránění", desc: "ve středním pásmu" },
+        { text: "Vyloučení na 2 minuty za krosček", desc: "v souboji před brankou" },
+        { text: "Vyloučení na 2 minuty za podražení", desc: "při snaze získat puk" }
       ];
       
       const penalty = penalties[Math.floor(Math.random() * penalties.length)];
@@ -349,7 +444,7 @@ const CardGame = () => {
         isHomeTeam,
         player: isHomeTeam ? cards.find(c => c.id === penalizedPlayer).name : penalizedPlayer.name,
         level: isHomeTeam ? getCardLevel(penalizedPlayer) : penalizedPlayer.level,
-        message: `${penalty} - ${isHomeTeam ? cards.find(c => c.id === penalizedPlayer).name : penalizedPlayer.name}`,
+        message: `${penalty.text} - ${isHomeTeam ? cards.find(c => c.id === penalizedPlayer).name : penalizedPlayer.name} ${penalty.desc}`,
         duration: 120,
         playerId: isHomeTeam ? penalizedPlayer : penalizedPlayer.id
       };
@@ -699,7 +794,7 @@ const CardGame = () => {
             }
           }
 
-          // 5% šance na speciální událost
+          // Generování speciální události pouze pokud není aktivní rozhodnutí
           if (Math.random() < 0.05 && !showDecision) {
             setShowDecision(true);
             setCurrentDecision(generateSpecialEvent(selectedTeam));
@@ -1369,43 +1464,38 @@ const CardGame = () => {
                 </div>
 
                 {/* Pravá část - události */}
-                <div className="w-96 flex flex-col">
+                <div className="w-[500px] flex flex-col"> {/* Zvětšená šířka pro události */}
                   {/* Seznam událostí */}
-                  <div className="bg-gradient-to-b from-black/50 to-black/30 rounded-xl p-6 h-full overflow-y-auto">
-                    <h3 className="text-2xl font-bold text-yellow-400 sticky top-0 bg-black/50 backdrop-blur-sm p-2 rounded-lg mb-4 border-b border-yellow-500/20">
+                  <div className="bg-gradient-to-b from-black/50 to-black/30 rounded-xl p-8 h-full overflow-y-auto">
+                    <h3 className="text-3xl font-bold text-yellow-400 sticky top-0 bg-black/50 backdrop-blur-sm p-4 rounded-lg mb-6 border-b border-yellow-500/20">
                       Průběh zápasu
                     </h3>
-                    <div className="space-y-2">
+                    <div className="space-y-4"> {/* Větší mezery mezi událostmi */}
                       {matchState.events.map(event => (
-                        <div 
+                        <div
                           key={event.id}
-                          className={`p-3 rounded-lg border border-white/5 backdrop-blur-sm transition-all duration-300 hover:scale-[1.02] ${
-                            event.type === 'goal' ? 'bg-gradient-to-r from-green-900/50 to-green-800/30' :
-                            event.type === 'penalty' ? 'bg-gradient-to-r from-red-900/50 to-red-800/30' :
-                            event.type === 'save' ? 'bg-gradient-to-r from-blue-900/50 to-blue-800/30' :
-                            'bg-gradient-to-r from-gray-800/50 to-gray-700/30'
+                          className={`p-4 rounded-lg ${
+                            event.type === 'goal'
+                              ? 'bg-green-900/40 border-l-4 border-green-500'
+                              : event.type === 'penalty'
+                              ? 'bg-red-900/40 border-l-4 border-red-500'
+                              : event.type === 'save'
+                              ? 'bg-blue-900/40 border-l-4 border-blue-500'
+                              : 'bg-gray-800/40'
                           }`}
                         >
-                          <div className="flex items-center gap-2">
-                            <span className="text-yellow-200 font-mono bg-black/30 px-2 py-1 rounded">
-                              {event.time}
-                            </span>
-                            <div className="flex-1">
+                          <div className="flex items-center justify-between mb-2">
+                            <span className="text-gray-400 font-mono">{event.time}</span>
+                            {event.type === 'goal' && (
                               <div className="flex items-center gap-2">
-                                <span className={`text-sm px-2 rounded flex items-center gap-1 ${
-                                  event.position === 'goalkeeper' ? 'bg-blue-500/30 text-blue-200' :
-                                  event.position === 'defender' ? 'bg-green-500/30 text-green-200' :
-                                  'bg-yellow-500/30 text-yellow-200'
-                                }`}>
-                                  {event.player}
-                                  <span className="bg-black/30 px-1 rounded text-xs">
-                                    Lvl {event.level}
-                                  </span>
-                                </span>
-                                <p className="text-white ml-2">{event.message}</p>
+                                <span className="text-yellow-400 font-bold">Level {event.level}</span>
+                                {event.assistLevel && (
+                                  <span className="text-yellow-400 font-bold">A: Level {event.assistLevel}</span>
+                                )}
                               </div>
-                            </div>
+                            )}
                           </div>
+                          <p className="text-lg text-white">{event.message}</p>
                         </div>
                       ))}
                     </div>
@@ -1414,24 +1504,24 @@ const CardGame = () => {
               </div>
 
               {showDecision && currentDecision && (
-                <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50">
-                  <div className="bg-gradient-to-br from-blue-900/90 to-blue-800/80 p-8 rounded-2xl max-w-md w-full mx-4 border border-blue-500/20">
-                    <h2 className="text-3xl font-bold text-center mb-4 text-blue-300">
+                <div className="fixed inset-0 bg-black/90 flex items-center justify-center z-50">
+                  <div className="bg-gradient-to-br from-blue-900/90 to-blue-800/80 p-8 rounded-2xl max-w-2xl w-full mx-4 border border-blue-500/20">
+                    <h2 className="text-4xl font-bold text-center mb-6 text-blue-300">
                       {currentDecision.title}
                     </h2>
-                    <p className="text-white text-center mb-6">
+                    <p className="text-white text-xl text-center mb-8">
                       {currentDecision.description}
                     </p>
-                    <div className="flex flex-col gap-4">
+                    <div className="grid grid-cols-2 gap-6">
                       {currentDecision.options.map(option => (
                         <button
                           key={option.id}
                           onClick={() => handleDecision(option)}
                           className="bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 
-                            text-white font-bold py-3 px-6 rounded-xl shadow-lg transform transition-all duration-300 
+                            text-white font-bold py-4 px-8 rounded-xl shadow-lg transform transition-all duration-300 
                             hover:scale-105 active:scale-95"
                         >
-                          {option.text}
+                          <div className="text-xl mb-2">{option.text}</div>
                           <div className="text-sm opacity-75">
                             Šance na úspěch: {Math.round(option.successRate * 100)}%
                           </div>
