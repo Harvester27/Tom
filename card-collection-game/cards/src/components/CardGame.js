@@ -555,16 +555,16 @@ const CardGame = () => {
 
   const generateGameEvent = (eventTime) => {
     const isHomeTeam = Math.random() < 0.5;
-    const team = isHomeTeam ? selectedTeam : opponentTeam;
+    const team = isHomeTeam ? selectedTeam : matchState.currentOpponent;
     
     const activePlayers = {
       forwards: isHomeTeam 
         ? selectedTeam.forwards.filter(id => !matchState.penalties.some(p => p.playerId === id))
-        : opponentTeam.forwards.filter(p => !matchState.penalties.some(pen => pen.playerId === p.id)),
+        : matchState.currentOpponent.forwards.filter(p => !matchState.penalties.some(pen => pen.playerId === p.id)),
       defenders: isHomeTeam
         ? selectedTeam.defenders.filter(id => !matchState.penalties.some(p => p.playerId === id))
-        : opponentTeam.defenders.filter(p => !matchState.penalties.some(pen => pen.playerId === p.id)),
-      goalkeeper: isHomeTeam ? selectedTeam.goalkeeper : opponentTeam.goalkeeper
+        : matchState.currentOpponent.defenders.filter(p => !matchState.penalties.some(pen => pen.playerId === p.id)),
+      goalkeeper: isHomeTeam ? selectedTeam.goalkeeper : matchState.currentOpponent.goalkeeper
     };
 
     // Přidáme čas události
@@ -609,7 +609,7 @@ const CardGame = () => {
       const shooterLevel = isHomeTeam ? getCardLevel(shooter) : shooter.level;
       const assistLevel = isHomeTeam ? getCardLevel(assist) : assist.level;
       const opposingGoalieLevel = isHomeTeam 
-        ? opponentTeam.goalkeeper.level 
+        ? matchState.currentOpponent.goalkeeper.level 
         : getCardLevel(selectedTeam.goalkeeper);
 
       // Aktualizujeme statistiky střel
@@ -619,8 +619,8 @@ const CardGame = () => {
           ...prev.playerStats,
           shots: {
             ...prev.playerStats.shots,
-            [isHomeTeam ? opponentTeam.goalkeeper.id : selectedTeam.goalkeeper]: 
-              (prev.playerStats.shots[isHomeTeam ? opponentTeam.goalkeeper.id : selectedTeam.goalkeeper] || 0) + 1
+            [isHomeTeam ? matchState.currentOpponent.goalkeeper.id : selectedTeam.goalkeeper]: 
+              (prev.playerStats.shots[isHomeTeam ? matchState.currentOpponent.goalkeeper.id : selectedTeam.goalkeeper] || 0) + 1
           }
         }
       }));
@@ -676,8 +676,8 @@ const CardGame = () => {
             ...prev.playerStats,
             saves: {
               ...prev.playerStats.saves,
-              [isHomeTeam ? opponentTeam.goalkeeper.id : selectedTeam.goalkeeper]: 
-                (prev.playerStats.saves[isHomeTeam ? opponentTeam.goalkeeper.id : selectedTeam.goalkeeper] || 0) + 1
+              [isHomeTeam ? matchState.currentOpponent.goalkeeper.id : selectedTeam.goalkeeper]: 
+                (prev.playerStats.saves[isHomeTeam ? matchState.currentOpponent.goalkeeper.id : selectedTeam.goalkeeper] || 0) + 1
             }
           }
         }));
@@ -694,9 +694,9 @@ const CardGame = () => {
         return {
           type: 'save',
           isHomeTeam: !isHomeTeam,
-          player: isHomeTeam ? opponentTeam.goalkeeper.name : cards.find(c => c.id === selectedTeam.goalkeeper).name,
+          player: isHomeTeam ? matchState.currentOpponent.goalkeeper.name : cards.find(c => c.id === selectedTeam.goalkeeper).name,
           level: opposingGoalieLevel,
-          message: `${selectedSaveType.charAt(0).toUpperCase() + selectedSaveType.slice(1)} předvedl ${isHomeTeam ? opponentTeam.goalkeeper.name : cards.find(c => c.id === selectedTeam.goalkeeper).name}!`,
+          message: `${selectedSaveType.charAt(0).toUpperCase() + selectedSaveType.slice(1)} předvedl ${isHomeTeam ? matchState.currentOpponent.goalkeeper.name : cards.find(c => c.id === selectedTeam.goalkeeper).name}!`,
           time: eventTimeFormatted,
           id: Date.now()
         };
@@ -891,9 +891,9 @@ const CardGame = () => {
           events: [...prev.events, {
             type: 'save',
             isHomeTeam: false,
-            player: opponentTeam.goalkeeper.name,
-            level: opponentTeam.goalkeeper.level,
-            message: `${opponentTeam.goalkeeper.name} chytá pokus ${currentDecision.player.name}!`,
+            player: matchState.currentOpponent.goalkeeper.name,
+            level: matchState.currentOpponent.goalkeeper.level,
+            message: `${matchState.currentOpponent.goalkeeper.name} chytá pokus ${currentDecision.player.name}!`,
             time: formatTime(matchState.time),
             id: Date.now()
           }]
@@ -961,7 +961,33 @@ const CardGame = () => {
         });
       } else {
         // Standardní zápas mimo turnaj
-        // ... existing code for normal match ...
+        setMatchState(prev => {
+          const initialEventTimes = [];
+          const numEvents = Math.floor(Math.random() * (12 - 5 + 1)) + 5;
+          for (let i = 0; i < numEvents; i++) {
+            initialEventTimes.push(Math.floor(Math.random() * (1200 - 5) + 5));
+          }
+          return { 
+            ...prev, 
+            isPlaying: true,
+            score: { home: 0, away: 0 },
+            playerStats: {
+              goals: {},
+              assists: {},
+              saves: {
+                [selectedTeam.goalkeeper]: 0,
+                [opponentTeam.goalkeeper.id]: 0
+              },
+              shots: {
+                [selectedTeam.goalkeeper]: 0,
+                [opponentTeam.goalkeeper.id]: 0
+              }
+            },
+            penalties: [],
+            scheduledEvents: initialEventTimes.sort((a, b) => b - a),
+            currentOpponent: opponentTeam
+          };
+        });
       }
     }
   };
@@ -1928,7 +1954,7 @@ const CardGame = () => {
                     </div>
                     <div className="flex items-center gap-8">
                       {matchState.penalties.filter(p => !p.isHomeTeam).map(penalty => {
-                        const player = opponentTeam.forwards.concat(opponentTeam.defenders)
+                        const player = matchState.currentOpponent.forwards.concat(matchState.currentOpponent.defenders)
                           .find(p => p.id === penalty.playerId);
                         return (
                           <div key={`${penalty.playerId}-${penalty.startTime}`} className="relative">
@@ -1952,7 +1978,7 @@ const CardGame = () => {
                           </div>
                         );
                       })}
-                      <img src="/Images/HC_Lopaty_Praha.png" alt="HC Lopaty Praha" className="h-20 object-contain" />
+                      <img src={matchState.currentOpponent ? `/Images/${matchState.currentOpponent.name.replace(/\s+/g, '_')}.png` : "/Images/HC_Lopaty_Praha.png"} alt={matchState.currentOpponent ? matchState.currentOpponent.name : "HC Lopaty Praha"} className="h-20 object-contain" />
                     </div>
                   </div>
 
@@ -2069,7 +2095,7 @@ const CardGame = () => {
                     <div className="absolute left-1/2 right-0 top-0 bottom-0 grid grid-cols-3 gap-4 p-8">
                       {/* Útočníci */}
                       <div className="grid grid-rows-3 gap-4">
-                        {opponentTeam.forwards.map(player => (
+                        {matchState.currentOpponent.forwards.map(player => (
                           <div key={player.name} className="flex justify-center items-center">
                             <div className="relative">
                               <div className="w-24 h-32 bg-gradient-to-br from-gray-800 to-gray-900 rounded-lg shadow-lg flex flex-col items-center justify-center text-gray-400 transform hover:scale-110 transition-transform relative overflow-hidden">
@@ -2103,7 +2129,7 @@ const CardGame = () => {
                       </div>
                       {/* Obránci */}
                       <div className="grid grid-rows-2 gap-8">
-                        {opponentTeam.defenders.map(player => (
+                        {matchState.currentOpponent.defenders.map(player => (
                           <div key={player.name} className="flex justify-center items-center">
                             <div className="relative">
                               <div className="w-24 h-32 bg-gradient-to-br from-gray-800 to-gray-900 rounded-lg shadow-lg flex flex-col items-center justify-center text-gray-400 transform hover:scale-110 transition-transform relative overflow-hidden">
@@ -2140,26 +2166,26 @@ const CardGame = () => {
                         <div className="relative">
                           <div className="w-24 h-32 bg-gradient-to-br from-gray-800 to-gray-900 rounded-lg shadow-lg flex flex-col items-center justify-center text-gray-400 transform hover:scale-110 transition-transform relative overflow-hidden">
                             <div className="absolute top-0 left-0 w-full bg-gradient-to-r from-yellow-600 to-yellow-800 py-1">
-                              <span className="text-white text-xs font-bold">{opponentTeam.goalkeeper.number}</span>
+                              <span className="text-white text-xs font-bold">{matchState.currentOpponent.goalkeeper.number}</span>
                             </div>
                             <div className="text-5xl font-bold mb-2">?</div>
                             <div className="absolute top-2 right-2 w-6 h-6 rounded-full bg-gradient-to-br from-yellow-400 to-yellow-600 flex items-center justify-center">
-                              <span className="text-black text-xs font-bold">{opponentTeam.goalkeeper.level}</span>
+                              <span className="text-black text-xs font-bold">{matchState.currentOpponent.goalkeeper.level}</span>
                             </div>
                             <div className="absolute bottom-0 left-0 w-full bg-gradient-to-r from-gray-900 to-gray-800 p-1">
                               <p className="text-[8px] text-center text-gray-300 font-bold leading-tight">
-                                {opponentTeam.goalkeeper.name}
+                                {matchState.currentOpponent.goalkeeper.name}
                               </p>
                             </div>
                           </div>
                           {/* Statistiky brankáře Lopat */}
-                          {matchState.playerStats.saves[opponentTeam.goalkeeper.id] > 0 && (
+                          {matchState.playerStats.saves[matchState.currentOpponent.goalkeeper.id] > 0 && (
                             <div className="absolute -bottom-6 left-0 right-0 text-center">
                               <div className="bg-blue-900/80 text-white text-sm px-2 py-1 rounded-lg">
-                                {matchState.playerStats.saves[opponentTeam.goalkeeper.id]} zákroků
+                                {matchState.playerStats.saves[matchState.currentOpponent.goalkeeper.id]} zákroků
                                 <br />
-                                Úspěšnost: {matchState.playerStats.shots[opponentTeam.goalkeeper.id] > 0 
-                                  ? Math.round((matchState.playerStats.saves[opponentTeam.goalkeeper.id] / matchState.playerStats.shots[opponentTeam.goalkeeper.id]) * 100)
+                                Úspěšnost: {matchState.playerStats.shots[matchState.currentOpponent.goalkeeper.id] > 0 
+                                  ? Math.round((matchState.playerStats.saves[matchState.currentOpponent.goalkeeper.id] / matchState.playerStats.shots[matchState.currentOpponent.goalkeeper.id]) * 100)
                                   : 100}%
                               </div>
                             </div>
