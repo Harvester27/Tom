@@ -41,14 +41,14 @@ const CardGame = () => {
   const [tournamentState, setTournamentState] = useState({
     groups: {
       A: [
-        { name: "Kafáč Bílina", points: 0, score: { for: 0, against: 0 } },
-        { name: "North Blades", points: 0, score: { for: 0, against: 0 } },
-        { name: "Litvínov Lancers", points: 0, score: { for: 0, against: 0 } }
+        { team: teamKafacBilina, points: 0, score: { for: 0, against: 0 } },
+        { team: teamNorthBlades, points: 0, score: { for: 0, against: 0 } },
+        { team: selectedTeam, points: 0, score: { for: 0, against: 0 } }
       ],
       B: [
-        { name: "Gin Tonic", points: 0, score: { for: 0, against: 0 } },
-        { name: "Gurmáni Žatec", points: 0, score: { for: 0, against: 0 } },
-        { name: "Predátors Nymburk", points: 0, score: { for: 0, against: 0 } }
+        { team: teamGinTonic, points: 0, score: { for: 0, against: 0 } },
+        { team: teamGurmaniZatec, points: 0, score: { for: 0, against: 0 } },
+        { team: teamPredatorsNymburk, points: 0, score: { for: 0, against: 0 } }
       ]
     },
     matches: {
@@ -257,6 +257,252 @@ const CardGame = () => {
     const mins = Math.floor(periodSeconds / 60);
     const secs = periodSeconds % 60;
     return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+  };
+
+  // Definice týmů pro turnaj
+  const teamGinTonic = {
+    goalkeeper: { 
+      id: 'gin_gk', 
+      name: "Martina 'Kočka' Chytilová", 
+      number: "1", 
+      level: 5, 
+      image: "/Images/question_mark.png" 
+    },
+    defenders: [
+      { 
+        id: 'gin_def1', 
+        name: "Tereza 'Skála' Tvrdá", 
+        number: "4", 
+        level: 4, 
+        image: "/Images/question_mark.png" 
+      },
+      { 
+        id: 'gin_def2', 
+        name: "Lucie 'Tygr' Dravá", 
+        number: "8", 
+        level: 4, 
+        image: "/Images/question_mark.png" 
+      }
+    ],
+    forwards: [
+      { 
+        id: 'gin_fw1', 
+        name: "Karolína 'Blesk' Rychlá", 
+        number: "9", 
+        level: 5, 
+        image: "/Images/question_mark.png" 
+      },
+      { 
+        id: 'gin_fw2', 
+        name: "Veronika 'Střela' Přesná", 
+        number: "19", 
+        level: 4, 
+        image: "/Images/question_mark.png" 
+      },
+      { 
+        id: 'gin_fw3', 
+        name: "Jana 'Vítr' Létající", 
+        number: "91", 
+        level: 4, 
+        image: "/Images/question_mark.png" 
+      }
+    ]
+  };
+
+  const teamGurmaniZatec = {
+    goalkeeper: { 
+      id: 'gurmani_gk', 
+      name: "Michal 'Šéfkuchař' Kuchařský", 
+      number: "33", 
+      level: 4, 
+      image: "/Images/question_mark.png" 
+    },
+    defenders: [
+      { 
+        id: 'gurmani_def1', 
+        name: "Petr 'Řízek' Smažený", 
+        number: "55", 
+        level: 4, 
+        image: "/Images/question_mark.png" 
+      },
+      { 
+        id: 'gurmani_def2', 
+        name: "Jan 'Svíčková' Omáčka", 
+        number: "66", 
+        level: 3, 
+        image: "/Images/question_mark.png" 
+      }
+    ],
+    forwards: [
+      { 
+        id: 'gurmani_fw1', 
+        name: "Tomáš 'Guláš' Masový", 
+        number: "11", 
+        level: 5, 
+        image: "/Images/question_mark.png" 
+      },
+      { 
+        id: 'gurmani_fw2', 
+        name: "David 'Knedlík' Moučný", 
+        number: "22", 
+        level: 4, 
+        image: "/Images/question_mark.png" 
+      },
+      { 
+        id: 'gurmani_fw3', 
+        name: "Filip 'Rohlík' Pekařský", 
+        number: "99", 
+        level: 3, 
+        image: "/Images/question_mark.png" 
+      }
+    ]
+  };
+
+  const teamKafacBilina = {
+    goalkeeper: { 
+      id: 'kafac_gk', 
+      name: "Josef 'Legenda' Káva", 
+      number: "1", 
+      level: 10, 
+      image: "/Images/question_mark.png" 
+    },
+    defenders: [
+      { 
+        id: 'kafac_def1', 
+        name: "Pavel 'Nováček' Novák", 
+        number: "4", 
+        level: 2, 
+        image: "/Images/question_mark.png" 
+      },
+      { 
+        id: 'kafac_def2', 
+        name: "Martin 'Veterán' Starý", 
+        number: "8", 
+        level: 5, 
+        image: "/Images/question_mark.png" 
+      }
+    ],
+    forwards: [
+      { 
+        id: 'kafac_fw1', 
+        name: "Jan 'Espresso' Rychlý", 
+        number: "9", 
+        level: 3, 
+        image: "/Images/question_mark.png" 
+      },
+      { 
+        id: 'kafac_fw2', 
+        name: "Petr 'Latté' Mléčný", 
+        number: "19", 
+        level: 3, 
+        image: "/Images/question_mark.png" 
+      },
+      { 
+        id: 'kafac_fw3', 
+        name: "Tomáš 'Piccolo' Malý", 
+        number: "91", 
+        level: 2, 
+        image: "/Images/question_mark.png" 
+      }
+    ]
+  };
+
+  const teamPredatorsNymburk = {
+    goalkeeper: { 
+      id: 'predators_gk', 
+      name: "David 'Nováček' Novotný", 
+      number: "31", 
+      level: 1, 
+      image: "/Images/question_mark.png" 
+    },
+    defenders: [
+      { 
+        id: 'predators_def1', 
+        name: "Martin 'Zeď' Železný", 
+        number: "5", 
+        level: 5, 
+        image: "/Images/question_mark.png" 
+      },
+      { 
+        id: 'predators_def2', 
+        name: "Jakub 'Tank' Tvrdý", 
+        number: "2", 
+        level: 5, 
+        image: "/Images/question_mark.png" 
+      }
+    ],
+    forwards: [
+      { 
+        id: 'predators_fw1', 
+        name: "Tomáš 'Sniper' Střelecký", 
+        number: "88", 
+        level: 7, 
+        image: "/Images/question_mark.png" 
+      },
+      { 
+        id: 'predators_fw2', 
+        name: "Petr 'Raketa' Rychlý", 
+        number: "71", 
+        level: 4, 
+        image: "/Images/question_mark.png" 
+      },
+      { 
+        id: 'predators_fw3', 
+        name: "Jan 'Mladej' Mladý", 
+        number: "97", 
+        level: 1, 
+        image: "/Images/question_mark.png" 
+      }
+    ]
+  };
+
+  const teamNorthBlades = {
+    goalkeeper: { 
+      id: 'north_gk', 
+      name: "Erik 'Ledovec' Andersson", 
+      number: "30", 
+      level: 1, 
+      image: "/Images/question_mark.png" 
+    },
+    defenders: [
+      { 
+        id: 'north_def1', 
+        name: "Martin 'Štít' Štít", 
+        number: "44", 
+        level: 5, 
+        image: "/Images/question_mark.png" 
+      },
+      { 
+        id: 'north_def2', 
+        name: "Jan 'Kříž' Kříž", 
+        number: "77", 
+        level: 4, 
+        image: "/Images/question_mark.png" 
+      }
+    ],
+    forwards: [
+      { 
+        id: 'north_fw1', 
+        name: "Tomáš 'Guláš' Masový", 
+        number: "11", 
+        level: 5, 
+        image: "/Images/question_mark.png" 
+      },
+      { 
+        id: 'north_fw2', 
+        name: "David 'Knedlík' Moučný", 
+        number: "22", 
+        level: 4, 
+        image: "/Images/question_mark.png" 
+      },
+      { 
+        id: 'north_fw3', 
+        name: "Filip 'Rohlík' Pekařský", 
+        number: "99", 
+        level: 3, 
+        image: "/Images/question_mark.png" 
+      }
+    ]
   };
 
   // Definice soupeřova týmu
@@ -934,8 +1180,8 @@ const CardGame = () => {
       for (let i = 0; i < tournamentState.groups.A.length; i++) {
         for (let j = i + 1; j < tournamentState.groups.A.length; j++) {
           groupMatches.push({
-            home: tournamentState.groups.A[i].name,
-            away: tournamentState.groups.A[j].name,
+            home: tournamentState.groups.A[i].team.name,
+            away: tournamentState.groups.A[j].team.name,
             group: 'A',
             score: null
           });
@@ -946,8 +1192,8 @@ const CardGame = () => {
       for (let i = 0; i < tournamentState.groups.B.length; i++) {
         for (let j = i + 1; j < tournamentState.groups.B.length; j++) {
           groupMatches.push({
-            home: tournamentState.groups.B[i].name,
-            away: tournamentState.groups.B[j].name,
+            home: tournamentState.groups.B[i].team.name,
+            away: tournamentState.groups.B[j].team.name,
             group: 'B',
             score: null
           });
@@ -962,6 +1208,135 @@ const CardGame = () => {
         }
       }));
     }
+  };
+
+  // Funkce pro získání týmu podle jména
+  const getTeamByName = (name) => {
+    switch(name) {
+      case "Kafáč Bílina": return teamKafacBilina;
+      case "North Blades": return teamNorthBlades;
+      case "Gin Tonic": return teamGinTonic;
+      case "Gurmáni Žatec": return teamGurmaniZatec;
+      case "Predátors Nymburk": return teamPredatorsNymburk;
+      case "Litvínov Lancers": return selectedTeam;
+      default: return null;
+    }
+  };
+
+  // Funkce pro simulaci turnajového zápasu
+  const playTournamentMatch = (homeTeam, awayTeam) => {
+    // Vypočítáme sílu týmů
+    const getTeamStrength = (team) => {
+      const goalkeeperStrength = team.goalkeeper.level;
+      const defenseStrength = team.defenders.reduce((sum, def) => sum + def.level, 0);
+      const forwardStrength = team.forwards.reduce((sum, fw) => sum + fw.level, 0);
+      return goalkeeperStrength + defenseStrength + forwardStrength;
+    };
+
+    const homeStrength = getTeamStrength(homeTeam);
+    const awayStrength = getTeamStrength(awayTeam);
+
+    // Generujeme góly podle síly týmů
+    const generateGoals = (strength) => {
+      const baseGoals = Math.floor(Math.random() * 4); // 0-3 základní góly
+      const strengthBonus = Math.floor(strength / 20); // Bonus podle síly týmu
+      return baseGoals + strengthBonus;
+    };
+
+    const homeGoals = generateGoals(homeStrength);
+    const awayGoals = generateGoals(awayStrength);
+
+    return { home: homeGoals, away: awayGoals };
+  };
+
+  // Funkce pro aktualizaci bodů a skóre po zápase
+  const updateTournamentStandings = (homeTeam, awayTeam, score) => {
+    setTournamentState(prev => {
+      const newState = { ...prev };
+      const updateTeam = (team, goalsFor, goalsAgainst) => {
+        team.score.for += goalsFor;
+        team.score.against += goalsAgainst;
+        if (goalsFor > goalsAgainst) team.points += 3;
+        else if (goalsFor === goalsAgainst) team.points += 1;
+      };
+
+      // Najdeme a aktualizujeme týmy v obou skupinách
+      for (const group of ['A', 'B']) {
+        for (const teamData of newState.groups[group]) {
+          if (teamData.team.name === homeTeam.name) {
+            updateTeam(teamData, score.home, score.away);
+          } else if (teamData.team.name === awayTeam.name) {
+            updateTeam(teamData, score.away, score.home);
+          }
+        }
+      }
+
+      return newState;
+    });
+  };
+
+  // Funkce pro spuštění dalšího zápasu v turnaji
+  const startNextTournamentMatch = () => {
+    const currentMatch = tournamentState.matches.groups[tournamentState.currentMatchIndex];
+    if (!currentMatch) return;
+
+    const homeTeam = getTeamByName(currentMatch.home);
+    const awayTeam = getTeamByName(currentMatch.away);
+    
+    const score = playTournamentMatch(homeTeam, awayTeam);
+    updateTournamentStandings(homeTeam, awayTeam, score);
+
+    // Aktualizujeme seznam zápasů
+    setTournamentState(prev => ({
+      ...prev,
+      matches: {
+        ...prev.matches,
+        groups: prev.matches.groups.map((match, index) => 
+          index === prev.currentMatchIndex ? { ...match, score } : match
+        )
+      },
+      currentMatchIndex: prev.currentMatchIndex + 1
+    }));
+
+    // Kontrola, jestli jsme dokončili skupinovou fázi
+    if (tournamentState.currentMatchIndex === tournamentState.matches.groups.length - 1) {
+      generatePlayoffMatches();
+    }
+  };
+
+  // Funkce pro generování playoff zápasů
+  const generatePlayoffMatches = () => {
+    // Seřadíme týmy v každé skupině podle bodů
+    const sortTeams = (teams) => {
+      return [...teams].sort((a, b) => {
+        if (b.points !== a.points) return b.points - a.points;
+        const aGoalDiff = a.score.for - a.score.against;
+        const bGoalDiff = b.score.for - b.score.against;
+        return bGoalDiff - aGoalDiff;
+      });
+    };
+
+    const groupA = sortTeams(tournamentState.groups.A);
+    const groupB = sortTeams(tournamentState.groups.B);
+
+    // Vytvoříme zápasy playoff
+    const playoffMatches = [
+      // Předkolo
+      { home: groupA[1].team.name, away: groupB[2].team.name, round: 'preliminary' },
+      { home: groupB[1].team.name, away: groupA[2].team.name, round: 'preliminary' },
+      // Semifinále (první týmy ze skupin už čekají)
+      { home: groupA[0].team.name, away: 'Winner P2', round: 'semifinal' },
+      { home: groupB[0].team.name, away: 'Winner P1', round: 'semifinal' }
+    ];
+
+    setTournamentState(prev => ({
+      ...prev,
+      phase: 'playoff',
+      matches: {
+        ...prev.matches,
+        playoff: playoffMatches
+      }
+    }));
   };
 
   return (
@@ -1875,8 +2250,8 @@ const CardGame = () => {
                   <h3 className="text-2xl font-bold text-yellow-400 mb-4">Skupina A</h3>
                   <div className="space-y-4">
                     {tournamentState.groups.A.map((team, index) => (
-                      <div key={team.name} className="flex justify-between items-center bg-black/30 p-4 rounded-lg">
-                        <span className="text-white">{team.name}</span>
+                      <div key={team.team.name} className="flex justify-between items-center bg-black/30 p-4 rounded-lg">
+                        <span className="text-white">{team.team.name}</span>
                         <div className="flex gap-4">
                           <span className="text-yellow-400">{team.points} bodů</span>
                           <span className="text-gray-400">{team.score.for}:{team.score.against}</span>
@@ -1891,8 +2266,8 @@ const CardGame = () => {
                   <h3 className="text-2xl font-bold text-yellow-400 mb-4">Skupina B</h3>
                   <div className="space-y-4">
                     {tournamentState.groups.B.map((team, index) => (
-                      <div key={team.name} className="flex justify-between items-center bg-black/30 p-4 rounded-lg">
-                        <span className="text-white">{team.name}</span>
+                      <div key={team.team.name} className="flex justify-between items-center bg-black/30 p-4 rounded-lg">
+                        <span className="text-white">{team.team.name}</span>
                         <div className="flex gap-4">
                           <span className="text-yellow-400">{team.points} bodů</span>
                           <span className="text-gray-400">{team.score.for}:{team.score.against}</span>
@@ -1904,19 +2279,17 @@ const CardGame = () => {
               </div>
 
               {/* Následující zápas */}
-              {tournamentState.matches.groups.length > 0 && (
+              {tournamentState.matches.groups.length > 0 && tournamentState.currentMatchIndex < tournamentState.matches.groups.length && (
                 <div className="bg-black/50 p-6 rounded-xl mb-8">
                   <h3 className="text-2xl font-bold text-yellow-400 mb-4">Následující zápas</h3>
                   <div className="flex justify-between items-center bg-black/30 p-6 rounded-lg">
-                    <div className="text-xl text-white">{tournamentState.matches.groups[0].home}</div>
+                    <div className="text-xl text-white">{tournamentState.matches.groups[tournamentState.currentMatchIndex].home}</div>
                     <div className="text-2xl text-yellow-400 font-bold">vs</div>
-                    <div className="text-xl text-white">{tournamentState.matches.groups[0].away}</div>
+                    <div className="text-xl text-white">{tournamentState.matches.groups[tournamentState.currentMatchIndex].away}</div>
                   </div>
                   <div className="flex justify-center mt-4">
                     <button
-                      onClick={() => {
-                        // Zde bude logika pro spuštění zápasu
-                      }}
+                      onClick={startNextTournamentMatch}
                       className="bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 
                         text-white font-bold py-3 px-8 rounded-xl shadow-lg transform transition-all duration-300 
                         hover:scale-105 active:scale-95"
