@@ -533,67 +533,67 @@ const CardGame = () => {
   };
 
   const handleDecision = (option) => {
-    if (!currentDecision) return;
-
     const success = Math.random() < option.successRate;
-    const event = {
-      type: success ? 'goal' : 'miss',
-      player: currentDecision.player.name,
-      playerId: currentDecision.player.id,
-      position: currentDecision.player.position,
-      time: formatTime(matchState.time),
-      id: Date.now(),
-      level: getCardLevel(currentDecision.player.id)
-    };
+    const isHomeTeam = true; // Speciální události jsou vždy pro domácí tým
+    
+    setShowDecision(false);
+    setCurrentDecision(null);
 
     if (success) {
-      switch (currentDecision.type) {
-        case 'breakaway':
-          event.message = option.id === 'shoot' 
-            ? 'GÓÓÓL! Perfektní zakončení úniku!'
-            : 'GÓÓÓL! Brankář překonán kličkou!';
-          break;
-        case 'powerplay':
-          event.message = option.id === 'shot'
-            ? 'GÓÓÓL! Dělovka od modré!'
-            : 'GÓÓÓL! Kombinace zakončena do prázdné branky!';
-          break;
-        case 'defense':
-          event.message = option.id === 'block'
-            ? 'Výborný blok! Protiútok zlikvidován!'
-            : 'Skvělý bodyček! Soupeř přišel o puk!';
-          break;
-      }
-
-      if (event.type === 'goal') {
+      if (currentDecision.type === 'breakaway' || currentDecision.type === 'powerplay') {
+        // Přidáme gól domácímu týmu
         setMatchState(prev => ({
           ...prev,
-          score: { ...prev.score, home: prev.score.home + 1 },
-          events: [event, ...prev.events],
-          playerStats: {
-            ...prev.playerStats,
-            goals: {
-              ...prev.playerStats.goals,
-              [currentDecision.player.id]: (prev.playerStats.goals[currentDecision.player.id] || 0) + 1
-            }
-          }
-        }));
-      } else {
-        setMatchState(prev => ({
-          ...prev,
-          events: [event, ...prev.events]
+          score: {
+            home: prev.score.home + 1,
+            away: prev.score.away
+          },
+          events: [...prev.events, {
+            type: 'goal',
+            isHomeTeam: true,
+            player: currentDecision.player.name,
+            level: getCardLevel(currentDecision.player.id),
+            message: `Góóól! ${currentDecision.player.name} využívá ${currentDecision.type === 'breakaway' ? 'samostatný únik' : 'přesilovou hru'}!`,
+            time: formatTime(prev.time),
+            id: Date.now()
+          }]
         }));
       }
     } else {
-      event.message = 'Neúspěšný pokus!';
-      setMatchState(prev => ({
-        ...prev,
-        events: [event, ...prev.events]
-      }));
+      if (currentDecision.type === 'breakaway' || currentDecision.type === 'powerplay') {
+        // Přidáme zákrok brankáři soupeře
+        setMatchState(prev => ({
+          ...prev,
+          events: [...prev.events, {
+            type: 'save',
+            isHomeTeam: false,
+            player: opponentTeam.goalkeeper.name,
+            level: opponentTeam.goalkeeper.level,
+            message: `${opponentTeam.goalkeeper.name} chytá pokus ${currentDecision.player.name}!`,
+            time: formatTime(prev.time),
+            id: Date.now()
+          }]
+        }));
+      } else if (currentDecision.type === 'defense') {
+        // Přidáme gól soupeři
+        setMatchState(prev => ({
+          ...prev,
+          score: {
+            home: prev.score.home,
+            away: prev.score.away + 1
+          },
+          events: [...prev.events, {
+            type: 'goal',
+            isHomeTeam: false,
+            player: "Útočník HC Lopaty Praha",
+            level: 1,
+            message: `Góóól! Útočník HC Lopaty Praha využívá neúspěšnou obranu!`,
+            time: formatTime(prev.time),
+            id: Date.now()
+          }]
+        }));
+      }
     }
-
-    setShowDecision(false);
-    setCurrentDecision(null);
   };
 
   const startMatch = () => {
@@ -1214,28 +1214,24 @@ const CardGame = () => {
                   <div className="flex justify-between items-center mb-4 bg-black/50 p-4 rounded-xl">
                     <div className="flex items-center gap-8">
                       <img src="/Images/Litvinov_Lancers.png" alt="Litvínov Lancers" className="h-20 object-contain" />
-                      {matchState.penalties.filter(p => p.isHomeTeam).length > 0 && (
-                        <div className="flex gap-4">
-                          {matchState.penalties.filter(p => p.isHomeTeam).map(penalty => {
-                            const player = cards.find(c => c.id === penalty.playerId);
-                            return (
-                              <div key={`${penalty.playerId}-${penalty.startTime}`} className="relative">
-                                <img 
-                                  src={player?.image}
-                                  alt={player?.name}
-                                  className="w-24 h-32 object-contain rounded-lg shadow-lg border-2 border-red-600"
-                                />
-                                <div className="absolute -bottom-2 left-0 right-0 text-center">
-                                  <div className="bg-red-900/80 text-white text-sm px-2 py-1 rounded-lg font-mono">
-                                    {Math.floor(penalty.timeLeft / 60)}:
-                                    {(penalty.timeLeft % 60).toString().padStart(2, '0')}
-                                  </div>
-                                </div>
+                      {matchState.penalties.filter(p => p.isHomeTeam).map(penalty => {
+                        const player = cards.find(c => c.id === penalty.playerId);
+                        return (
+                          <div key={`${penalty.playerId}-${penalty.startTime}`} className="relative">
+                            <img 
+                              src={player?.image}
+                              alt={player?.name}
+                              className="w-24 h-32 object-contain rounded-lg shadow-lg border-2 border-red-600"
+                            />
+                            <div className="absolute -bottom-2 left-0 right-0 text-center">
+                              <div className="bg-red-900/80 text-white text-sm px-2 py-1 rounded-lg font-mono">
+                                {Math.floor(penalty.timeLeft / 60)}:
+                                {(penalty.timeLeft % 60).toString().padStart(2, '0')}
                               </div>
-                            );
-                          })}
-                        </div>
-                      )}
+                            </div>
+                          </div>
+                        );
+                      })}
                     </div>
                     <div className="text-center">
                       <div className="text-4xl font-bold text-yellow-400 mb-2">
@@ -1265,35 +1261,31 @@ const CardGame = () => {
                       </div>
                     </div>
                     <div className="flex items-center gap-8">
-                      {matchState.penalties.filter(p => !p.isHomeTeam).length > 0 && (
-                        <div className="flex gap-4">
-                          {matchState.penalties.filter(p => !p.isHomeTeam).map(penalty => {
-                            const player = opponentTeam.forwards.concat(opponentTeam.defenders)
-                              .find(p => p.id === penalty.playerId);
-                            return (
-                              <div key={`${penalty.playerId}-${penalty.startTime}`} className="relative">
-                                <div className="w-24 h-32 bg-gradient-to-br from-gray-800 to-gray-900 rounded-lg shadow-lg flex flex-col items-center justify-center text-gray-400 relative overflow-hidden border-2 border-red-600">
-                                  <div className="text-5xl font-bold mb-2">?</div>
-                                  <div className="absolute top-2 right-2 w-6 h-6 rounded-full bg-gradient-to-br from-yellow-400 to-yellow-600 flex items-center justify-center">
-                                    <span className="text-black text-xs font-bold">{player.level}</span>
-                                  </div>
-                                  <div className="absolute bottom-0 left-0 w-full bg-gradient-to-r from-gray-900 to-gray-800 p-1">
-                                    <p className="text-[8px] text-center text-gray-300 font-bold leading-tight">
-                                      {player.name}
-                                    </p>
-                                  </div>
-                                </div>
-                                <div className="absolute -bottom-2 left-0 right-0 text-center">
-                                  <div className="bg-red-900/80 text-white text-sm px-2 py-1 rounded-lg font-mono">
-                                    {Math.floor(penalty.timeLeft / 60)}:
-                                    {(penalty.timeLeft % 60).toString().padStart(2, '0')}
-                                  </div>
-                                </div>
+                      {matchState.penalties.filter(p => !p.isHomeTeam).map(penalty => {
+                        const player = opponentTeam.forwards.concat(opponentTeam.defenders)
+                          .find(p => p.id === penalty.playerId);
+                        return (
+                          <div key={`${penalty.playerId}-${penalty.startTime}`} className="relative">
+                            <div className="w-24 h-32 bg-gradient-to-br from-gray-800 to-gray-900 rounded-lg shadow-lg flex flex-col items-center justify-center text-gray-400 relative overflow-hidden border-2 border-red-600">
+                              <div className="text-5xl font-bold mb-2">?</div>
+                              <div className="absolute top-2 right-2 w-6 h-6 rounded-full bg-gradient-to-br from-yellow-400 to-yellow-600 flex items-center justify-center">
+                                <span className="text-black text-xs font-bold">{player.level}</span>
                               </div>
-                            );
-                          })}
-                        </div>
-                      )}
+                              <div className="absolute bottom-0 left-0 w-full bg-gradient-to-r from-gray-900 to-gray-800 p-1">
+                                <p className="text-[8px] text-center text-gray-300 font-bold leading-tight">
+                                  {player.name}
+                                </p>
+                              </div>
+                            </div>
+                            <div className="absolute -bottom-2 left-0 right-0 text-center">
+                              <div className="bg-red-900/80 text-white text-sm px-2 py-1 rounded-lg font-mono">
+                                {Math.floor(penalty.timeLeft / 60)}:
+                                {(penalty.timeLeft % 60).toString().padStart(2, '0')}
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })}
                       <img src="/Images/HC_Lopaty_Praha.png" alt="HC Lopaty Praha" className="h-20 object-contain" />
                     </div>
                   </div>
