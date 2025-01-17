@@ -267,9 +267,8 @@ const CardGame = () => {
 
     // Přidáme čas události
     const period = Math.floor(eventTime / 1200) + 1;
-    const periodSeconds = eventTime;
-    const mins = Math.floor(periodSeconds / 60);
-    const secs = periodSeconds % 60;
+    const mins = Math.floor(eventTime / 60);
+    const secs = eventTime % 60;
     const eventTimeFormatted = `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
 
     const powerPlay = matchState.penalties.length > 0;
@@ -586,7 +585,8 @@ const CardGame = () => {
         const initialEventTimes = [];
         const numEvents = Math.floor(Math.random() * (12 - 5 + 1)) + 5; // 5-12 událostí
         for (let i = 0; i < numEvents; i++) {
-          initialEventTimes.push(Math.floor(Math.random() * 1200) * 1000); // Ukládáme v milisekundách
+          // Generujeme časy mezi 5 a 1200 sekundami pro první třetinu
+          initialEventTimes.push(Math.floor(Math.random() * (1200 - 5) + 5));
         }
         return { 
           ...prev, 
