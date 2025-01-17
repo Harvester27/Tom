@@ -1167,15 +1167,26 @@ const CardGame = () => {
             {showCollection ? 'Zpět na balíčky' : 'Zobrazit sbírku'}
           </button>
           {!showCollection && (
-            <button
-              onClick={startTeamSelection}
-              className={`bg-gradient-to-r ${canPlayMatch() ? 'from-green-500 to-green-600 hover:from-green-600 hover:to-green-700' : 'from-gray-500 to-gray-600 cursor-not-allowed'} 
-                text-white font-bold py-3 px-6 rounded-xl shadow-lg transform transition-all duration-300 
-                ${canPlayMatch() ? 'hover:scale-105 active:scale-95' : ''}`}
-              disabled={!canPlayMatch()}
-            >
-              Hrát zápas {!canPlayMatch() && '(Neúplná sestava)'}
-            </button>
+            <>
+              <button
+                onClick={startTeamSelection}
+                className={`bg-gradient-to-r ${canPlayMatch() ? 'from-green-500 to-green-600 hover:from-green-600 hover:to-green-700' : 'from-gray-500 to-gray-600 cursor-not-allowed'} 
+                  text-white font-bold py-3 px-6 rounded-xl shadow-lg transform transition-all duration-300 
+                  ${canPlayMatch() ? 'hover:scale-105 active:scale-95' : ''}`}
+                disabled={!canPlayMatch()}
+              >
+                Hrát zápas {!canPlayMatch() && '(Neúplná sestava)'}
+              </button>
+              <button
+                onClick={() => canPlayMatch() ? alert('Můžete začít turnaj!') : alert('Pro turnaj potřebujete: 1 brankáře, 2 obránce a 3 útočníky!')}
+                className={`bg-gradient-to-r ${canPlayMatch() ? 'from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700' : 'from-gray-500 to-gray-600 cursor-not-allowed'} 
+                  text-white font-bold py-3 px-6 rounded-xl shadow-lg transform transition-all duration-300 
+                  ${canPlayMatch() ? 'hover:scale-105 active:scale-95' : ''}`}
+                disabled={!canPlayMatch()}
+              >
+                Hrát turnaj {!canPlayMatch() && '(Neúplná sestava)'}
+              </button>
+            </>
           )}
         </div>
 
