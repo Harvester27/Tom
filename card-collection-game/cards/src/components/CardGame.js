@@ -2604,12 +2604,12 @@ const CardGame = () => {
                   </div>
                   <div className="flex justify-center mt-4">
                     <button
-                      onClick={startNextTournamentMatch}
+                      onClick={() => startNextTournamentMatch()}
                       className="bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 
                         text-white font-bold py-3 px-8 rounded-xl shadow-lg transform transition-all duration-300 
-                        hover:scale-105 active:scale-95 border border-green-400/20"
+                        hover:scale-105 active:scale-95 border-2 border-white/20"
                     >
-                      Hrát zápas
+                      Hrát další zápas
                     </button>
                   </div>
                 </div>
@@ -2640,7 +2640,7 @@ const CardGame = () => {
                                 </div>
                                 <div className="text-white">{match.away}</div>
                               </div>
-                              {!match.score && (match.home === selectedTeam.name || match.away === selectedTeam.name) && (
+                              {!match.score && (
                                 <div className="flex justify-center mt-4">
                                   <button onClick={() => startNextTournamentMatch()}
                                     className="bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 
@@ -2668,7 +2668,7 @@ const CardGame = () => {
                                 </div>
                                 <div className="text-white">{match.away}</div>
                               </div>
-                              {!match.score && (match.home === selectedTeam.name || match.away === selectedTeam.name) && (
+                              {!match.score && (
                                 <div className="flex justify-center mt-4">
                                   <button onClick={() => startNextTournamentMatch()}
                                     className="bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 
@@ -2699,7 +2699,7 @@ const CardGame = () => {
                                 </div>
                                 <div className="text-white">{match.away}</div>
                               </div>
-                              {!match.score && (match.home === selectedTeam.name || match.away === selectedTeam.name) && (
+                              {!match.score && (
                                 <div className="flex justify-center mt-4">
                                   <button onClick={() => startNextTournamentMatch()}
                                     className="bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 
@@ -2727,7 +2727,7 @@ const CardGame = () => {
                                 </div>
                                 <div className="text-white">{match.away}</div>
                               </div>
-                              {!match.score && (match.home === selectedTeam.name || match.away === selectedTeam.name) && (
+                              {!match.score && (
                                 <div className="flex justify-center mt-4">
                                   <button onClick={() => startNextTournamentMatch()}
                                     className="bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 
@@ -2747,7 +2747,7 @@ const CardGame = () => {
                         {tournamentState.matches.playoff
                           .filter(match => match.round === 'final')
                           .map((match, index) => (
-                            <div key={index} className="bg-gradient-to-br from-yellow-900/30 to-black/30 p-4 rounded-lg border border-yellow-500/20">
+                            <div key={index} className="bg-black/30 p-4 rounded-lg border border-red-500/10">
                               <div className="flex justify-between items-center">
                                 <div className="text-white">{match.home}</div>
                                 <div className="text-yellow-400 font-bold mx-4">
@@ -2755,10 +2755,10 @@ const CardGame = () => {
                                 </div>
                                 <div className="text-white">{match.away}</div>
                               </div>
-                              {!match.score && (match.home === selectedTeam.name || match.away === selectedTeam.name) && (
+                              {!match.score && (
                                 <div className="flex justify-center mt-4">
                                   <button onClick={() => startNextTournamentMatch()}
-                                    className="bg-gradient-to-r from-yellow-500 to-yellow-600 hover:from-yellow-600 hover:to-yellow-700 
+                                    className="bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 
                                       text-white font-bold py-2 px-6 rounded-lg transform transition-all duration-300 
                                       hover:scale-105 active:scale-95 text-sm">
                                     Hrát zápas
