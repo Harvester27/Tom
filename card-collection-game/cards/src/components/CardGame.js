@@ -341,16 +341,15 @@ const CardGame = () => {
   const [showMatch, setShowMatch] = useState(false);
   const [showTournament, setShowTournament] = useState(false);
   const [tournamentState, setTournamentState] = useState({
+    phase: null,
     groups: {
       A: [],
       B: []
     },
     matches: {
       groups: [],
-      playoff: [],
-      current: null
+      playoff: []
     },
-    phase: 'groups',
     currentMatchIndex: 0
   });
   const [cardLevels, setCardLevels] = useState({});
@@ -1503,6 +1502,7 @@ const CardGame = () => {
       // Nastavíme týmy do skupin
       setTournamentState(prev => ({
         ...prev,
+        phase: 'groups',
         groups: {
           A: [
             { team: teamKafacBilina, points: 0, score: { for: 0, against: 0 } },
@@ -2699,11 +2699,12 @@ const CardGame = () => {
           </div>
         )}
 
-        {showTournament && (
-          <div className="fixed inset-0 bg-black/90 flex flex-col items-center justify-center z-50 p-8">
-            <div className="w-full max-w-7xl mx-auto">
-              <h2 className="text-4xl font-bold text-yellow-400 mb-8 text-center">Hokejový turnaj</h2>
-              
+        {showTournament && tournamentState.phase && (
+          <div className="fixed inset-0 bg-black/90 text-white p-8 overflow-y-auto">
+            <div className="max-w-6xl mx-auto">
+              <h2 className="text-4xl font-bold mb-8 text-center bg-gradient-to-r from-yellow-400 to-yellow-600 bg-clip-text text-transparent">
+                Turnaj
+              </h2>
               {/* Skupinová fáze */}
               <div className="grid grid-cols-2 gap-8 mb-8">
                 {/* Skupina A */}
