@@ -1634,70 +1634,56 @@ const CardGame = () => {
       if (nextMatch.home === selectedTeam.name || nextMatch.away === selectedTeam.name) {
         setShowTournament(false);
         setShowTeamSelection(true);
-        return;
-      }
-
-      // Simulace zápasu mezi dvěma AI týmy
-      const homeTeam = getTeamByName(nextMatch.home);
-      const awayTeam = getTeamByName(nextMatch.away);
-      
-      if (homeTeam && awayTeam) {
-        const score = playTournamentMatch(homeTeam, awayTeam);
+      } else {
+        // Simulace zápasu mezi dvěma AI týmy
+        const homeTeam = getTeamByName(nextMatch.home);
+        const awayTeam = getTeamByName(nextMatch.away);
         
-        // Aktualizujeme výsledek v playoff zápasech
-        setTournamentState(prev => ({
-          ...prev,
-          matches: {
-            ...prev.matches,
-            playoff: prev.matches.playoff.map(match => {
-              if (match === nextMatch) {
-                return { ...match, score };
-              }
-              
-              // Aktualizujeme následující zápasy s vítězi/poraženými
-              if (nextMatch.id) {
-                const isWinner = score.home > score.away ? nextMatch.home : nextMatch.away;
-                const isLoser = score.home > score.away ? nextMatch.away : nextMatch.home;
+        if (homeTeam && awayTeam) {
+          const score = playTournamentMatch(homeTeam, awayTeam);
+          
+          // Aktualizujeme výsledek v playoff zápasech
+          setTournamentState(prev => ({
+            ...prev,
+            matches: {
+              ...prev.matches,
+              playoff: prev.matches.playoff.map(match => {
+                if (match === nextMatch) {
+                  return { ...match, score };
+                }
                 
-                if (match.home === `Winner ${nextMatch.id}`) {
-                  return { ...match, home: isWinner };
+                // Aktualizujeme následující zápasy s vítězi/poraženými
+                if (nextMatch.id) {
+                  const isWinner = score.home > score.away ? nextMatch.home : nextMatch.away;
+                  const isLoser = score.home > score.away ? nextMatch.away : nextMatch.home;
+                  
+                  if (match.home === `Winner ${nextMatch.id}`) {
+                    return { ...match, home: isWinner };
+                  }
+                  if (match.away === `Winner ${nextMatch.id}`) {
+                    return { ...match, away: isWinner };
+                  }
+                  if (match.home === `Loser ${nextMatch.id}`) {
+                    return { ...match, home: isLoser };
+                  }
+                  if (match.away === `Loser ${nextMatch.id}`) {
+                    return { ...match, away: isLoser };
+                  }
                 }
-                if (match.away === `Winner ${nextMatch.id}`) {
-                  return { ...match, away: isWinner };
-                }
-                if (match.home === `Loser ${nextMatch.id}`) {
-                  return { ...match, home: isLoser };
-                }
-                if (match.away === `Loser ${nextMatch.id}`) {
-                  return { ...match, away: isLoser };
-                }
-              }
-              return match;
-            })
-          }
-        }));
+                return match;
+              })
+            }
+          }));
+        }
       }
-      return;
     } else {
       // Základní skupina
       const currentMatch = tournamentState.matches.groups[tournamentState.currentMatchIndex];
       if (!currentMatch) return;
 
       if (currentMatch.home === selectedTeam.name || currentMatch.away === selectedTeam.name) {
-        const isPlayerHome = currentMatch.home === selectedTeam.name;
-        const opponentName = isPlayerHome ? currentMatch.away : currentMatch.home;
-        const opponent = getTeamByName(opponentName);
-        if (opponent) {
-          setOpponent({
-            name: opponent.name,
-            goalkeeper: opponent.goalkeeper,
-            defenders: opponent.defenders,
-            forwards: opponent.forwards
-          });
-          setShowTeamSelection(true);
-          setShowTournament(false);
-          setShowMatch(false);
-        }
+        setShowTournament(false);
+        setShowTeamSelection(true);
       } else {
         const homeTeam = getTeamByName(currentMatch.home);
         const awayTeam = getTeamByName(currentMatch.away);
@@ -2911,133 +2897,131 @@ const CardGame = () => {
                     </div>
 
                     {/* Play-off */}
-                    {tournamentState.phase === 'playoff' && (
-                      <div>
-                        <h4 className="text-lg font-semibold text-red-400 mb-2">Play-off</h4>
-                        <div className="space-y-4">
-                          {/* Čtvrtfinále */}
-                          <div className="space-y-2">
-                            <div className="text-sm text-red-400">Čtvrtfinále</div>
-                            {tournamentState.matches.playoff
-                              .filter(match => match.round === 'quarterfinal')
-                              .map((match, index) => (
-                                <div key={index} className="bg-black/30 p-3 rounded-lg text-sm border border-red-500/10">
-                                  <div className="flex justify-between items-center">
-                                    <span className="text-white">{match.home}</span>
-                                    <span className="text-yellow-400 font-bold mx-2">
-                                      {match.score ? `${match.score.home} : ${match.score.away}` : 'vs'}
-                                    </span>
-                                    <span className="text-white">{match.away}</span>
-                                  </div>
-                                  {!match.score && (
-                                    <div className="flex justify-center gap-2 mt-2">
-                                      {(match.home === selectedTeam.name || match.away === selectedTeam.name) ? (
-                                        <button
-                                          onClick={() => startNextTournamentMatch()}
-                                          className="bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 
-                                            text-white text-sm font-bold py-1 px-4 rounded-lg transform transition-all duration-300 
-                                            hover:scale-105 active:scale-95">
-                                          Hrát zápas
-                                        </button>
-                                      ) : (
-                                        <button
-                                          onClick={() => startNextTournamentMatch()}
-                                          className="bg-gradient-to-r from-gray-500 to-gray-600 hover:from-gray-600 hover:to-gray-700 
-                                            text-white text-sm font-bold py-1 px-4 rounded-lg transform transition-all duration-300 
-                                            hover:scale-105 active:scale-95">
-                                          Simulovat zápas
-                                        </button>
-                                      )}
-                                    </div>
-                                  )}
+                    <div>
+                      <h4 className="text-lg font-semibold text-red-400 mb-2">Play-off</h4>
+                      <div className="space-y-4">
+                        {/* Čtvrtfinále */}
+                        <div className="space-y-2">
+                          <div className="text-sm text-red-400">Čtvrtfinále</div>
+                          {tournamentState.matches.playoff
+                            .filter(match => match.round === 'quarterfinal')
+                            .map((match, index) => (
+                              <div key={index} className="bg-black/30 p-3 rounded-lg text-sm border border-red-500/10">
+                                <div className="flex justify-between items-center">
+                                  <span className="text-white">{match.home}</span>
+                                  <span className="text-yellow-400 font-bold mx-2">
+                                    {match.score ? `${match.score.home} : ${match.score.away}` : 'vs'}
+                                  </span>
+                                  <span className="text-white">{match.away}</span>
                                 </div>
-                              ))}
-                          </div>
+                                {!match.score && (
+                                  <div className="flex justify-center gap-2 mt-2">
+                                    {(match.home === selectedTeam.name || match.away === selectedTeam.name) ? (
+                                      <button
+                                        onClick={() => startNextTournamentMatch()}
+                                        className="bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 
+                                          text-white text-sm font-bold py-1 px-4 rounded-lg transform transition-all duration-300 
+                                          hover:scale-105 active:scale-95">
+                                        Hrát zápas
+                                      </button>
+                                    ) : (
+                                      <button
+                                        onClick={() => startNextTournamentMatch()}
+                                        className="bg-gradient-to-r from-gray-500 to-gray-600 hover:from-gray-600 hover:to-gray-700 
+                                          text-white text-sm font-bold py-1 px-4 rounded-lg transform transition-all duration-300 
+                                          hover:scale-105 active:scale-95">
+                                        Simulovat zápas
+                                      </button>
+                                    )}
+                                  </div>
+                                )}
+                              </div>
+                            ))}
+                        </div>
 
-                          {/* Semifinále */}
-                          <div className="space-y-2">
-                            <div className="text-sm text-red-400">Semifinále</div>
-                            {tournamentState.matches.playoff
-                              .filter(match => match.round === 'semifinal')
-                              .map((match, index) => (
-                                <div key={index} className="bg-black/30 p-3 rounded-lg text-sm border border-red-500/10">
-                                  <div className="flex justify-between items-center">
-                                    <span className="text-white">{match.home}</span>
-                                    <span className="text-yellow-400 font-bold mx-2">
-                                      {match.score ? `${match.score.home} : ${match.score.away}` : 'vs'}
-                                    </span>
-                                    <span className="text-white">{match.away}</span>
-                                  </div>
-                                  {!match.score && (
-                                    <div className="flex justify-center gap-2 mt-2">
-                                      {(match.home === selectedTeam.name || match.away === selectedTeam.name) ? (
-                                        <button
-                                          onClick={() => startNextTournamentMatch()}
-                                          className="bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 
-                                            text-white text-sm font-bold py-1 px-4 rounded-lg transform transition-all duration-300 
-                                            hover:scale-105 active:scale-95">
-                                          Hrát zápas
-                                        </button>
-                                      ) : (
-                                        <button
-                                          onClick={() => startNextTournamentMatch()}
-                                          className="bg-gradient-to-r from-gray-500 to-gray-600 hover:from-gray-600 hover:to-gray-700 
-                                            text-white text-sm font-bold py-1 px-4 rounded-lg transform transition-all duration-300 
-                                            hover:scale-105 active:scale-95">
-                                          Simulovat zápas
-                                        </button>
-                                      )}
-                                    </div>
-                                  )}
+                        {/* Semifinále */}
+                        <div className="space-y-2">
+                          <div className="text-sm text-red-400">Semifinále</div>
+                          {tournamentState.matches.playoff
+                            .filter(match => match.round === 'semifinal')
+                            .map((match, index) => (
+                              <div key={index} className="bg-black/30 p-3 rounded-lg text-sm border border-red-500/10">
+                                <div className="flex justify-between items-center">
+                                  <span className="text-white">{match.home}</span>
+                                  <span className="text-yellow-400 font-bold mx-2">
+                                    {match.score ? `${match.score.home} : ${match.score.away}` : 'vs'}
+                                  </span>
+                                  <span className="text-white">{match.away}</span>
                                 </div>
-                              ))}
-                          </div>
+                                {!match.score && (
+                                  <div className="flex justify-center gap-2 mt-2">
+                                    {(match.home === selectedTeam.name || match.away === selectedTeam.name) ? (
+                                      <button
+                                        onClick={() => startNextTournamentMatch()}
+                                        className="bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 
+                                          text-white text-sm font-bold py-1 px-4 rounded-lg transform transition-all duration-300 
+                                          hover:scale-105 active:scale-95">
+                                        Hrát zápas
+                                      </button>
+                                    ) : (
+                                      <button
+                                        onClick={() => startNextTournamentMatch()}
+                                        className="bg-gradient-to-r from-gray-500 to-gray-600 hover:from-gray-600 hover:to-gray-700 
+                                          text-white text-sm font-bold py-1 px-4 rounded-lg transform transition-all duration-300 
+                                          hover:scale-105 active:scale-95">
+                                        Simulovat zápas
+                                      </button>
+                                    )}
+                                  </div>
+                                )}
+                              </div>
+                            ))}
+                        </div>
 
-                          {/* O umístění */}
-                          <div className="space-y-2">
-                            <div className="text-sm text-red-400">O umístění</div>
-                            {tournamentState.matches.playoff
-                              .filter(match => ['fifth_place', 'third_place', 'final'].includes(match.round))
-                              .map((match, index) => (
-                                <div key={index} className="bg-black/30 p-3 rounded-lg text-sm border border-red-500/10">
-                                  <div className="text-xs text-red-400 mb-1">
-                                    {match.round === 'fifth_place' ? 'O 5. místo' :
-                                     match.round === 'third_place' ? 'O 3. místo' : 'Finále'}
-                                  </div>
-                                  <div className="flex justify-between items-center">
-                                    <span className="text-white">{match.home}</span>
-                                    <span className="text-yellow-400 font-bold mx-2">
-                                      {match.score ? `${match.score.home} : ${match.score.away}` : 'vs'}
-                                    </span>
-                                    <span className="text-white">{match.away}</span>
-                                  </div>
-                                  {!match.score && (
-                                    <div className="flex justify-center gap-2 mt-2">
-                                      {(match.home === selectedTeam.name || match.away === selectedTeam.name) ? (
-                                        <button
-                                          onClick={() => startNextTournamentMatch()}
-                                          className="bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 
-                                            text-white text-sm font-bold py-1 px-4 rounded-lg transform transition-all duration-300 
-                                            hover:scale-105 active:scale-95">
-                                          Hrát zápas
-                                        </button>
-                                      ) : (
-                                        <button
-                                          onClick={() => startNextTournamentMatch()}
-                                          className="bg-gradient-to-r from-gray-500 to-gray-600 hover:from-gray-600 hover:to-gray-700 
-                                            text-white text-sm font-bold py-1 px-4 rounded-lg transform transition-all duration-300 
-                                            hover:scale-105 active:scale-95">
-                                          Simulovat zápas
-                                        </button>
-                                      )}
-                                    </div>
-                                  )}
+                        {/* O umístění */}
+                        <div className="space-y-2">
+                          <div className="text-sm text-red-400">O umístění</div>
+                          {tournamentState.matches.playoff
+                            .filter(match => ['fifth_place', 'third_place', 'final'].includes(match.round))
+                            .map((match, index) => (
+                              <div key={index} className="bg-black/30 p-3 rounded-lg text-sm border border-red-500/10">
+                                <div className="text-xs text-red-400 mb-1">
+                                  {match.round === 'fifth_place' ? 'O 5. místo' :
+                                   match.round === 'third_place' ? 'O 3. místo' : 'Finále'}
                                 </div>
-                              ))}
-                          </div>
+                                <div className="flex justify-between items-center">
+                                  <span className="text-white">{match.home}</span>
+                                  <span className="text-yellow-400 font-bold mx-2">
+                                    {match.score ? `${match.score.home} : ${match.score.away}` : 'vs'}
+                                  </span>
+                                  <span className="text-white">{match.away}</span>
+                                </div>
+                                {!match.score && (
+                                  <div className="flex justify-center gap-2 mt-2">
+                                    {(match.home === selectedTeam.name || match.away === selectedTeam.name) ? (
+                                      <button
+                                        onClick={() => startNextTournamentMatch()}
+                                        className="bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 
+                                          text-white text-sm font-bold py-1 px-4 rounded-lg transform transition-all duration-300 
+                                          hover:scale-105 active:scale-95">
+                                        Hrát zápas
+                                      </button>
+                                    ) : (
+                                      <button
+                                        onClick={() => startNextTournamentMatch()}
+                                        className="bg-gradient-to-r from-gray-500 to-gray-600 hover:from-gray-600 hover:to-gray-700 
+                                          text-white text-sm font-bold py-1 px-4 rounded-lg transform transition-all duration-300 
+                                          hover:scale-105 active:scale-95">
+                                        Simulovat zápas
+                                      </button>
+                                    )}
+                                  </div>
+                                )}
+                              </div>
+                            ))}
                         </div>
                       </div>
-                    )}
+                    </div>
                   </div>
                 </div>
               </div>
