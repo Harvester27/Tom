@@ -926,68 +926,106 @@ const CardGame = () => {
       setShowTeamSelection(false);
       
       // Pokud jsme v turnaji, nastavíme soupeře podle aktuálního zápasu
-      const currentMatch = tournamentState.matches.groups[tournamentState.currentMatchIndex];
-      if (currentMatch) {
-        const isHomeTeam = currentMatch.home === selectedTeam.name;
-        const opponentName = isHomeTeam ? currentMatch.away : currentMatch.home;
-        const opponent = getTeamByName(opponentName);
-        
-        setMatchState(prev => {
-          const initialEventTimes = [];
-          const numEvents = Math.floor(Math.random() * (12 - 5 + 1)) + 5;
-          for (let i = 0; i < numEvents; i++) {
-            initialEventTimes.push(Math.floor(Math.random() * (1200 - 5) + 5));
-          }
-          return { 
-            ...prev, 
-            isPlaying: true,
-            score: { home: 0, away: 0 },
-            playerStats: {
-              goals: {},
-              assists: {},
-              saves: {
-                [selectedTeam.goalkeeper]: 0,
-                [opponent.goalkeeper.id]: 0
+      if (tournamentState.phase === 'playoff') {
+        const currentMatch = tournamentState.matches.playoff.find(match => !match.score);
+        if (currentMatch) {
+          const isHomeTeam = currentMatch.home === selectedTeam.name;
+          const opponentName = isHomeTeam ? currentMatch.away : currentMatch.home;
+          const opponent = getTeamByName(opponentName);
+          
+          setMatchState(prev => {
+            const initialEventTimes = [];
+            const numEvents = Math.floor(Math.random() * (12 - 5 + 1)) + 5;
+            for (let i = 0; i < numEvents; i++) {
+              initialEventTimes.push(Math.floor(Math.random() * (1200 - 5) + 5));
+            }
+            return { 
+              ...prev, 
+              isPlaying: true,
+              score: { home: 0, away: 0 },
+              playerStats: {
+                goals: {},
+                assists: {},
+                saves: {
+                  [selectedTeam.goalkeeper]: 0,
+                  [opponent.goalkeeper.id]: 0
+                },
+                shots: {
+                  [selectedTeam.goalkeeper]: 0,
+                  [opponent.goalkeeper.id]: 0
+                }
               },
-              shots: {
-                [selectedTeam.goalkeeper]: 0,
-                [opponent.goalkeeper.id]: 0
-              }
-            },
-            penalties: [],
-            scheduledEvents: initialEventTimes.sort((a, b) => b - a),
-            currentOpponent: opponent
-          };
-        });
+              penalties: [],
+              scheduledEvents: initialEventTimes.sort((a, b) => b - a),
+              currentOpponent: opponent
+            };
+          });
+        }
       } else {
-        // Standardní zápas mimo turnaj
-        setMatchState(prev => {
-          const initialEventTimes = [];
-          const numEvents = Math.floor(Math.random() * (12 - 5 + 1)) + 5;
-          for (let i = 0; i < numEvents; i++) {
-            initialEventTimes.push(Math.floor(Math.random() * (1200 - 5) + 5));
-          }
-          return { 
-            ...prev, 
-            isPlaying: true,
-            score: { home: 0, away: 0 },
-            playerStats: {
-              goals: {},
-              assists: {},
-              saves: {
-                [selectedTeam.goalkeeper]: 0,
-                [opponentTeam.goalkeeper.id]: 0
+        // Standardní zápas nebo skupinová fáze
+        const currentMatch = tournamentState.matches.groups[tournamentState.currentMatchIndex];
+        if (currentMatch) {
+          const isHomeTeam = currentMatch.home === selectedTeam.name;
+          const opponentName = isHomeTeam ? currentMatch.away : currentMatch.home;
+          const opponent = getTeamByName(opponentName);
+          
+          setMatchState(prev => {
+            const initialEventTimes = [];
+            const numEvents = Math.floor(Math.random() * (12 - 5 + 1)) + 5;
+            for (let i = 0; i < numEvents; i++) {
+              initialEventTimes.push(Math.floor(Math.random() * (1200 - 5) + 5));
+            }
+            return { 
+              ...prev, 
+              isPlaying: true,
+              score: { home: 0, away: 0 },
+              playerStats: {
+                goals: {},
+                assists: {},
+                saves: {
+                  [selectedTeam.goalkeeper]: 0,
+                  [opponent.goalkeeper.id]: 0
+                },
+                shots: {
+                  [selectedTeam.goalkeeper]: 0,
+                  [opponent.goalkeeper.id]: 0
+                }
               },
-              shots: {
-                [selectedTeam.goalkeeper]: 0,
-                [opponentTeam.goalkeeper.id]: 0
-              }
-            },
-            penalties: [],
-            scheduledEvents: initialEventTimes.sort((a, b) => b - a),
-            currentOpponent: opponentTeam
-          };
-        });
+              penalties: [],
+              scheduledEvents: initialEventTimes.sort((a, b) => b - a),
+              currentOpponent: opponent
+            };
+          });
+        } else {
+          // Standardní zápas mimo turnaj
+          setMatchState(prev => {
+            const initialEventTimes = [];
+            const numEvents = Math.floor(Math.random() * (12 - 5 + 1)) + 5;
+            for (let i = 0; i < numEvents; i++) {
+              initialEventTimes.push(Math.floor(Math.random() * (1200 - 5) + 5));
+            }
+            return { 
+              ...prev, 
+              isPlaying: true,
+              score: { home: 0, away: 0 },
+              playerStats: {
+                goals: {},
+                assists: {},
+                saves: {
+                  [selectedTeam.goalkeeper]: 0,
+                  [opponentTeam.goalkeeper.id]: 0
+                },
+                shots: {
+                  [selectedTeam.goalkeeper]: 0,
+                  [opponentTeam.goalkeeper.id]: 0
+                }
+              },
+              penalties: [],
+              scheduledEvents: initialEventTimes.sort((a, b) => b - a),
+              currentOpponent: opponentTeam
+            };
+          });
+        }
       }
     }
   };
