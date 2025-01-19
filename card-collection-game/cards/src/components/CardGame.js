@@ -1418,7 +1418,6 @@ const CardGame = () => {
 
   // Funkce pro spuštění dalšího zápasu v turnaji
   const startNextTournamentMatch = () => {
-    // Nejdřív zkontrolujeme, jestli jsme v playoff fázi
     if (tournamentState.phase === 'playoff') {
       // Najdeme první neodehraný zápas v playoff
       const nextMatch = tournamentState.matches.playoff.find(match => !match.score);
@@ -1472,37 +1471,40 @@ const CardGame = () => {
         }));
       }
       return;
-    }
+    } else {
+      // Základní skupina
+      const currentMatch = tournamentState.matches.groups[tournamentState.currentMatchIndex];
+      if (!currentMatch) return;
 
-    // Původní logika pro skupinovou fázi
-    const currentMatch = tournamentState.matches.groups[tournamentState.currentMatchIndex];
-    if (!currentMatch) return;
+      if (currentMatch.home === selectedTeam.name || currentMatch.away === selectedTeam.name) {
+        const isPlayerHome = currentMatch.home === selectedTeam.name;
+        const opponentName = isPlayerHome ? currentMatch.away : currentMatch.home;
+        const opponent = getTeamByName(opponentName);
+        setOpponent(opponent);
+        setShowMatch(true);
+        setShowTournament(false);
+      } else {
+        const homeTeam = getTeamByName(currentMatch.home);
+        const awayTeam = getTeamByName(currentMatch.away);
+        const result = playTournamentMatch(homeTeam, awayTeam);
+        
+        updateTournamentStandings(homeTeam, awayTeam, result);
 
-    if (currentMatch.home === selectedTeam.name || currentMatch.away === selectedTeam.name) {
-      setShowTournament(false);
-      setShowTeamSelection(true);
-      return;
-    }
+        setTournamentState(prev => ({
+          ...prev,
+          matches: {
+            ...prev.matches,
+            groups: prev.matches.groups.map((match, index) => 
+              index === prev.currentMatchIndex ? { ...match, score: result } : match
+            )
+          },
+          currentMatchIndex: prev.currentMatchIndex + 1
+        }));
 
-    const homeTeam = getTeamByName(currentMatch.home);
-    const awayTeam = getTeamByName(currentMatch.away);
-    
-    const score = playTournamentMatch(homeTeam, awayTeam);
-    updateTournamentStandings(homeTeam, awayTeam, score);
-
-    setTournamentState(prev => ({
-      ...prev,
-      matches: {
-        ...prev.matches,
-        groups: prev.matches.groups.map((match, index) => 
-          index === prev.currentMatchIndex ? { ...match, score } : match
-        )
-      },
-      currentMatchIndex: prev.currentMatchIndex + 1
-    }));
-
-    if (tournamentState.currentMatchIndex === tournamentState.matches.groups.length - 1) {
-      generatePlayoffMatches();
+        if (tournamentState.currentMatchIndex === tournamentState.matches.groups.length - 1) {
+          generatePlayoffMatches();
+        }
+      }
     }
   };
 
