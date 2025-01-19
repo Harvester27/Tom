@@ -1572,6 +1572,10 @@ const CardGame = () => {
 
   return (
     <div className="min-h-screen bg-gradient-radial from-blue-900 via-blue-950 to-black text-white p-8">
+      {/* Version number */}
+      <div className="fixed top-4 left-4 bg-black/50 px-3 py-1 rounded-lg text-sm text-yellow-400">
+        v1.0.1
+      </div>
       <style jsx global>{`
         @keyframes confetti-fall {
           0% {
@@ -2602,14 +2606,52 @@ const CardGame = () => {
                     <div className="text-2xl text-green-400 font-bold">vs</div>
                     <div className="text-xl text-white">{tournamentState.matches.groups[tournamentState.currentMatchIndex].away}</div>
                   </div>
-                  <div className="flex justify-center mt-4">
+                  <div className="flex justify-center gap-4 mt-4">
+                    {/* Button for AI vs AI matches */}
                     <button
                       onClick={() => startNextTournamentMatch()}
-                      className="bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 
-                        text-white font-bold py-3 px-8 rounded-xl shadow-lg transform transition-all duration-300 
-                        hover:scale-105 active:scale-95 border-2 border-white/20"
+                      className={`bg-gradient-to-r ${
+                        tournamentState.matches.groups[tournamentState.currentMatchIndex].home !== selectedTeam.name &&
+                        tournamentState.matches.groups[tournamentState.currentMatchIndex].away !== selectedTeam.name
+                          ? 'from-green-500 to-green-600 hover:from-green-600 hover:to-green-700'
+                          : 'from-gray-500 to-gray-600 cursor-not-allowed'
+                      } text-white font-bold py-3 px-8 rounded-xl shadow-lg transform transition-all duration-300 
+                      ${tournamentState.matches.groups[tournamentState.currentMatchIndex].home !== selectedTeam.name &&
+                        tournamentState.matches.groups[tournamentState.currentMatchIndex].away !== selectedTeam.name
+                          ? 'hover:scale-105 active:scale-95'
+                          : ''} border-2 border-white/20`}
+                      disabled={
+                        tournamentState.matches.groups[tournamentState.currentMatchIndex].home === selectedTeam.name ||
+                        tournamentState.matches.groups[tournamentState.currentMatchIndex].away === selectedTeam.name
+                      }
                     >
-                      Hrát další zápas
+                      Simulovat AI zápas
+                    </button>
+                    {/* Button for player's team matches */}
+                    <button
+                      onClick={() => {
+                        const currentMatch = tournamentState.matches.groups[tournamentState.currentMatchIndex];
+                        if (currentMatch.home === selectedTeam.name || currentMatch.away === selectedTeam.name) {
+                          setShowTournament(false);
+                          setShowTeamSelection(true);
+                        }
+                      }}
+                      className={`bg-gradient-to-r ${
+                        tournamentState.matches.groups[tournamentState.currentMatchIndex].home === selectedTeam.name ||
+                        tournamentState.matches.groups[tournamentState.currentMatchIndex].away === selectedTeam.name
+                          ? 'from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700'
+                          : 'from-gray-500 to-gray-600 cursor-not-allowed'
+                      } text-white font-bold py-3 px-8 rounded-xl shadow-lg transform transition-all duration-300 
+                      ${tournamentState.matches.groups[tournamentState.currentMatchIndex].home === selectedTeam.name ||
+                        tournamentState.matches.groups[tournamentState.currentMatchIndex].away === selectedTeam.name
+                          ? 'hover:scale-105 active:scale-95'
+                          : ''} border-2 border-white/20`}
+                      disabled={
+                        tournamentState.matches.groups[tournamentState.currentMatchIndex].home !== selectedTeam.name &&
+                        tournamentState.matches.groups[tournamentState.currentMatchIndex].away !== selectedTeam.name
+                      }
+                    >
+                      Hrát zápas týmu
                     </button>
                   </div>
                 </div>
