@@ -1480,10 +1480,17 @@ const CardGame = () => {
         const isPlayerHome = currentMatch.home === selectedTeam.name;
         const opponentName = isPlayerHome ? currentMatch.away : currentMatch.home;
         const opponent = getTeamByName(opponentName);
-        setOpponent(opponent);
-        setShowTeamSelection(true);
-        setShowTournament(false);
-        setShowMatch(false);
+        if (opponent) {
+          setOpponent({
+            name: opponent.name,
+            goalkeeper: opponent.goalkeeper,
+            defenders: opponent.defenders,
+            forwards: opponent.forwards
+          });
+          setShowTeamSelection(true);
+          setShowTournament(false);
+          setShowMatch(false);
+        }
       } else {
         const homeTeam = getTeamByName(currentMatch.home);
         const awayTeam = getTeamByName(currentMatch.away);
