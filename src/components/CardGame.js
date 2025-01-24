@@ -1732,8 +1732,11 @@ const CardGame = () => {
           };
         } else {
           clearInterval(gameTimer);
-          const result = prev.score.home > prev.score.away ? 'victory' : 'defeat';
-          setShowRewards(true);
+          // Zobrazíme odměny pouze pokud nejsme v turnaji
+          if (!tournamentState.phase) {
+            const result = prev.score.home > prev.score.away ? 'victory' : 'defeat';
+            setShowRewards(true);
+          }
           return {
             ...prev,
             isPlaying: false,
