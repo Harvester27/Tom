@@ -1348,23 +1348,34 @@ const CardGame = () => {
           }));
         }
       } else {
+        // Základní skupina
         const currentMatch = tournamentState.matches.groups[tournamentState.currentMatchIndex];
         if (currentMatch) {
           const homeTeam = getTeamByName(currentMatch.home);
           const awayTeam = getTeamByName(currentMatch.away);
+          const result = playTournamentMatch(homeTeam, awayTeam);
           
-          updateTournamentStandings(homeTeam, awayTeam, matchState.score);
+          updateTournamentStandings(homeTeam, awayTeam, result);
 
-          setTournamentState(prev => ({
-            ...prev,
-            matches: {
-              ...prev.matches,
-              groups: prev.matches.groups.map((match, index) => 
-                index === prev.currentMatchIndex ? { ...match, score: matchState.score } : match
-              )
-            },
-            currentMatchIndex: prev.currentMatchIndex + 1
-          }));
+          setTournamentState(prev => {
+            const newState = {
+              ...prev,
+              matches: {
+                ...prev.matches,
+                groups: prev.matches.groups.map((match, index) => 
+                  index === prev.currentMatchIndex ? { ...match, score: result } : match
+                )
+              },
+              currentMatchIndex: prev.currentMatchIndex + 1
+            };
+
+            // Kontrola, zda jsme dokončili všechny skupinové zápasy
+            if (newState.currentMatchIndex === prev.matches.groups.length) {
+              generatePlayoffMatches(newState);
+            }
+
+            return newState;
+          });
         }
       }
 
@@ -1674,9 +1685,9 @@ const CardGame = () => {
   };
 
   // Funkce pro generování playoff zápasů
-  const generatePlayoffMatches = () => {
-    const groupA = sortTeams(tournamentState.groups.A);
-    const groupB = sortTeams(tournamentState.groups.B);
+  const generatePlayoffMatches = (currentState) => {
+    const groupA = sortTeams(currentState.groups.A);
+    const groupB = sortTeams(currentState.groups.B);
 
     // Vytvoříme zápasy playoff
     const playoffMatches = [
