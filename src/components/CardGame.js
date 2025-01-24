@@ -368,7 +368,9 @@ const CardGame = () => {
       shots: {}
     },
     penalties: [],
-    scheduledEvents: []
+    scheduledEvents: [],
+    currentOpponent: null,
+    completed: false
   });
 
   useEffect(() => {
@@ -1310,11 +1312,10 @@ const CardGame = () => {
 
   // Po skončení zápasu
   useEffect(() => {
-    if (!matchState.isPlaying && matchState.score) {
+    if (!matchState.isPlaying && matchState.completed) {
       if (tournamentState.phase === 'playoff') {
         const currentMatch = tournamentState.matches.playoff.find(match => !match.score);
         if (currentMatch) {
-          // Aktualizujeme výsledek v playoff zápasech
           setTournamentState(prev => ({
             ...prev,
             matches: {
@@ -1324,7 +1325,6 @@ const CardGame = () => {
                   return { ...match, score: matchState.score };
                 }
                 
-                // Aktualizujeme následující zápasy s vítězi/poraženými
                 if (currentMatch.id) {
                   const isWinner = matchState.score.home > matchState.score.away ? currentMatch.home : currentMatch.away;
                   const isLoser = matchState.score.home > matchState.score.away ? currentMatch.away : currentMatch.home;
@@ -1348,7 +1348,6 @@ const CardGame = () => {
           }));
         }
       } else {
-        // Základní skupina
         const currentMatch = tournamentState.matches.groups[tournamentState.currentMatchIndex];
         if (currentMatch) {
           const homeTeam = getTeamByName(currentMatch.home);
@@ -1366,10 +1365,6 @@ const CardGame = () => {
             },
             currentMatchIndex: prev.currentMatchIndex + 1
           }));
-
-          if (tournamentState.currentMatchIndex === tournamentState.matches.groups.length - 1) {
-            generatePlayoffMatches();
-          }
         }
       }
 
@@ -1380,6 +1375,7 @@ const CardGame = () => {
           score: null,
           events: [],
           isPlaying: false,
+          completed: false,
           gameSpeed: 1,
           playerStats: {
             goals: {},
@@ -1396,7 +1392,7 @@ const CardGame = () => {
         setShowTournament(true);
       }, 2000);
     }
-  }, [matchState.isPlaying]);
+  }, [matchState.isPlaying, matchState.completed]);
 
   // Ceny prodeje karet podle vzácnosti
   const sellPrices = {
@@ -1710,6 +1706,37 @@ const CardGame = () => {
         playoff: playoffMatches
       }
     }));
+  };
+
+  const updateMatch = () => {
+    setMatchState(prev => {
+      const newTime = prev.time - prev.gameSpeed;
+      
+      if (newTime <= 0) {
+        if (prev.period < 3) {
+          return {
+            ...prev,
+            period: prev.period + 1,
+            time: 1200
+          };
+        } else {
+          clearInterval(gameTimer);
+          const result = prev.score.home > prev.score.away ? 'victory' : 'defeat';
+          setShowRewards(true);
+          return {
+            ...prev,
+            isPlaying: false,
+            completed: true,
+            time: 0
+          };
+        }
+      }
+      
+      return {
+        ...prev,
+        time: newTime
+      };
+    });
   };
 
   return (
