@@ -1400,7 +1400,10 @@ const CardGame = () => {
           currentOpponent: null
         }));
         setShowMatch(false);
-        setShowTournament(true);
+        // Pokud jsme v turnaji, zůstaneme v turnajovém pohledu
+        if (tournamentState.phase) {
+          setShowTournament(true);
+        }
       }, 2000);
     }
   }, [matchState.isPlaying, matchState.completed]);
