@@ -1399,10 +1399,14 @@ const CardGame = () => {
           scheduledEvents: [],
           currentOpponent: null
         }));
-        setShowMatch(false);
+        
         // Pokud jsme v turnaji, zůstaneme v turnajovém pohledu
         if (tournamentState.phase) {
+          setShowMatch(false);
           setShowTournament(true);
+          setShowRewards(false);  // Explicitně vypneme odměny v turnaji
+        } else {
+          setShowMatch(false);
         }
       }, 2000);
     }
