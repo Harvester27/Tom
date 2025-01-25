@@ -1061,28 +1061,20 @@ const CardGame = () => {
                 const scorer = scoringPlayers[Math.floor(Math.random() * scoringPlayers.length)];
                 const scorerId = typeof scorer === 'string' ? scorer : scorer.id;
                 
-                // Aktualizace skóre
+                // Aktualizace skóre a statistik brankáře
                 if (isHomeScore) {
                   newScore.home += 1;
-                  if (!prev.isHomeTeam && prev.currentOpponent.goalkeeper) {
-                    newStats.saveAccuracy[prev.currentOpponent.goalkeeper.id] = 
-                      (newStats.saves[prev.currentOpponent.goalkeeper.id] || 0) / 
-                      ((newStats.shots[prev.currentOpponent.goalkeeper.id] || 0) + 1);
-                  } else if (prev.isHomeTeam && selectedTeam.goalkeeper) {
-                    newStats.saveAccuracy[selectedTeam.goalkeeper] = 
-                      (newStats.saves[selectedTeam.goalkeeper] || 0) / 
-                      ((newStats.shots[selectedTeam.goalkeeper] || 0) + 1);
+                  const goalkeeper = prev.isHomeTeam ? prev.currentOpponent?.goalkeeper?.id : selectedTeam.goalkeeper;
+                  if (goalkeeper) {
+                    const goalkeeperId = typeof goalkeeper === 'string' ? goalkeeper : goalkeeper;
+                    newStats.saveAccuracy[goalkeeperId] = newStats.saves[goalkeeperId] / (newStats.shots[goalkeeperId] + 1);
                   }
                 } else {
                   newScore.away += 1;
-                  if (prev.isHomeTeam && prev.currentOpponent.goalkeeper) {
-                    newStats.saveAccuracy[prev.currentOpponent.goalkeeper.id] = 
-                      (newStats.saves[prev.currentOpponent.goalkeeper.id] || 0) / 
-                      ((newStats.shots[prev.currentOpponent.goalkeeper.id] || 0) + 1);
-                  } else if (!prev.isHomeTeam && selectedTeam.goalkeeper) {
-                    newStats.saveAccuracy[selectedTeam.goalkeeper] = 
-                      (newStats.saves[selectedTeam.goalkeeper] || 0) / 
-                      ((newStats.shots[selectedTeam.goalkeeper] || 0) + 1);
+                  const goalkeeper = prev.isHomeTeam ? selectedTeam.goalkeeper : prev.currentOpponent?.goalkeeper?.id;
+                  if (goalkeeper) {
+                    const goalkeeperId = typeof goalkeeper === 'string' ? goalkeeper : goalkeeper;
+                    newStats.saveAccuracy[goalkeeperId] = newStats.saves[goalkeeperId] / (newStats.shots[goalkeeperId] + 1);
                   }
                 }
                 
@@ -1104,22 +1096,24 @@ const CardGame = () => {
             // Kontrola střel domácího týmu
             while (prev.shotTimes.home.length > 0 && prev.shotTimes.home[0] <= currentTime) {
               prev.shotTimes.home.shift();
-              const goalkeeper = prev.isHomeTeam ? prev.currentOpponent?.goalkeeper : selectedTeam.goalkeeper;
+              const goalkeeper = prev.isHomeTeam ? prev.currentOpponent?.goalkeeper?.id : selectedTeam.goalkeeper;
               if (goalkeeper) {
-                const goalkeeperId = typeof goalkeeper === 'string' ? goalkeeper : goalkeeper.id;
+                const goalkeeperId = typeof goalkeeper === 'string' ? goalkeeper : goalkeeper;
                 newStats.shots[goalkeeperId] = (newStats.shots[goalkeeperId] || 0) + 1;
                 newStats.saves[goalkeeperId] = (newStats.saves[goalkeeperId] || 0) + 1;
+                newStats.saveAccuracy[goalkeeperId] = newStats.saves[goalkeeperId] / newStats.shots[goalkeeperId];
               }
             }
 
             // Kontrola střel hostujícího týmu
             while (prev.shotTimes.away.length > 0 && prev.shotTimes.away[0] <= currentTime) {
               prev.shotTimes.away.shift();
-              const goalkeeper = prev.isHomeTeam ? selectedTeam.goalkeeper : prev.currentOpponent?.goalkeeper;
+              const goalkeeper = prev.isHomeTeam ? selectedTeam.goalkeeper : prev.currentOpponent?.goalkeeper?.id;
               if (goalkeeper) {
-                const goalkeeperId = typeof goalkeeper === 'string' ? goalkeeper : goalkeeper.id;
+                const goalkeeperId = typeof goalkeeper === 'string' ? goalkeeper : goalkeeper;
                 newStats.shots[goalkeeperId] = (newStats.shots[goalkeeperId] || 0) + 1;
                 newStats.saves[goalkeeperId] = (newStats.saves[goalkeeperId] || 0) + 1;
+                newStats.saveAccuracy[goalkeeperId] = newStats.saves[goalkeeperId] / newStats.shots[goalkeeperId];
               }
             }
           }
