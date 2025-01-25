@@ -927,77 +927,77 @@ const CardGame = () => {
       setShowTeamSelection(false);
       
       let opponent;
+      let isHomeTeam = true;
       
-      // Determine the opponent based on whether we're in a tournament or regular match
+      // Určení soupeře podle typu zápasu
       if (tournamentState.phase === 'playoff') {
         const currentMatch = tournamentState.matches.playoff.find(match => !match.score);
         if (currentMatch) {
-          const isHomeTeam = currentMatch.home === selectedTeam.name;
+          isHomeTeam = currentMatch.home === selectedTeam.name;
           const opponentName = isHomeTeam ? currentMatch.away : currentMatch.home;
           opponent = getTeamByName(opponentName);
         }
       } else if (tournamentState.phase === 'groups') {
         const currentMatch = tournamentState.matches.groups[tournamentState.currentMatchIndex];
         if (currentMatch) {
-          const isHomeTeam = currentMatch.home === selectedTeam.name;
+          isHomeTeam = currentMatch.home === selectedTeam.name;
           const opponentName = isHomeTeam ? currentMatch.away : currentMatch.home;
           opponent = getTeamByName(opponentName);
         }
-      } 
+      }
       
-      // If no tournament opponent was found, use the default opponent
+      // Pokud není turnajový soupeř, použijeme výchozího
       if (!opponent) {
         opponent = opponentTeam;
       }
+
+      // Generování časů střel pro oba týmy
+      const shotTimes = generateShotTimes(selectedTeam, opponent);
       
-      // Generate shot times for both teams
-      const shotTimes = generateShotTimes();
+      // Generování časů událostí
+      const initialEventTimes = [];
+      const numEvents = Math.floor(Math.random() * (12 - 5 + 1)) + 5;
+      for (let i = 0; i < numEvents; i++) {
+        initialEventTimes.push(Math.floor(Math.random() * (1200 - 5) + 5));
+      }
       
-      // Initialize match state with the chosen opponent
-      setMatchState(prev => {
-        // Generate initial event times for the match
-        const initialEventTimes = [];
-        const numEvents = Math.floor(Math.random() * (12 - 5 + 1)) + 5;
-        for (let i = 0; i < numEvents; i++) {
-          initialEventTimes.push(Math.floor(Math.random() * (1200 - 5) + 5));
-        }
-        
-        return {
-          ...prev,
-          period: 1,
-          time: 1200,
-          isPlaying: true,
-          score: { home: 0, away: 0 },
-          events: [],
-          playerStats: {
-            goals: {},
-            assists: {},
-            saves: {},
-            saveAccuracy: {},
-            shots: {}
-          },
-          penalties: [],
-          scheduledEvents: initialEventTimes.sort((a, b) => b - a),
-          currentOpponent: opponent,
-          shotTimes: shotTimes
-        };
-      });
+      // Inicializace stavu zápasu
+      setMatchState(prev => ({
+        ...prev,
+        period: 1,
+        time: 1200,
+        isPlaying: true,
+        score: { home: 0, away: 0 },
+        events: [],
+        playerStats: {
+          goals: {},
+          assists: {},
+          saves: {},
+          saveAccuracy: {},
+          shots: {}
+        },
+        penalties: [],
+        scheduledEvents: initialEventTimes.sort((a, b) => b - a),
+        currentOpponent: opponent,
+        shotTimes: shotTimes,
+        isHomeTeam: isHomeTeam // Přidáno pro správné určení domácího/hostujícího týmu
+      }));
     }
   };
 
   // Funkce pro generování časů střel
-  const generateShotTimes = () => {
+  const generateShotTimes = (homeTeam, awayTeam) => {
     const shotTimes = {
       home: [],
       away: []
     };
 
-    // Vypočítáme sílu týmů (součet levelů útočníků a obránců)
-    const homeTeamStrength = selectedTeam.forwards.reduce((sum, id) => sum + getCardLevel(id), 0) +
-                           selectedTeam.defenders.reduce((sum, id) => sum + getCardLevel(id), 0);
+    // Výpočet síly týmů
+    const homeTeamStrength = homeTeam.forwards.reduce((sum, id) => sum + getCardLevel(id), 0) +
+                            homeTeam.defenders.reduce((sum, id) => sum + getCardLevel(id), 0);
     
-    const awayTeamStrength = matchState.currentOpponent?.forwards.reduce((sum, p) => sum + p.level, 0) +
-                           matchState.currentOpponent?.defenders.reduce((sum, p) => sum + p.level, 0) || 0;
+    const awayTeamStrength = awayTeam.forwards.reduce((sum, p) => sum + (typeof p === 'string' ? getCardLevel(p) : p.level), 0) +
+                            awayTeam.defenders.reduce((sum, p) => sum + (typeof p === 'string' ? getCardLevel(p) : p.level), 0);
 
     // Pro každou třetinu
     for (let period = 1; period <= 3; period++) {
@@ -1005,25 +1005,23 @@ const CardGame = () => {
       const maxTime = period * 1200;
       
       // Základní počet střel je 8-12, plus bonus podle síly týmu
-      const homeBaseShots = Math.floor(Math.random() * 5) + 8; // 8-12 střel
-      const awayBaseShots = Math.floor(Math.random() * 5) + 8; // 8-12 střel
+      const homeBaseShots = Math.floor(Math.random() * 5) + 8;
+      const awayBaseShots = Math.floor(Math.random() * 5) + 8;
 
-      // Přidáme bonus střel podle síly týmu (každých 5 bodů síly = +1 střela)
+      // Bonus střel podle síly týmu (každých 5 bodů síly = +1 střela)
       const homeShots = homeBaseShots + Math.floor(homeTeamStrength / 5);
       const awayShots = awayBaseShots + Math.floor(awayTeamStrength / 5);
 
-      // Přidáme náhodné časy pro domácí tým
+      // Přidání náhodných časů pro oba týmy
       for (let i = 0; i < homeShots; i++) {
         shotTimes.home.push(Math.floor(Math.random() * (maxTime - minTime) + minTime));
       }
-
-      // Přidáme náhodné časy pro hostující tým
       for (let i = 0; i < awayShots; i++) {
         shotTimes.away.push(Math.floor(Math.random() * (maxTime - minTime) + minTime));
       }
     }
 
-    // Seřadíme časy vzestupně
+    // Seřazení časů
     shotTimes.home.sort((a, b) => a - b);
     shotTimes.away.sort((a, b) => a - b);
 
@@ -1033,7 +1031,6 @@ const CardGame = () => {
   // Herní timer
   useEffect(() => {
     if (matchState.isPlaying) {
-      // Hlavní herní timer
       const gameTimer = setInterval(() => {
         setMatchState(prev => {
           const newTime = prev.time - prev.gameSpeed;
@@ -1048,30 +1045,41 @@ const CardGame = () => {
           while (prev.scheduledEvents.length > 0 && prev.scheduledEvents[prev.scheduledEvents.length - 1] <= currentTime) {
             const eventTime = prev.scheduledEvents.pop();
             
-            // Generování náhodné události (gól, přihrávka, atd.)
+            // Generování náhodné události
             const eventType = Math.random();
             if (eventType < 0.4) { // 40% šance na gól
-              const isHomeTeam = Math.random() < 0.5;
-              const scoringTeam = isHomeTeam ? selectedTeam : prev.currentOpponent;
-              const scoringPlayers = isHomeTeam ? 
-                [...selectedTeam.forwards, ...selectedTeam.defenders] :
-                [...prev.currentOpponent.forwards, ...prev.currentOpponent.defenders];
+              const isHomeScore = Math.random() < 0.5;
+              const scoringTeam = isHomeScore ? (prev.isHomeTeam ? selectedTeam : prev.currentOpponent) 
+                                            : (prev.isHomeTeam ? prev.currentOpponent : selectedTeam);
+              const scoringPlayers = isHomeScore ? 
+                (prev.isHomeTeam ? [...selectedTeam.forwards, ...selectedTeam.defenders] 
+                                : [...prev.currentOpponent.forwards, ...prev.currentOpponent.defenders])
+                : (prev.isHomeTeam ? [...prev.currentOpponent.forwards, ...prev.currentOpponent.defenders]
+                                  : [...selectedTeam.forwards, ...selectedTeam.defenders]);
               
               if (scoringPlayers.length > 0) {
                 const scorer = scoringPlayers[Math.floor(Math.random() * scoringPlayers.length)];
-                const scorerId = isHomeTeam ? scorer : scorer.id;
+                const scorerId = typeof scorer === 'string' ? scorer : scorer.id;
                 
-                // Aktualizace skóre a statistik
-                if (isHomeTeam) {
+                // Aktualizace skóre
+                if (isHomeScore) {
                   newScore.home += 1;
-                  if (prev.currentOpponent.goalkeeper) {
+                  if (!prev.isHomeTeam && prev.currentOpponent.goalkeeper) {
                     newStats.saveAccuracy[prev.currentOpponent.goalkeeper.id] = 
                       (newStats.saves[prev.currentOpponent.goalkeeper.id] || 0) / 
                       ((newStats.shots[prev.currentOpponent.goalkeeper.id] || 0) + 1);
+                  } else if (prev.isHomeTeam && selectedTeam.goalkeeper) {
+                    newStats.saveAccuracy[selectedTeam.goalkeeper] = 
+                      (newStats.saves[selectedTeam.goalkeeper] || 0) / 
+                      ((newStats.shots[selectedTeam.goalkeeper] || 0) + 1);
                   }
                 } else {
                   newScore.away += 1;
-                  if (selectedTeam.goalkeeper) {
+                  if (prev.isHomeTeam && prev.currentOpponent.goalkeeper) {
+                    newStats.saveAccuracy[prev.currentOpponent.goalkeeper.id] = 
+                      (newStats.saves[prev.currentOpponent.goalkeeper.id] || 0) / 
+                      ((newStats.shots[prev.currentOpponent.goalkeeper.id] || 0) + 1);
+                  } else if (!prev.isHomeTeam && selectedTeam.goalkeeper) {
                     newStats.saveAccuracy[selectedTeam.goalkeeper] = 
                       (newStats.saves[selectedTeam.goalkeeper] || 0) / 
                       ((newStats.shots[selectedTeam.goalkeeper] || 0) + 1);
@@ -1084,7 +1092,7 @@ const CardGame = () => {
                 newEvents.push({
                   time: eventTime,
                   type: 'goal',
-                  team: isHomeTeam ? 'home' : 'away',
+                  team: isHomeScore ? 'home' : 'away',
                   player: scorerId
                 });
               }
@@ -1096,18 +1104,22 @@ const CardGame = () => {
             // Kontrola střel domácího týmu
             while (prev.shotTimes.home.length > 0 && prev.shotTimes.home[0] <= currentTime) {
               prev.shotTimes.home.shift();
-              if (prev.currentOpponent?.goalkeeper) {
-                newStats.shots[prev.currentOpponent.goalkeeper.id] = (newStats.shots[prev.currentOpponent.goalkeeper.id] || 0) + 1;
-                newStats.saves[prev.currentOpponent.goalkeeper.id] = (newStats.saves[prev.currentOpponent.goalkeeper.id] || 0) + 1;
+              const goalkeeper = prev.isHomeTeam ? prev.currentOpponent?.goalkeeper : selectedTeam.goalkeeper;
+              if (goalkeeper) {
+                const goalkeeperId = typeof goalkeeper === 'string' ? goalkeeper : goalkeeper.id;
+                newStats.shots[goalkeeperId] = (newStats.shots[goalkeeperId] || 0) + 1;
+                newStats.saves[goalkeeperId] = (newStats.saves[goalkeeperId] || 0) + 1;
               }
             }
 
             // Kontrola střel hostujícího týmu
             while (prev.shotTimes.away.length > 0 && prev.shotTimes.away[0] <= currentTime) {
               prev.shotTimes.away.shift();
-              if (selectedTeam.goalkeeper) {
-                newStats.shots[selectedTeam.goalkeeper] = (newStats.shots[selectedTeam.goalkeeper] || 0) + 1;
-                newStats.saves[selectedTeam.goalkeeper] = (newStats.saves[selectedTeam.goalkeeper] || 0) + 1;
+              const goalkeeper = prev.isHomeTeam ? selectedTeam.goalkeeper : prev.currentOpponent?.goalkeeper;
+              if (goalkeeper) {
+                const goalkeeperId = typeof goalkeeper === 'string' ? goalkeeper : goalkeeper.id;
+                newStats.shots[goalkeeperId] = (newStats.shots[goalkeeperId] || 0) + 1;
+                newStats.saves[goalkeeperId] = (newStats.saves[goalkeeperId] || 0) + 1;
               }
             }
           }
