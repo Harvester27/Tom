@@ -1145,33 +1145,37 @@ const CardGame = () => {
               index === prev.currentMatchIndex ? { ...match, score: matchState.score } : match
             );
 
-            // Kontrolujeme, jestli je toto poslední zápas ve skupinách
-            const isLastMatch = prev.currentMatchIndex === prev.matches.groups.length - 1;
-            
             // Vytvoříme nový stav s aktualizovanými zápasy
             const newState = {
               ...prev,
               matches: {
                 ...prev.matches,
                 groups: updatedMatches
-              },
-              currentMatchIndex: isLastMatch ? prev.currentMatchIndex : prev.currentMatchIndex + 1
+              }
             };
 
+            // Kontrolujeme, jestli je toto poslední zápas ve skupinách
+            const isLastMatch = prev.currentMatchIndex === prev.matches.groups.length - 1;
+            
             // Pokud je to poslední zápas, přepneme do playoff fáze
             if (isLastMatch) {
+              const playoffMatches = generatePlayoffMatches(newState);
               return {
                 ...newState,
                 phase: 'playoff',
                 matches: {
                   ...newState.matches,
-                  playoff: generatePlayoffMatches(newState)
+                  playoff: playoffMatches
                 },
                 currentMatchIndex: 0
               };
             }
 
-            return newState;
+            // Jinak jen posuneme index na další zápas
+            return {
+              ...newState,
+              currentMatchIndex: prev.currentMatchIndex + 1
+            };
           });
         }
       }
@@ -1490,17 +1494,55 @@ const CardGame = () => {
 
   // Funkce pro generování playoff zápasů
   const generatePlayoffMatches = (currentState) => {
-    const groupA = sortTeams(currentState.groups.A);
-    const groupB = sortTeams(currentState.groups.B);
+    // Seřadíme týmy ve skupinách
+    const groupA = sortTeams([...currentState.groups.A]);
+    const groupB = sortTeams([...currentState.groups.B]);
 
     return [
-      { home: groupA[1].team.name, away: groupB[2].team.name, round: 'quarterfinal', id: 'QF1' },
-      { home: groupB[1].team.name, away: groupA[2].team.name, round: 'quarterfinal', id: 'QF2' },
-      { home: groupA[0].team.name, away: 'Winner QF1', round: 'semifinal', id: 'SF1' },
-      { home: groupB[0].team.name, away: 'Winner QF2', round: 'semifinal', id: 'SF2' },
-      { home: 'Loser QF1', away: 'Loser QF2', round: 'fifth_place' },
-      { home: 'Loser SF1', away: 'Loser SF2', round: 'third_place' },
-      { home: 'Winner SF1', away: 'Winner SF2', round: 'final' }
+      // Čtvrtfinále
+      { 
+        home: groupA[1].team.name, 
+        away: groupB[2].team.name, 
+        round: 'quarterfinal', 
+        id: 'QF1' 
+      },
+      { 
+        home: groupB[1].team.name, 
+        away: groupA[2].team.name, 
+        round: 'quarterfinal', 
+        id: 'QF2' 
+      },
+      // Semifinále
+      { 
+        home: groupA[0].team.name, 
+        away: 'Winner QF1', 
+        round: 'semifinal', 
+        id: 'SF1' 
+      },
+      { 
+        home: groupB[0].team.name, 
+        away: 'Winner QF2', 
+        round: 'semifinal', 
+        id: 'SF2' 
+      },
+      // O 5. místo
+      { 
+        home: 'Loser QF1', 
+        away: 'Loser QF2', 
+        round: 'fifth_place' 
+      },
+      // O 3. místo
+      { 
+        home: 'Loser SF1', 
+        away: 'Loser SF2', 
+        round: 'third_place' 
+      },
+      // Finále
+      { 
+        home: 'Winner SF1', 
+        away: 'Winner SF2', 
+        round: 'final' 
+      }
     ];
   };
 
