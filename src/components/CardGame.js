@@ -1023,10 +1023,10 @@ const CardGame = () => {
           shots: {}
         },
         penalties: [],
-        scheduledEvents: initialEventTimes.sort((a, b) => b - a),
+        scheduledEvents: generateEventsForAllPeriods(),
         currentOpponent: opponent,
         shotTimes: shotTimes,
-        isHomeTeam: isHomeTeam // Přidáno pro správné určení domácího/hostujícího týmu
+        isHomeTeam: isHomeTeam
       }));
     }
   };
@@ -1072,6 +1072,25 @@ const CardGame = () => {
     shotTimes.away.sort((a, b) => a - b);
 
     return shotTimes;
+  };
+
+  // Funkce pro generování událostí pro všechny třetiny
+  const generateEventsForAllPeriods = () => {
+    const events = [];
+    // Pro každou třetinu
+    for (let period = 1; period <= 3; period++) {
+      const periodStart = (period - 1) * 1200;
+      const periodEnd = period * 1200;
+      // Generujeme 5-12 událostí pro každou třetinu
+      const numEvents = Math.floor(Math.random() * (12 - 5 + 1)) + 5;
+      for (let i = 0; i < numEvents; i++) {
+        // Generujeme čas v rámci dané třetiny
+        const eventTime = Math.floor(Math.random() * (periodEnd - periodStart - 5)) + periodStart + 5;
+        events.push(eventTime);
+      }
+    }
+    // Seřadíme události sestupně (od největšího času po nejmenší)
+    return events.sort((a, b) => b - a);
   };
 
   // Herní timer
