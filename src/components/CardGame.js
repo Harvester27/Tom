@@ -1682,6 +1682,50 @@ const CardGame = () => {
     });
   };
 
+  // Funkce pro automatické doplnění sestavy
+  const autoFillTeam = () => {
+    // Seřadíme karty podle úrovně
+    const sortedCards = [...cards].sort((a, b) => b.level - a.level);
+    
+    // Najdeme nejlepšího dostupného brankáře
+    const bestGoalie = sortedCards.find(card => 
+      card.position === 'goalkeeper' && 
+      !selectedTeam.goalkeeper
+    );
+    if (bestGoalie) {
+      setSelectedTeam(prev => ({
+        ...prev,
+        goalkeeper: bestGoalie.id
+      }));
+    }
+
+    // Najdeme nejlepší dostupné obránce
+    const defenders = sortedCards.filter(card => 
+      card.position === 'defender' && 
+      !selectedTeam.defenders.includes(card.id)
+    ).slice(0, 2 - selectedTeam.defenders.length);
+    
+    if (defenders.length > 0) {
+      setSelectedTeam(prev => ({
+        ...prev,
+        defenders: [...prev.defenders, ...defenders.map(d => d.id)]
+      }));
+    }
+
+    // Najdeme nejlepší dostupné útočníky
+    const forwards = sortedCards.filter(card => 
+      card.position === 'forward' && 
+      !selectedTeam.forwards.includes(card.id)
+    ).slice(0, 3 - selectedTeam.forwards.length);
+    
+    if (forwards.length > 0) {
+      setSelectedTeam(prev => ({
+        ...prev,
+        forwards: [...prev.forwards, ...forwards.map(f => f.id)]
+      }));
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gradient-radial from-blue-900 via-blue-950 to-black text-white p-8">
       {/* Version number */}
@@ -1977,6 +2021,12 @@ const CardGame = () => {
         {showTeamSelection && (
           <div className="fixed inset-0 bg-black/90 flex flex-col items-center justify-center z-50 p-8">
             <h2 className="text-3xl font-bold text-yellow-400 mb-8">Vyberte svou sestavu</h2>
+            <button
+              onClick={autoFillTeam}
+              className="bg-gradient-to-r from-yellow-500 to-yellow-600 hover:from-yellow-600 hover:to-yellow-700 text-white font-bold py-2 px-4 rounded-xl shadow-lg transform transition-all duration-300 hover:scale-105 active:scale-95 mb-8"
+            >
+              Automaticky doplnit sestavu
+            </button>
             <div className="grid grid-cols-3 gap-8 mb-8">
               {/* Brankář */}
               <div className="text-center">
