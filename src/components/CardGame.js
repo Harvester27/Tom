@@ -950,6 +950,9 @@ const CardGame = () => {
         opponent = opponentTeam;
       }
       
+      // Generate shot times for both teams
+      const shotTimes = generateShotTimes();
+      
       // Initialize match state with the chosen opponent
       setMatchState(prev => {
         // Generate initial event times for the match
@@ -965,6 +968,7 @@ const CardGame = () => {
           time: 1200,
           isPlaying: true,
           score: { home: 0, away: 0 },
+          events: [],
           playerStats: {
             goals: {},
             assists: {},
@@ -974,7 +978,8 @@ const CardGame = () => {
           },
           penalties: [],
           scheduledEvents: initialEventTimes.sort((a, b) => b - a),
-          currentOpponent: opponent
+          currentOpponent: opponent,
+          shotTimes: shotTimes
         };
       });
     }
@@ -1028,32 +1033,82 @@ const CardGame = () => {
   // Herní timer
   useEffect(() => {
     if (matchState.isPlaying) {
-      const shotTimes = generateShotTimes();
-      
       // Hlavní herní timer
       const gameTimer = setInterval(() => {
         setMatchState(prev => {
           const newTime = prev.time - prev.gameSpeed;
           const currentTime = (prev.period - 1) * 1200 + (1200 - newTime);
           
-          // Kontrola střel
+          // Kontrola střel a událostí
           const newStats = { ...prev.playerStats };
+          const newEvents = [...prev.events];
+          const newScore = { ...prev.score };
           
-          // Kontrola střel domácího týmu
-          while (shotTimes.home.length > 0 && shotTimes.home[0] <= currentTime) {
-            shotTimes.home.shift();
-            if (prev.currentOpponent?.goalkeeper) {
-              newStats.shots[prev.currentOpponent.goalkeeper.id] = (newStats.shots[prev.currentOpponent.goalkeeper.id] || 0) + 1;
-              newStats.saves[prev.currentOpponent.goalkeeper.id] = (newStats.saves[prev.currentOpponent.goalkeeper.id] || 0) + 1;
+          // Kontrola naplánovaných událostí
+          while (prev.scheduledEvents.length > 0 && prev.scheduledEvents[prev.scheduledEvents.length - 1] <= currentTime) {
+            const eventTime = prev.scheduledEvents.pop();
+            
+            // Generování náhodné události (gól, přihrávka, atd.)
+            const eventType = Math.random();
+            if (eventType < 0.4) { // 40% šance na gól
+              const isHomeTeam = Math.random() < 0.5;
+              const scoringTeam = isHomeTeam ? selectedTeam : prev.currentOpponent;
+              const scoringPlayers = isHomeTeam ? 
+                [...selectedTeam.forwards, ...selectedTeam.defenders] :
+                [...prev.currentOpponent.forwards, ...prev.currentOpponent.defenders];
+              
+              if (scoringPlayers.length > 0) {
+                const scorer = scoringPlayers[Math.floor(Math.random() * scoringPlayers.length)];
+                const scorerId = isHomeTeam ? scorer : scorer.id;
+                
+                // Aktualizace skóre a statistik
+                if (isHomeTeam) {
+                  newScore.home += 1;
+                  if (prev.currentOpponent.goalkeeper) {
+                    newStats.saveAccuracy[prev.currentOpponent.goalkeeper.id] = 
+                      (newStats.saves[prev.currentOpponent.goalkeeper.id] || 0) / 
+                      ((newStats.shots[prev.currentOpponent.goalkeeper.id] || 0) + 1);
+                  }
+                } else {
+                  newScore.away += 1;
+                  if (selectedTeam.goalkeeper) {
+                    newStats.saveAccuracy[selectedTeam.goalkeeper] = 
+                      (newStats.saves[selectedTeam.goalkeeper] || 0) / 
+                      ((newStats.shots[selectedTeam.goalkeeper] || 0) + 1);
+                  }
+                }
+                
+                newStats.goals[scorerId] = (newStats.goals[scorerId] || 0) + 1;
+                
+                // Přidání události
+                newEvents.push({
+                  time: eventTime,
+                  type: 'goal',
+                  team: isHomeTeam ? 'home' : 'away',
+                  player: scorerId
+                });
+              }
             }
           }
+          
+          // Kontrola střel
+          if (prev.shotTimes) {
+            // Kontrola střel domácího týmu
+            while (prev.shotTimes.home.length > 0 && prev.shotTimes.home[0] <= currentTime) {
+              prev.shotTimes.home.shift();
+              if (prev.currentOpponent?.goalkeeper) {
+                newStats.shots[prev.currentOpponent.goalkeeper.id] = (newStats.shots[prev.currentOpponent.goalkeeper.id] || 0) + 1;
+                newStats.saves[prev.currentOpponent.goalkeeper.id] = (newStats.saves[prev.currentOpponent.goalkeeper.id] || 0) + 1;
+              }
+            }
 
-          // Kontrola střel hostujícího týmu
-          while (shotTimes.away.length > 0 && shotTimes.away[0] <= currentTime) {
-            shotTimes.away.shift();
-            if (selectedTeam.goalkeeper) {
-              newStats.shots[selectedTeam.goalkeeper] = (newStats.shots[selectedTeam.goalkeeper] || 0) + 1;
-              newStats.saves[selectedTeam.goalkeeper] = (newStats.saves[selectedTeam.goalkeeper] || 0) + 1;
+            // Kontrola střel hostujícího týmu
+            while (prev.shotTimes.away.length > 0 && prev.shotTimes.away[0] <= currentTime) {
+              prev.shotTimes.away.shift();
+              if (selectedTeam.goalkeeper) {
+                newStats.shots[selectedTeam.goalkeeper] = (newStats.shots[selectedTeam.goalkeeper] || 0) + 1;
+                newStats.saves[selectedTeam.goalkeeper] = (newStats.saves[selectedTeam.goalkeeper] || 0) + 1;
+              }
             }
           }
           
@@ -1063,13 +1118,16 @@ const CardGame = () => {
                 ...prev,
                 period: prev.period + 1,
                 time: 1200,
-                playerStats: newStats
+                score: newScore,
+                events: newEvents,
+                playerStats: newStats,
+                scheduledEvents: prev.scheduledEvents
               };
             } else {
               clearInterval(gameTimer);
               // Zobrazíme odměny pouze pokud nejsme v turnaji
               if (!tournamentState.phase) {
-                const result = prev.score.home > prev.score.away ? 'victory' : 'defeat';
+                const result = newScore.home > newScore.away ? 'victory' : 'defeat';
                 setShowRewards(true);
               }
               return {
@@ -1077,7 +1135,10 @@ const CardGame = () => {
                 isPlaying: false,
                 completed: true,
                 time: 0,
-                playerStats: newStats
+                score: newScore,
+                events: newEvents,
+                playerStats: newStats,
+                scheduledEvents: prev.scheduledEvents
               };
             }
           }
@@ -1085,7 +1146,10 @@ const CardGame = () => {
           return {
             ...prev,
             time: newTime,
-            playerStats: newStats
+            score: newScore,
+            events: newEvents,
+            playerStats: newStats,
+            scheduledEvents: prev.scheduledEvents
           };
         });
       }, 1000);
