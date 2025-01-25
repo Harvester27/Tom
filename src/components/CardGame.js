@@ -1049,9 +1049,9 @@ const CardGame = () => {
             const eventType = Math.random();
             if (eventType < 0.4) { // 40% šance na gól
               const isHomeScore = Math.random() < 0.5;
-              const scoringTeam = isHomeScore ? (prev.isHomeTeam ? selectedTeam : prev.currentOpponent) 
+              const scoringTeam = !isHomeScore ? (prev.isHomeTeam ? selectedTeam : prev.currentOpponent) 
                                             : (prev.isHomeTeam ? prev.currentOpponent : selectedTeam);
-              const scoringPlayers = isHomeScore ? 
+              const scoringPlayers = !isHomeScore ? 
                 (prev.isHomeTeam ? [...selectedTeam.forwards, ...selectedTeam.defenders] 
                                 : [...prev.currentOpponent.forwards, ...prev.currentOpponent.defenders])
                 : (prev.isHomeTeam ? [...prev.currentOpponent.forwards, ...prev.currentOpponent.defenders]
