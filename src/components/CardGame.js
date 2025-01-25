@@ -1455,20 +1455,40 @@ const CardGame = () => {
         
         updateTournamentStandings(homeTeam, awayTeam, result);
 
-        setTournamentState(prev => ({
-          ...prev,
-          matches: {
-            ...prev.matches,
-            groups: prev.matches.groups.map((match, index) => 
-              index === prev.currentMatchIndex ? { ...match, score: result } : match
-            )
-          },
-          currentMatchIndex: prev.currentMatchIndex + 1
-        }));
+        setTournamentState(prev => {
+          // Aktualizujeme výsledek aktuálního zápasu
+          const updatedMatches = prev.matches.groups.map((match, index) => 
+            index === prev.currentMatchIndex ? { ...match, score: result } : match
+          );
 
-        if (tournamentState.currentMatchIndex === tournamentState.matches.groups.length - 1) {
-          generatePlayoffMatches();
-        }
+          // Kontrolujeme, jestli je toto poslední zápas ve skupinách
+          const isLastMatch = prev.currentMatchIndex === prev.matches.groups.length - 1;
+          
+          // Pokud je to poslední zápas, přepneme do playoff fáze
+          if (isLastMatch) {
+            const playoffMatches = generatePlayoffMatches(prev);
+            return {
+              ...prev,
+              phase: 'playoff',
+              matches: {
+                ...prev.matches,
+                playoff: playoffMatches,
+                groups: updatedMatches
+              },
+              currentMatchIndex: 0
+            };
+          }
+
+          // Jinak jen posuneme index na další zápas
+          return {
+            ...prev,
+            matches: {
+              ...prev.matches,
+              groups: updatedMatches
+            },
+            currentMatchIndex: prev.currentMatchIndex + 1
+          };
+        });
       }
     }
   };
@@ -1498,7 +1518,8 @@ const CardGame = () => {
     const groupA = sortTeams([...currentState.groups.A]);
     const groupB = sortTeams([...currentState.groups.B]);
 
-    return [
+    // Vytvoříme playoff zápasy
+    const playoffMatches = [
       // Čtvrtfinále
       { 
         home: groupA[1].team.name, 
@@ -1544,6 +1565,8 @@ const CardGame = () => {
         round: 'final' 
       }
     ];
+
+    return playoffMatches;
   };
 
   const updateMatch = () => {
