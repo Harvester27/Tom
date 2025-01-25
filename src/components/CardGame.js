@@ -1764,7 +1764,7 @@ const CardGame = () => {
     <div className="min-h-screen bg-gradient-radial from-blue-900 via-blue-950 to-black text-white p-8">
       {/* Version number */}
       <div className="fixed top-4 left-4 bg-black/50 px-3 py-1 rounded-lg text-sm text-yellow-400">
-        v1.0.3
+        v1.0.4
       </div>
       <style jsx global>{`
         @keyframes confetti-fall {
