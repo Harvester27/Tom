@@ -655,9 +655,10 @@ const CardGame = () => {
 
     // Přidáme čas události
     const period = Math.floor(eventTime / 1200) + 1;
-    const mins = Math.floor((eventTime % 1200) / 60);
+    const periodMinutes = Math.floor((eventTime % 1200) / 60);
+    const totalMinutes = (period - 1) * 20 + periodMinutes;
     const secs = eventTime % 60;
-    const eventTimeFormatted = `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+    const eventTimeFormatted = `${totalMinutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
 
     const powerPlay = matchState.penalties.length > 0;
     const baseChance = powerPlay 
@@ -1111,7 +1112,8 @@ const CardGame = () => {
             const eventTime = prev.scheduledEvents.pop();
             const gameEvent = generateGameEvent(eventTime);
             if (gameEvent) {
-              newEvents.push(gameEvent);
+              // Přidáme novou událost na začátek pole (nejnovější události budou nahoře)
+              newEvents.unshift(gameEvent);
               
               // Aktualizace skóre pokud je to gól
               if (gameEvent.type === 'goal') {
