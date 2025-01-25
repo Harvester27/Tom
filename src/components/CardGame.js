@@ -1140,20 +1140,35 @@ const CardGame = () => {
           updateTournamentStandings(homeTeam, awayTeam, matchState.score);
 
           setTournamentState(prev => {
+            // Aktualizujeme výsledek aktuálního zápasu
+            const updatedMatches = prev.matches.groups.map((match, index) => 
+              index === prev.currentMatchIndex ? { ...match, score: matchState.score } : match
+            );
+
+            // Kontrolujeme, jestli je toto poslední zápas ve skupinách
+            const isLastMatch = prev.currentMatchIndex === prev.matches.groups.length - 1;
+            
+            // Vytvoříme nový stav s aktualizovanými zápasy
             const newState = {
               ...prev,
               matches: {
                 ...prev.matches,
-                groups: prev.matches.groups.map((match, index) => 
-                  index === prev.currentMatchIndex ? { ...match, score: matchState.score } : match
-                )
+                groups: updatedMatches
               },
-              currentMatchIndex: prev.currentMatchIndex + 1
+              currentMatchIndex: isLastMatch ? prev.currentMatchIndex : prev.currentMatchIndex + 1
             };
 
-            // Kontrola, zda jsme dokončili všechny skupinové zápasy
-            if (newState.currentMatchIndex === prev.matches.groups.length) {
-              generatePlayoffMatches(newState);
+            // Pokud je to poslední zápas, přepneme do playoff fáze
+            if (isLastMatch) {
+              return {
+                ...newState,
+                phase: 'playoff',
+                matches: {
+                  ...newState.matches,
+                  playoff: generatePlayoffMatches(newState)
+                },
+                currentMatchIndex: 0
+              };
             }
 
             return newState;
@@ -1478,7 +1493,7 @@ const CardGame = () => {
     const groupA = sortTeams(currentState.groups.A);
     const groupB = sortTeams(currentState.groups.B);
 
-    const playoffMatches = [
+    return [
       { home: groupA[1].team.name, away: groupB[2].team.name, round: 'quarterfinal', id: 'QF1' },
       { home: groupB[1].team.name, away: groupA[2].team.name, round: 'quarterfinal', id: 'QF2' },
       { home: groupA[0].team.name, away: 'Winner QF1', round: 'semifinal', id: 'SF1' },
@@ -1487,16 +1502,6 @@ const CardGame = () => {
       { home: 'Loser SF1', away: 'Loser SF2', round: 'third_place' },
       { home: 'Winner SF1', away: 'Winner SF2', round: 'final' }
     ];
-
-    setTournamentState(prev => ({
-      ...prev,
-      phase: 'playoff',
-      matches: {
-        ...prev.matches,
-        playoff: playoffMatches
-      },
-      currentMatchIndex: 0 // Reset indexu pro playoff zápasy
-    }));
   };
 
   const updateMatch = () => {
