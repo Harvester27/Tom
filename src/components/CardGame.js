@@ -1390,23 +1390,20 @@ const CardGame = () => {
   // Funkce pro spuštění dalšího zápasu v turnaji
   const startNextTournamentMatch = () => {
     if (tournamentState.phase === 'playoff') {
-      // Najdeme první neodehraný zápas v playoff
+      // Playoff logika zůstává stejná
       const nextMatch = tournamentState.matches.playoff.find(match => !match.score);
       if (!nextMatch) return;
 
-      // Pokud hraje hráčův tým, zobrazíme výběr sestavy
       if (nextMatch.home === selectedTeam.name || nextMatch.away === selectedTeam.name) {
         setShowTournament(false);
         setShowTeamSelection(true);
       } else {
-        // Simulace zápasu mezi dvěma AI týmy
         const homeTeam = getTeamByName(nextMatch.home);
         const awayTeam = getTeamByName(nextMatch.away);
         
         if (homeTeam && awayTeam) {
           const score = playTournamentMatch(homeTeam, awayTeam);
           
-          // Aktualizujeme výsledek v playoff zápasech
           setTournamentState(prev => ({
             ...prev,
             matches: {
@@ -1416,7 +1413,6 @@ const CardGame = () => {
                   return { ...match, score };
                 }
                 
-                // Aktualizujeme následující zápasy s vítězi/poraženými
                 if (nextMatch.id) {
                   const isWinner = score.home > score.away ? nextMatch.home : nextMatch.away;
                   const isLoser = score.home > score.away ? nextMatch.away : nextMatch.home;
@@ -1466,14 +1462,27 @@ const CardGame = () => {
           
           // Pokud je to poslední zápas, přepneme do playoff fáze
           if (isLastMatch) {
-            const playoffMatches = generatePlayoffMatches(prev);
-            return {
+            // Nejdřív vytvoříme nový stav s aktualizovanými zápasy
+            const newState = {
               ...prev,
-              phase: 'playoff',
               matches: {
                 ...prev.matches,
-                playoff: playoffMatches,
                 groups: updatedMatches
+              }
+            };
+
+            // Pak vygenerujeme playoff zápasy s aktuálním stavem
+            const playoffMatches = generatePlayoffMatches(newState);
+            
+            console.log('Generuji playoff zápasy:', playoffMatches);
+            
+            // Vrátíme kompletně aktualizovaný stav
+            return {
+              ...newState,
+              phase: 'playoff',
+              matches: {
+                ...newState.matches,
+                playoff: playoffMatches
               },
               currentMatchIndex: 0
             };
