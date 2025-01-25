@@ -570,9 +570,8 @@ const CardGame = () => {
 
     // Přidáme čas události
     const period = Math.floor(eventTime / 1200) + 1;
-    const totalSeconds = eventTime;
-    const mins = Math.floor(totalSeconds / 60);
-    const secs = totalSeconds % 60;
+    const mins = Math.floor((eventTime % 1200) / 60);
+    const secs = eventTime % 60;
     const eventTimeFormatted = `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
 
     const powerPlay = matchState.penalties.length > 0;
@@ -608,7 +607,7 @@ const CardGame = () => {
         .filter(p => p !== shooter)[Math.floor(Math.random() * (activePlayers.forwards.length + activePlayers.defenders.length - 1))];
       
       const shooterLevel = isHomeTeam ? getCardLevel(shooter) : shooter.level;
-      const assistLevel = isHomeTeam ? getCardLevel(assist) : assist.level;
+      const assistLevel = assist ? (isHomeTeam ? getCardLevel(assist) : assist.level) : 0;
       const opposingGoalieLevel = isHomeTeam 
         ? matchState.currentOpponent.goalkeeper.level 
         : getCardLevel(selectedTeam.goalkeeper);
@@ -631,90 +630,6 @@ const CardGame = () => {
         (assistLevel * 0.02) - 
         (opposingGoalieLevel * 0.03);
 
-      const goalTypes = [
-        { 
-          type: "Rychlý brejk",
-          template: "***** zachytí nepřesnou přihrávku na modré, okamžitě postupuje vpřed a technickou střelou překonává brankáře"
-        },
-        { 
-          type: "Křižná nahrávka",
-          template: "útočník z rohu brankoviště přesně nahrává před bránu, ***** pohotově zakončuje"
-        },
-        { 
-          type: "Gól z otočky",
-          template: "***** přijme přihrávku za brankou, prudce se otočí a tvrdou střelou překvapuje brankáře"
-        },
-        { 
-          type: "Teč před brankou",
-          template: "tvrdá střela od modré, ***** tečuje puk před brankovištěm a mění jeho směr"
-        },
-        { 
-          type: "Individuální akce",
-          template: "***** obbruslí tři soupeře, najde si prostor a přesně zakončuje do horního rohu"
-        },
-        { 
-          type: "Dorážka zblízka",
-          template: "první střela brankářem vyražena, ***** pohotově doklepává odražený puk"
-        },
-        { 
-          type: "Gól z prudkého úhlu",
-          template: "***** objíždí branku, prudkou krátkodobou nahrávkou si najde mezeru"
-        },
-        { 
-          type: "Sólový průnik",
-          template: "***** překonává obránce kličkou, postupuje na brankáře a chladnokrevně zakončuje"
-        },
-        { 
-          type: "Přesná kombinace",
-          template: "rychlý přechod středem hřiště, ***** přijímá nahrávku a okamžitě zakončuje"
-        },
-        { 
-          type: "Únik po mezinárodní přihrávce",
-          template: "***** přebírá přesnou přihrávku a samostatným únikem překonává brankáře"
-        },
-        // Nové gólové akce
-        {
-          type: "Střela z první",
-          template: "přihrávka od mantinelu, ***** bez přípravy pálí z první a překvapuje gólmana"
-        },
-        {
-          type: "Blafák do bekhendu",
-          template: "***** se řítí sám na branku, naznačí střelu a elegantním blafákem do bekhendu skóruje"
-        },
-        {
-          type: "Dělovka od modré",
-          template: "***** napřahuje od modré čáry a jeho tvrdá střela končí v síti"
-        },
-        {
-          type: "Kombinace do prázdné",
-          template: "rychlá kombinace dvou na jednoho, ***** zakončuje do odkryté branky"
-        },
-        {
-          type: "Průnik po křídle",
-          template: "***** uniká po křídle, stahuje si puk do středu a přesnou střelou k tyči skóruje"
-        },
-        {
-          type: "Teč před brankou",
-          template: "střela od modré čáry, ***** šikovně nastavuje hůl a tečuje puk do branky"
-        },
-        {
-          type: "Gól z dorážky",
-          template: "střela z dálky vyražena, ***** je na správném místě a z dorážky skóruje"
-        },
-        {
-          type: "Akce za brankou",
-          template: "***** objíždí branku, vyveze puk zpoza branky a zasunuje ho u tyčky"
-        },
-        {
-          type: "Střela mezi betony",
-          template: "***** využívá clonění před brankou a propálí gólmana střelou mezi betony"
-        },
-        {
-          type: "Nájezd po kličce",
-          template: "***** se dostává do samostatného úniku, kličkou položí gólmana a zakončuje do prázdné branky"
-        }
-      ];
-
       if (Math.random() < goalChance) {
         // Aktualizujeme statistiky
         setMatchState(prev => ({
@@ -733,49 +648,17 @@ const CardGame = () => {
         }));
 
         const selectedGoalType = goalTypes[Math.floor(Math.random() * goalTypes.length)];
-        const shooterName = isHomeTeam ? cards.find(c => c.id === shooter).name : shooter.name;
+        const shooterName = isHomeTeam ? cards.find(c => c.id === shooter)?.name : shooter.name;
         const goalMessage = selectedGoalType.template.replace("*****", shooterName);
 
         return {
           type: 'goal',
           isHomeTeam,
           player: shooterName,
-          assist: assist ? (isHomeTeam ? cards.find(c => c.id === assist).name : assist.name) : null,
+          assist: assist ? (isHomeTeam ? cards.find(c => c.id === assist)?.name : assist.name) : null,
           level: shooterLevel,
           assistLevel: assist ? assistLevel : null,
-          message: `${selectedGoalType.type} - ${goalMessage}${assist ? ` (Asistence: ${isHomeTeam ? cards.find(c => c.id === assist).name : assist.name} [${assistLevel}])` : ''} [${shooterLevel}]`,
-          time: eventTimeFormatted,
-          id: Date.now()
-        };
-      } else {
-        // Aktualizujeme statistiky zákroků
-        setMatchState(prev => ({
-          ...prev,
-          playerStats: {
-            ...prev.playerStats,
-            saves: {
-              ...prev.playerStats.saves,
-              [isHomeTeam ? matchState.currentOpponent.goalkeeper.id : selectedTeam.goalkeeper]: 
-                (prev.playerStats.saves[isHomeTeam ? matchState.currentOpponent.goalkeeper.id : selectedTeam.goalkeeper] || 0) + 1
-            }
-          }
-        }));
-
-        const saveTypes = [
-          "fantastický zákrok lapačkou",
-          "pohotový zákrok betony",
-          "bleskový přesun a zákrok",
-          "skvělý zákrok vyrážečkou",
-          "neuvěřitelný rozklek"
-        ];
-        const selectedSaveType = saveTypes[Math.floor(Math.random() * saveTypes.length)];
-
-        return {
-          type: 'save',
-          isHomeTeam: !isHomeTeam,
-          player: isHomeTeam ? matchState.currentOpponent.goalkeeper.name : cards.find(c => c.id === selectedTeam.goalkeeper).name,
-          level: opposingGoalieLevel,
-          message: `${selectedSaveType.charAt(0).toUpperCase() + selectedSaveType.slice(1)} předvedl ${isHomeTeam ? matchState.currentOpponent.goalkeeper.name : cards.find(c => c.id === selectedTeam.goalkeeper).name}!`,
+          message: `${selectedGoalType.type} - ${goalMessage}${assist ? ` (Asistence: ${isHomeTeam ? cards.find(c => c.id === assist)?.name : assist.name} [${assistLevel}])` : ''} [${shooterLevel}]`,
           time: eventTimeFormatted,
           id: Date.now()
         };
@@ -1122,49 +1005,17 @@ const CardGame = () => {
           // Kontrola naplánovaných událostí
           while (prev.scheduledEvents.length > 0 && prev.scheduledEvents[prev.scheduledEvents.length - 1] <= currentTime) {
             const eventTime = prev.scheduledEvents.pop();
-            
-            // Generování náhodné události
-            const eventType = Math.random();
-            if (eventType < 0.4) { // 40% šance na gól
-              const isHomeScore = Math.random() < 0.5;
-              const scoringTeam = !isHomeScore ? (prev.isHomeTeam ? selectedTeam : prev.currentOpponent) 
-                                            : (prev.isHomeTeam ? prev.currentOpponent : selectedTeam);
-              const scoringPlayers = !isHomeScore ? 
-                (prev.isHomeTeam ? [...selectedTeam.forwards, ...selectedTeam.defenders] 
-                                : [...prev.currentOpponent.forwards, ...prev.currentOpponent.defenders])
-                : (prev.isHomeTeam ? [...prev.currentOpponent.forwards, ...prev.currentOpponent.defenders]
-                                  : [...selectedTeam.forwards, ...selectedTeam.defenders]);
+            const gameEvent = generateGameEvent(eventTime);
+            if (gameEvent) {
+              newEvents.push(gameEvent);
               
-              if (scoringPlayers.length > 0) {
-                const scorer = scoringPlayers[Math.floor(Math.random() * scoringPlayers.length)];
-                const scorerId = typeof scorer === 'string' ? scorer : scorer.id;
-                
-                // Aktualizace skóre a statistik brankáře
-                if (isHomeScore) {
+              // Aktualizace skóre pokud je to gól
+              if (gameEvent.type === 'goal') {
+                if (gameEvent.isHomeTeam) {
                   newScore.home += 1;
-                  const goalkeeper = prev.isHomeTeam ? prev.currentOpponent?.goalkeeper?.id : selectedTeam.goalkeeper;
-                  if (goalkeeper) {
-                    const goalkeeperId = typeof goalkeeper === 'string' ? goalkeeper : goalkeeper;
-                    newStats.saveAccuracy[goalkeeperId] = newStats.saves[goalkeeperId] / (newStats.shots[goalkeeperId] + 1);
-                  }
                 } else {
                   newScore.away += 1;
-                  const goalkeeper = prev.isHomeTeam ? selectedTeam.goalkeeper : prev.currentOpponent?.goalkeeper?.id;
-                  if (goalkeeper) {
-                    const goalkeeperId = typeof goalkeeper === 'string' ? goalkeeper : goalkeeper;
-                    newStats.saveAccuracy[goalkeeperId] = newStats.saves[goalkeeperId] / (newStats.shots[goalkeeperId] + 1);
-                  }
                 }
-                
-                newStats.goals[scorerId] = (newStats.goals[scorerId] || 0) + 1;
-                
-                // Přidání události
-                newEvents.push({
-                  time: eventTime,
-                  type: 'goal',
-                  team: isHomeScore ? 'home' : 'away',
-                  player: scorerId
-                });
               }
             }
           }
