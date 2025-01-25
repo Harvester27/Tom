@@ -1353,9 +1353,9 @@ const CardGame = () => {
         if (currentMatch) {
           const homeTeam = getTeamByName(currentMatch.home);
           const awayTeam = getTeamByName(currentMatch.away);
-          const result = playTournamentMatch(homeTeam, awayTeam);
           
-          updateTournamentStandings(homeTeam, awayTeam, result);
+          // Použijeme skutečný výsledek zápasu místo simulace
+          updateTournamentStandings(homeTeam, awayTeam, matchState.score);
 
           setTournamentState(prev => {
             const newState = {
@@ -1363,7 +1363,7 @@ const CardGame = () => {
               matches: {
                 ...prev.matches,
                 groups: prev.matches.groups.map((match, index) => 
-                  index === prev.currentMatchIndex ? { ...match, score: result } : match
+                  index === prev.currentMatchIndex ? { ...match, score: matchState.score } : match
                 )
               },
               currentMatchIndex: prev.currentMatchIndex + 1
