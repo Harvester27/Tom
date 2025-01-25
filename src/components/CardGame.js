@@ -373,6 +373,91 @@ const CardGame = () => {
     completed: false
   });
 
+  // Definice typů gólových akcí
+  const goalTypes = [
+    { 
+      type: "Rychlý brejk",
+      template: "***** zachytí nepřesnou přihrávku na modré, okamžitě postupuje vpřed a technickou střelou překonává brankáře"
+    },
+    { 
+      type: "Křižná nahrávka",
+      template: "útočník z rohu brankoviště přesně nahrává před bránu, ***** pohotově zakončuje"
+    },
+    { 
+      type: "Gól z otočky",
+      template: "***** přijme přihrávku za brankou, prudce se otočí a tvrdou střelou překvapuje brankáře"
+    },
+    { 
+      type: "Teč před brankou",
+      template: "tvrdá střela od modré, ***** tečuje puk před brankovištěm a mění jeho směr"
+    },
+    { 
+      type: "Individuální akce",
+      template: "***** obbruslí tři soupeře, najde si prostor a přesně zakončuje do horního rohu"
+    },
+    { 
+      type: "Dorážka zblízka",
+      template: "první střela brankářem vyražena, ***** pohotově doklepává odražený puk"
+    },
+    { 
+      type: "Gól z prudkého úhlu",
+      template: "***** objíždí branku, prudkou krátkodobou nahrávkou si najde mezeru"
+    },
+    { 
+      type: "Sólový průnik",
+      template: "***** překonává obránce kličkou, postupuje na brankáře a chladnokrevně zakončuje"
+    },
+    { 
+      type: "Přesná kombinace",
+      template: "rychlý přechod středem hřiště, ***** přijímá nahrávku a okamžitě zakončuje"
+    },
+    { 
+      type: "Únik po mezinárodní přihrávce",
+      template: "***** přebírá přesnou přihrávku a samostatným únikem překonává brankáře"
+    },
+    // Nové gólové akce
+    {
+      type: "Střela z první",
+      template: "přihrávka od mantinelu, ***** bez přípravy pálí z první a překvapuje gólmana"
+    },
+    {
+      type: "Blafák do bekhendu",
+      template: "***** se řítí sám na branku, naznačí střelu a elegantním blafákem do bekhendu skóruje"
+    },
+    {
+      type: "Dělovka od modré",
+      template: "***** napřahuje od modré čáry a jeho tvrdá střela končí v síti"
+    },
+    {
+      type: "Kombinace do prázdné",
+      template: "rychlá kombinace dvou na jednoho, ***** zakončuje do odkryté branky"
+    },
+    {
+      type: "Průnik po křídle",
+      template: "***** uniká po křídle, stahuje si puk do středu a přesnou střelou k tyči skóruje"
+    },
+    {
+      type: "Teč před brankou",
+      template: "střela od modré čáry, ***** šikovně nastavuje hůl a tečuje puk do branky"
+    },
+    {
+      type: "Gól z dorážky",
+      template: "střela z dálky vyražena, ***** je na správném místě a z dorážky skóruje"
+    },
+    {
+      type: "Akce za brankou",
+      template: "***** objíždí branku, vyveze puk zpoza branky a zasunuje ho u tyčky"
+    },
+    {
+      type: "Střela mezi betony",
+      template: "***** využívá clonění před brankou a propálí gólmana střelou mezi betony"
+    },
+    {
+      type: "Nájezd po kličce",
+      template: "***** se dostává do samostatného úniku, kličkou položí gólmana a zakončuje do prázdné branky"
+    }
+  ];
+
   useEffect(() => {
     // Načtení levelů karet z localStorage při prvním načtení
     const savedLevels = localStorage.getItem('cardLevels');
