@@ -1105,6 +1105,8 @@ const CardGame = () => {
 
           // Kontrola střel
           const newStats = { ...prev.playerStats };
+          const newScore = { ...prev.score };
+          const newEvents = [...prev.events];
           
           // Kontrola střel domácího týmu
           while (prev.shotTimes.home.length > 0 && prev.shotTimes.home[0] <= currentTime) {
@@ -1150,34 +1152,7 @@ const CardGame = () => {
               }
             }
           }
-          
-          // Kontrola střel
-          if (prev.shotTimes) {
-            // Kontrola střel domácího týmu
-            while (prev.shotTimes.home.length > 0 && prev.shotTimes.home[0] <= currentTime) {
-              prev.shotTimes.home.shift();
-              const goalkeeper = prev.isHomeTeam ? prev.currentOpponent?.goalkeeper?.id : selectedTeam.goalkeeper;
-              if (goalkeeper) {
-                const goalkeeperId = typeof goalkeeper === 'string' ? goalkeeper : goalkeeper;
-                newStats.shots[goalkeeperId] = (newStats.shots[goalkeeperId] || 0) + 1;
-                newStats.saves[goalkeeperId] = (newStats.saves[goalkeeperId] || 0) + 1;
-                newStats.saveAccuracy[goalkeeperId] = newStats.saves[goalkeeperId] / newStats.shots[goalkeeperId];
-              }
-            }
 
-            // Kontrola střel hostujícího týmu
-            while (prev.shotTimes.away.length > 0 && prev.shotTimes.away[0] <= currentTime) {
-              prev.shotTimes.away.shift();
-              const goalkeeper = prev.isHomeTeam ? selectedTeam.goalkeeper : prev.currentOpponent?.goalkeeper?.id;
-              if (goalkeeper) {
-                const goalkeeperId = typeof goalkeeper === 'string' ? goalkeeper : goalkeeper;
-                newStats.shots[goalkeeperId] = (newStats.shots[goalkeeperId] || 0) + 1;
-                newStats.saves[goalkeeperId] = (newStats.saves[goalkeeperId] || 0) + 1;
-                newStats.saveAccuracy[goalkeeperId] = newStats.saves[goalkeeperId] / newStats.shots[goalkeeperId];
-              }
-            }
-          }
-          
           if (newTime <= 0) {
             if (prev.period < 3) {
               return {
@@ -1187,7 +1162,8 @@ const CardGame = () => {
                 score: newScore,
                 events: newEvents,
                 playerStats: newStats,
-                scheduledEvents: prev.scheduledEvents
+                scheduledEvents: prev.scheduledEvents,
+                penalties: updatedPenalties
               };
             } else {
               clearInterval(gameTimer);
@@ -1204,7 +1180,8 @@ const CardGame = () => {
                 score: newScore,
                 events: newEvents,
                 playerStats: newStats,
-                scheduledEvents: prev.scheduledEvents
+                scheduledEvents: prev.scheduledEvents,
+                penalties: updatedPenalties
               };
             }
           }
@@ -1215,7 +1192,8 @@ const CardGame = () => {
             score: newScore,
             events: newEvents,
             playerStats: newStats,
-            scheduledEvents: prev.scheduledEvents
+            scheduledEvents: prev.scheduledEvents,
+            penalties: updatedPenalties
           };
         });
       }, 1000);
