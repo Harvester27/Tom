@@ -2444,7 +2444,7 @@ const CardGame = () => {
                         {matchState.currentOpponent.forwards.map(player => (
                           <div key={player.name} className="flex justify-center items-center">
                             <div className="relative">
-                              <div className="w-24 h-32 bg-gradient-to-br from-gray-800 to-gray-900 rounded-lg shadow-lg flex flex-col items-center justify-center text-gray-400 transform hover:scale-110 transition-transform relative overflow-hidden">
+                              <div className="w-24 h-32 bg-gradient-to-br from-gray-800 to-gray-900 rounded-lg shadow-lg flex flex-col items-center justify-center text-gray-400 relative overflow-hidden">
                                 <div className="absolute top-0 left-0 w-full bg-gradient-to-r from-red-600 to-red-800 py-1">
                                   <span className="text-white text-xs font-bold">{player.number}</span>
                                 </div>
@@ -2478,7 +2478,7 @@ const CardGame = () => {
                         {matchState.currentOpponent.defenders.map(player => (
                           <div key={player.name} className="flex justify-center items-center">
                             <div className="relative">
-                              <div className="w-24 h-32 bg-gradient-to-br from-gray-800 to-gray-900 rounded-lg shadow-lg flex flex-col items-center justify-center text-gray-400 transform hover:scale-110 transition-transform relative overflow-hidden">
+                              <div className="w-24 h-32 bg-gradient-to-br from-gray-800 to-gray-900 rounded-lg shadow-lg flex flex-col items-center justify-center text-gray-400 relative overflow-hidden">
                                 <div className="absolute top-0 left-0 w-full bg-gradient-to-r from-blue-600 to-blue-800 py-1">
                                   <span className="text-white text-xs font-bold">{player.number}</span>
                                 </div>
