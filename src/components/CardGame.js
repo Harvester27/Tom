@@ -1091,7 +1091,7 @@ const CardGame = () => {
           // Kontrola střel domácího týmu
           while (prev.shotTimes.home.length > 0 && prev.shotTimes.home[0] <= currentTime) {
             prev.shotTimes.home.shift();
-            const goalkeeper = prev.isHomeTeam ? prev.currentOpponent?.goalkeeper?.id : selectedTeam.goalkeeper;
+            const goalkeeper = prev.currentOpponent?.goalkeeper?.id;  // Střílí domácí, takže chytá hostující brankář
             if (goalkeeper) {
               const goalkeeperId = typeof goalkeeper === 'string' ? goalkeeper : goalkeeper;
               newStats.shots[goalkeeperId] = (newStats.shots[goalkeeperId] || 0) + 1;
@@ -1108,7 +1108,7 @@ const CardGame = () => {
           // Kontrola střel hostujícího týmu
           while (prev.shotTimes.away.length > 0 && prev.shotTimes.away[0] <= currentTime) {
             prev.shotTimes.away.shift();
-            const goalkeeper = prev.isHomeTeam ? selectedTeam.goalkeeper : prev.currentOpponent?.goalkeeper?.id;
+            const goalkeeper = selectedTeam.goalkeeper;  // Střílí hosté, takže chytá domácí brankář
             if (goalkeeper) {
               const goalkeeperId = typeof goalkeeper === 'string' ? goalkeeper : goalkeeper;
               newStats.shots[goalkeeperId] = (newStats.shots[goalkeeperId] || 0) + 1;
@@ -1501,10 +1501,10 @@ const CardGame = () => {
         for (const teamData of newState.groups[group]) {
           if (teamData.team.name === homeTeam.name) {
             // Pro domácí tým použijeme skóre tak jak je
-            updateTeam(teamData, score.home, score.away);
+            updateTeam(teamData, score.away, score.home);  // Tady to otočíme
           } else if (teamData.team.name === awayTeam.name) {
             // Pro hostující tým použijeme opačné skóre
-            updateTeam(teamData, score.away, score.home);
+            updateTeam(teamData, score.home, score.away);  // A tady taky
           }
         }
       }
