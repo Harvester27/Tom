@@ -1507,8 +1507,10 @@ const CardGame = () => {
       for (const group of ['A', 'B']) {
         for (const teamData of newState.groups[group]) {
           if (teamData.team.name === homeTeam.name) {
+            // Pro domácí tým použijeme skóre tak jak je
             updateTeam(teamData, score.home, score.away);
           } else if (teamData.team.name === awayTeam.name) {
+            // Pro hostující tým použijeme opačné skóre
             updateTeam(teamData, score.away, score.home);
           }
         }
