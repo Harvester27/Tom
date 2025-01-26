@@ -698,19 +698,6 @@ const CardGame = () => {
         ? matchState.currentOpponent.goalkeeper.level 
         : getCardLevel(selectedTeam.goalkeeper);
 
-      // Aktualizujeme statistiky střel
-      setMatchState(prev => ({
-        ...prev,
-        playerStats: {
-          ...prev.playerStats,
-          shots: {
-            ...prev.playerStats.shots,
-            [isHomeTeam ? matchState.currentOpponent.goalkeeper.id : selectedTeam.goalkeeper]: 
-              (prev.playerStats.shots[isHomeTeam ? matchState.currentOpponent.goalkeeper.id : selectedTeam.goalkeeper] || 0) + 1
-          }
-        }
-      }));
-
       const goalChance = baseChance + 
         (shooterLevel * 0.05) + 
         (assistLevel * 0.02) - 
