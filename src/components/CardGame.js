@@ -324,7 +324,7 @@ const CardGame = () => {
   const [showCollection, setShowCollection] = useState(false);
   const [currentCards, setCurrentCards] = useState([]);
   const [confetti, setConfetti] = useState([]);
-  const [money, setMoney] = useState(100);
+  const [money, setMoney] = useState(100000);
   const [level, setLevel] = useState(1);
   const [xp, setXp] = useState(0);
   const [showRewards, setShowRewards] = useState(false);
@@ -1147,8 +1147,8 @@ const CardGame = () => {
               if (gameEvent.type === 'goal') {
                 if (gameEvent.isHomeTeam) {
                   newScore.home += 1;
-                  // Snížíme počet zákroků brankáře, protože gól není zákrok
-                  const goalkeeperId = prev.isHomeTeam ? prev.currentOpponent?.goalkeeper?.id : selectedTeam.goalkeeper;
+                  // Snížíme počet zákroků brankáře soupeře, protože dostal gól
+                  const goalkeeperId = prev.isHomeTeam ? selectedTeam.goalkeeper : prev.currentOpponent?.goalkeeper?.id;
                   if (goalkeeperId) {
                     newStats.saves[goalkeeperId] = Math.max(0, (newStats.saves[goalkeeperId] || 0) - 1);
                     console.log('Gól domácích - Statistiky brankáře po gólu:', {
@@ -1160,8 +1160,8 @@ const CardGame = () => {
                   }
                 } else {
                   newScore.away += 1;
-                  // Snížíme počet zákroků brankáře, protože gól není zákrok
-                  const goalkeeperId = prev.isHomeTeam ? selectedTeam.goalkeeper : prev.currentOpponent?.goalkeeper?.id;
+                  // Snížíme počet zákroků brankáře soupeře, protože dostal gól
+                  const goalkeeperId = prev.isHomeTeam ? prev.currentOpponent?.goalkeeper?.id : selectedTeam.goalkeeper;
                   if (goalkeeperId) {
                     newStats.saves[goalkeeperId] = Math.max(0, (newStats.saves[goalkeeperId] || 0) - 1);
                     console.log('Gól hostů - Statistiky brankáře po gólu:', {
@@ -1507,8 +1507,10 @@ const CardGame = () => {
       for (const group of ['A', 'B']) {
         for (const teamData of newState.groups[group]) {
           if (teamData.team.name === homeTeam.name) {
+            // Pro domácí tým použijeme skóre tak jak je
             updateTeam(teamData, score.home, score.away);
           } else if (teamData.team.name === awayTeam.name) {
+            // Pro hostující tým prohodíme skóre
             updateTeam(teamData, score.away, score.home);
           }
         }
