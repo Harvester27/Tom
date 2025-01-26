@@ -1266,7 +1266,13 @@ const CardGame = () => {
           setTournamentState(prev => {
             // Aktualizujeme výsledek aktuálního zápasu
             const updatedMatches = prev.matches.groups.map((match, index) => 
-              index === prev.currentMatchIndex ? { ...match, score: matchState.score } : match
+              index === prev.currentMatchIndex ? { 
+                ...match, 
+                score: { 
+                  home: matchState.score.away,  // Otočíme skóre v rozpisu
+                  away: matchState.score.home 
+                }
+              } : match
             );
 
             // Vytvoříme nový stav s aktualizovanými zápasy
@@ -1580,7 +1586,13 @@ const CardGame = () => {
         setTournamentState(prev => {
           // Aktualizujeme výsledek aktuálního zápasu
           const updatedMatches = prev.matches.groups.map((match, index) => 
-            index === prev.currentMatchIndex ? { ...match, score: result } : match
+            index === prev.currentMatchIndex ? { 
+              ...match, 
+              score: { 
+                home: result.away,  // Otočíme skóre v rozpisu
+                away: result.home 
+              }
+            } : match
           );
 
           // Kontrolujeme, jestli je toto poslední zápas ve skupinách
