@@ -1115,8 +1115,13 @@ const CardGame = () => {
             if (goalkeeper) {
               const goalkeeperId = typeof goalkeeper === 'string' ? goalkeeper : goalkeeper;
               newStats.shots[goalkeeperId] = (newStats.shots[goalkeeperId] || 0) + 1;
-              // Přidáme zákrok, protože každá střela je buď gól (pak se zákrok odečte) nebo zákrok
               newStats.saves[goalkeeperId] = (newStats.saves[goalkeeperId] || 0) + 1;
+              console.log('Domácí střela - Statistiky brankáře:', {
+                brankář: goalkeeperId,
+                střely: newStats.shots[goalkeeperId],
+                zákroky: newStats.saves[goalkeeperId],
+                úspěšnost: Math.round((newStats.saves[goalkeeperId] / newStats.shots[goalkeeperId]) * 100)
+              });
             }
           }
 
@@ -1127,8 +1132,13 @@ const CardGame = () => {
             if (goalkeeper) {
               const goalkeeperId = typeof goalkeeper === 'string' ? goalkeeper : goalkeeper;
               newStats.shots[goalkeeperId] = (newStats.shots[goalkeeperId] || 0) + 1;
-              // Přidáme zákrok, protože každá střela je buď gól (pak se zákrok odečte) nebo zákrok
               newStats.saves[goalkeeperId] = (newStats.saves[goalkeeperId] || 0) + 1;
+              console.log('Hostující střela - Statistiky brankáře:', {
+                brankář: goalkeeperId,
+                střely: newStats.shots[goalkeeperId],
+                zákroky: newStats.saves[goalkeeperId],
+                úspěšnost: Math.round((newStats.saves[goalkeeperId] / newStats.shots[goalkeeperId]) * 100)
+              });
             }
           }
 
@@ -1154,6 +1164,12 @@ const CardGame = () => {
                   const goalkeeperId = prev.isHomeTeam ? prev.currentOpponent?.goalkeeper?.id : selectedTeam.goalkeeper;
                   if (goalkeeperId) {
                     newStats.saves[goalkeeperId] = Math.max(0, (newStats.saves[goalkeeperId] || 0) - 1);
+                    console.log('Gól domácích - Statistiky brankáře po gólu:', {
+                      brankář: goalkeeperId,
+                      střely: newStats.shots[goalkeeperId],
+                      zákroky: newStats.saves[goalkeeperId],
+                      úspěšnost: Math.round((newStats.saves[goalkeeperId] / newStats.shots[goalkeeperId]) * 100)
+                    });
                   }
                 } else {
                   newScore.away += 1;
@@ -1161,6 +1177,12 @@ const CardGame = () => {
                   const goalkeeperId = prev.isHomeTeam ? selectedTeam.goalkeeper : prev.currentOpponent?.goalkeeper?.id;
                   if (goalkeeperId) {
                     newStats.saves[goalkeeperId] = Math.max(0, (newStats.saves[goalkeeperId] || 0) - 1);
+                    console.log('Gól hostů - Statistiky brankáře po gólu:', {
+                      brankář: goalkeeperId,
+                      střely: newStats.shots[goalkeeperId],
+                      zákroky: newStats.saves[goalkeeperId],
+                      úspěšnost: Math.round((newStats.saves[goalkeeperId] / newStats.shots[goalkeeperId]) * 100)
+                    });
                   }
                 }
               }
