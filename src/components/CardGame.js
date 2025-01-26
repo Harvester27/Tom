@@ -2393,11 +2393,11 @@ const CardGame = () => {
                               </div>
                               {/* Góly a asistence */}
                               <div className="absolute -bottom-6 left-0 right-0 flex justify-center gap-2">
-                                {/* Góly - stejná logika jako u asistencí */}
+                                {/* Góly - opraveno na event.player */}
                                 {matchState.events.filter(event => 
-                                  event.type === 'goal' && event.scorer === cards.find(card => card.id === id)?.name
+                                  event.type === 'goal' && event.player === cards.find(card => card.id === id)?.name
                                 ).length > 0 && Array.from({ length: matchState.events.filter(event => 
-                                  event.type === 'goal' && event.scorer === cards.find(card => card.id === id)?.name
+                                  event.type === 'goal' && event.player === cards.find(card => card.id === id)?.name
                                 ).length }).map((_, i) => (
                                   <img key={i} src="/Images/puck.png" alt="Gól" className="w-4 h-4" />
                                 ))}
@@ -2432,11 +2432,11 @@ const CardGame = () => {
                               </div>
                               {/* Góly a asistence */}
                               <div className="absolute -bottom-6 left-0 right-0 flex justify-center gap-2">
-                                {/* Góly - stejná logika jako u asistencí */}
+                                {/* Góly - opraveno na event.player */}
                                 {matchState.events.filter(event => 
-                                  event.type === 'goal' && event.scorer === cards.find(card => card.id === id)?.name
+                                  event.type === 'goal' && event.player === cards.find(card => card.id === id)?.name
                                 ).length > 0 && Array.from({ length: matchState.events.filter(event => 
-                                  event.type === 'goal' && event.scorer === cards.find(card => card.id === id)?.name
+                                  event.type === 'goal' && event.player === cards.find(card => card.id === id)?.name
                                 ).length }).map((_, i) => (
                                   <img key={i} src="/Images/puck.png" alt="Gól" className="w-4 h-4" />
                                 ))}
@@ -2480,11 +2480,11 @@ const CardGame = () => {
                               </div>
                               {/* Góly a asistence pro útočníky Lopat */}
                               <div className="absolute -bottom-6 left-0 right-0 flex justify-center gap-2">
-                                {/* Góly - stejná logika jako u asistencí */}
+                                {/* Góly - opraveno na event.player */}
                                 {matchState.events.filter(event => 
-                                  event.type === 'goal' && event.scorer === player.name
+                                  event.type === 'goal' && event.player === player.name
                                 ).length > 0 && Array.from({ length: matchState.events.filter(event => 
-                                  event.type === 'goal' && event.scorer === player.name
+                                  event.type === 'goal' && event.player === player.name
                                 ).length }).map((_, i) => (
                                   <img key={i} src="/Images/puck.png" alt="Gól" className="w-4 h-4" />
                                 ))}
@@ -2524,11 +2524,11 @@ const CardGame = () => {
                               </div>
                               {/* Góly a asistence pro obránce Lopat */}
                               <div className="absolute -bottom-6 left-0 right-0 flex justify-center gap-2">
-                                {/* Góly - stejná logika jako u asistencí */}
+                                {/* Góly - opraveno na event.player */}
                                 {matchState.events.filter(event => 
-                                  event.type === 'goal' && event.scorer === player.name
+                                  event.type === 'goal' && event.player === player.name
                                 ).length > 0 && Array.from({ length: matchState.events.filter(event => 
-                                  event.type === 'goal' && event.scorer === player.name
+                                  event.type === 'goal' && event.player === player.name
                                 ).length }).map((_, i) => (
                                   <img key={i} src="/Images/puck.png" alt="Gól" className="w-4 h-4" />
                                 ))}
