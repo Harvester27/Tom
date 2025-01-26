@@ -1115,7 +1115,7 @@ const CardGame = () => {
             if (goalkeeper) {
               const goalkeeperId = typeof goalkeeper === 'string' ? goalkeeper : goalkeeper;
               newStats.shots[goalkeeperId] = (newStats.shots[goalkeeperId] || 0) + 1;
-              // Přidáme zákrok, pokud není gól v událostech
+              // Přidáme zákrok, protože každá střela je buď gól (pak se zákrok odečte) nebo zákrok
               newStats.saves[goalkeeperId] = (newStats.saves[goalkeeperId] || 0) + 1;
             }
           }
@@ -1127,7 +1127,7 @@ const CardGame = () => {
             if (goalkeeper) {
               const goalkeeperId = typeof goalkeeper === 'string' ? goalkeeper : goalkeeper;
               newStats.shots[goalkeeperId] = (newStats.shots[goalkeeperId] || 0) + 1;
-              // Přidáme zákrok, pokud není gól v událostech
+              // Přidáme zákrok, protože každá střela je buď gól (pak se zákrok odečte) nebo zákrok
               newStats.saves[goalkeeperId] = (newStats.saves[goalkeeperId] || 0) + 1;
             }
           }
@@ -1153,14 +1153,14 @@ const CardGame = () => {
                   // Snížíme počet zákroků brankáře, protože gól není zákrok
                   const goalkeeperId = prev.isHomeTeam ? prev.currentOpponent?.goalkeeper?.id : selectedTeam.goalkeeper;
                   if (goalkeeperId) {
-                    newStats.saves[goalkeeperId] = (newStats.saves[goalkeeperId] || 1) - 1;
+                    newStats.saves[goalkeeperId] = Math.max(0, (newStats.saves[goalkeeperId] || 0) - 1);
                   }
                 } else {
                   newScore.away += 1;
                   // Snížíme počet zákroků brankáře, protože gól není zákrok
                   const goalkeeperId = prev.isHomeTeam ? selectedTeam.goalkeeper : prev.currentOpponent?.goalkeeper?.id;
                   if (goalkeeperId) {
-                    newStats.saves[goalkeeperId] = (newStats.saves[goalkeeperId] || 1) - 1;
+                    newStats.saves[goalkeeperId] = Math.max(0, (newStats.saves[goalkeeperId] || 0) - 1);
                   }
                 }
               }
