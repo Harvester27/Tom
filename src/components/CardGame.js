@@ -729,7 +729,12 @@ const CardGame = () => {
             assists: assist ? {
               ...prev.playerStats.assists,
               [assist]: (prev.playerStats.assists[assist] || 0) + 1
-            } : prev.playerStats.assists
+            } : prev.playerStats.assists,
+            saves: {
+              ...prev.playerStats.saves,
+              [isHomeTeam ? matchState.currentOpponent.goalkeeper.id : selectedTeam.goalkeeper]: 
+                (prev.playerStats.saves[isHomeTeam ? matchState.currentOpponent.goalkeeper.id : selectedTeam.goalkeeper] || 0) - 1
+            }
           }
         }));
 
