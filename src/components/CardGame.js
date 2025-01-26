@@ -961,20 +961,20 @@ const CardGame = () => {
       setShowTeamSelection(false);
       
       let opponent;
-      let isHomeTeam = true;
+      let isHomeTeam = true;  // Vždy budeme domácí tým
       
       // Určení soupeře podle typu zápasu
       if (tournamentState.phase === 'playoff') {
         const currentMatch = tournamentState.matches.playoff.find(match => !match.score);
         if (currentMatch) {
-          isHomeTeam = currentMatch.home === selectedTeam.name;
+          isHomeTeam = currentMatch.home === selectedTeam.name;  // Tady byl problém
           const opponentName = isHomeTeam ? currentMatch.away : currentMatch.home;
           opponent = getTeamByName(opponentName);
         }
       } else if (tournamentState.phase === 'groups') {
         const currentMatch = tournamentState.matches.groups[tournamentState.currentMatchIndex];
         if (currentMatch) {
-          isHomeTeam = currentMatch.home === selectedTeam.name;
+          isHomeTeam = currentMatch.home === selectedTeam.name;  // A tady taky
           const opponentName = isHomeTeam ? currentMatch.away : currentMatch.home;
           opponent = getTeamByName(opponentName);
         }
@@ -987,13 +987,6 @@ const CardGame = () => {
 
       // Generování časů střel pro oba týmy
       const shotTimes = generateShotTimes(selectedTeam, opponent);
-      
-      // Generování časů událostí
-      const initialEventTimes = [];
-      const numEvents = Math.floor(Math.random() * (12 - 5 + 1)) + 5;
-      for (let i = 0; i < numEvents; i++) {
-        initialEventTimes.push(Math.floor(Math.random() * (1200 - 5) + 5));
-      }
       
       // Inicializace stavu zápasu
       setMatchState(prev => ({
@@ -1014,7 +1007,7 @@ const CardGame = () => {
         scheduledEvents: generateEventsForAllPeriods(),
         currentOpponent: opponent,
         shotTimes: shotTimes,
-        isHomeTeam: isHomeTeam
+        isHomeTeam: true  // Vždy budeme domácí tým
       }));
     }
   };
@@ -1508,10 +1501,10 @@ const CardGame = () => {
         for (const teamData of newState.groups[group]) {
           if (teamData.team.name === homeTeam.name) {
             // Pro domácí tým použijeme skóre tak jak je
-            updateTeam(teamData, score.away, score.home);
+            updateTeam(teamData, score.home, score.away);
           } else if (teamData.team.name === awayTeam.name) {
             // Pro hostující tým použijeme opačné skóre
-            updateTeam(teamData, score.home, score.away);
+            updateTeam(teamData, score.away, score.home);
           }
         }
       }
