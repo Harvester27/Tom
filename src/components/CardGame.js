@@ -729,12 +729,7 @@ const CardGame = () => {
             assists: assist ? {
               ...prev.playerStats.assists,
               [assist]: (prev.playerStats.assists[assist] || 0) + 1
-            } : prev.playerStats.assists,
-            saves: {
-              ...prev.playerStats.saves,
-              [isHomeTeam ? matchState.currentOpponent.goalkeeper.id : selectedTeam.goalkeeper]: 
-                (prev.playerStats.saves[isHomeTeam ? matchState.currentOpponent.goalkeeper.id : selectedTeam.goalkeeper] || 0) - 1
-            }
+            } : prev.playerStats.assists
           }
         }));
 
@@ -1120,6 +1115,8 @@ const CardGame = () => {
             if (goalkeeper) {
               const goalkeeperId = typeof goalkeeper === 'string' ? goalkeeper : goalkeeper;
               newStats.shots[goalkeeperId] = (newStats.shots[goalkeeperId] || 0) + 1;
+              // Přidáme zákrok, pokud není gól v událostech
+              newStats.saves[goalkeeperId] = (newStats.saves[goalkeeperId] || 0) + 1;
             }
           }
 
@@ -1130,6 +1127,8 @@ const CardGame = () => {
             if (goalkeeper) {
               const goalkeeperId = typeof goalkeeper === 'string' ? goalkeeper : goalkeeper;
               newStats.shots[goalkeeperId] = (newStats.shots[goalkeeperId] || 0) + 1;
+              // Přidáme zákrok, pokud není gól v událostech
+              newStats.saves[goalkeeperId] = (newStats.saves[goalkeeperId] || 0) + 1;
             }
           }
 
@@ -1147,12 +1146,22 @@ const CardGame = () => {
               // Přidáme novou událost na začátek pole (nejnovější události budou nahoře)
               newEvents.unshift(gameEvent);
               
-              // Aktualizace skóre pokud je to gól
+              // Aktualizace skóre a statistik pokud je to gól
               if (gameEvent.type === 'goal') {
                 if (gameEvent.isHomeTeam) {
                   newScore.home += 1;
+                  // Snížíme počet zákroků brankáře, protože gól není zákrok
+                  const goalkeeperId = prev.isHomeTeam ? prev.currentOpponent?.goalkeeper?.id : selectedTeam.goalkeeper;
+                  if (goalkeeperId) {
+                    newStats.saves[goalkeeperId] = (newStats.saves[goalkeeperId] || 1) - 1;
+                  }
                 } else {
                   newScore.away += 1;
+                  // Snížíme počet zákroků brankáře, protože gól není zákrok
+                  const goalkeeperId = prev.isHomeTeam ? selectedTeam.goalkeeper : prev.currentOpponent?.goalkeeper?.id;
+                  if (goalkeeperId) {
+                    newStats.saves[goalkeeperId] = (newStats.saves[goalkeeperId] || 1) - 1;
+                  }
                 }
               }
             }
