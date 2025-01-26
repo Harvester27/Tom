@@ -1141,7 +1141,7 @@ const CardGame = () => {
                 if (gameEvent.isHomeTeam) {
                   newScore.home += 1;
                   // Snížíme počet zákroků brankáře soupeře, protože dostal gól
-                  const goalkeeperId = prev.isHomeTeam ? selectedTeam.goalkeeper : prev.currentOpponent?.goalkeeper?.id;
+                  const goalkeeperId = prev.currentOpponent?.goalkeeper?.id;  // Hostující brankář dostal gól
                   if (goalkeeperId) {
                     newStats.saves[goalkeeperId] = Math.max(0, (newStats.saves[goalkeeperId] || 0) - 1);
                     console.log('Gól domácích - Statistiky brankáře po gólu:', {
@@ -1154,7 +1154,7 @@ const CardGame = () => {
                 } else {
                   newScore.away += 1;
                   // Snížíme počet zákroků brankáře soupeře, protože dostal gól
-                  const goalkeeperId = prev.isHomeTeam ? prev.currentOpponent?.goalkeeper?.id : selectedTeam.goalkeeper;
+                  const goalkeeperId = selectedTeam.goalkeeper;  // Domácí brankář dostal gól
                   if (goalkeeperId) {
                     newStats.saves[goalkeeperId] = Math.max(0, (newStats.saves[goalkeeperId] || 0) - 1);
                     console.log('Gól hostů - Statistiky brankáře po gólu:', {
