@@ -2460,12 +2460,12 @@ const CardGame = () => {
                               </div>
                               {/* Góly a asistence pro útočníky Lopat */}
                               <div className="absolute -bottom-6 left-0 right-0 flex justify-center gap-2">
-                                {Array.from({ length: matchState.playerStats.goals[`${player.id}`] || 0 }).map((_, i) => (
+                                {Array.from({ length: matchState.playerStats.goals[player.id] || 0 }).map((_, i) => (
                                   <img key={i} src="/Images/puck.png" alt="Gól" className="w-4 h-4" />
                                 ))}
-                                {(matchState.playerStats.assists[`${player.id}`] || 0) > 0 && (
+                                {(matchState.playerStats.assists[player.id] || 0) > 0 && (
                                   <span className="bg-yellow-500/80 text-black font-bold text-sm px-2 rounded-lg">
-                                    A: {matchState.playerStats.assists[`${player.id}`]}
+                                    A: {matchState.playerStats.assists[player.id]}
                                   </span>
                                 )}
                               </div>
@@ -2494,12 +2494,12 @@ const CardGame = () => {
                               </div>
                               {/* Góly a asistence pro obránce Lopat */}
                               <div className="absolute -bottom-6 left-0 right-0 flex justify-center gap-2">
-                                {Array.from({ length: matchState.playerStats.goals[`${player.id}`] || 0 }).map((_, i) => (
+                                {Array.from({ length: matchState.playerStats.goals[player.id] || 0 }).map((_, i) => (
                                   <img key={i} src="/Images/puck.png" alt="Gól" className="w-4 h-4" />
                                 ))}
-                                {(matchState.playerStats.assists[`${player.id}`] || 0) > 0 && (
+                                {(matchState.playerStats.assists[player.id] || 0) > 0 && (
                                   <span className="bg-yellow-500/80 text-black font-bold text-sm px-2 rounded-lg">
-                                    A: {matchState.playerStats.assists[`${player.id}`]}
+                                    A: {matchState.playerStats.assists[player.id]}
                                   </span>
                                 )}
                               </div>
