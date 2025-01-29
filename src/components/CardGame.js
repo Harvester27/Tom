@@ -341,7 +341,7 @@ const CardGame = () => {
   const [showMatch, setShowMatch] = useState(false);
   const [showTournament, setShowTournament] = useState(false);
   const [tournamentState, setTournamentState] = useState({
-    phase: null,
+    phase: 'groups',
     groups: {
       A: [],
       B: []
@@ -350,6 +350,7 @@ const CardGame = () => {
       groups: [],
       playoff: []
     },
+    goalies: [], // Inicializace goalies jako prázdné pole
     currentMatchIndex: 0
   });
   const [cardLevels, setCardLevels] = useState({});
@@ -2828,7 +2829,7 @@ const CardGame = () => {
                           </tr>
                         </thead>
                         <tbody>
-                          {tournamentState.goalies.map((goalie, index) => {
+                          {tournamentState.goalies && Array.isArray(tournamentState.goalies) && tournamentState.goalies.map((goalie, index) => {
                             const savePercentage = goalie.shots > 0 ? ((goalie.saves / goalie.shots) * 100).toFixed(1) : '0.0';
                             return (
                               <tr key={index} className="border-b border-green-500/10">
