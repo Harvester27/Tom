@@ -2815,22 +2815,34 @@ const CardGame = () => {
                   {/* Úspěšnost brankářů */}
                   <div className="bg-gradient-to-br from-green-900/50 to-green-800/20 rounded-xl p-6 border border-green-500/20">
                     <h3 className="text-xl font-bold text-green-400 mb-4">Úspěšnost brankářů</h3>
-                    <div className="space-y-2">
-                      {Object.entries(matchState.playerStats.saves).map(([playerId, saves], index) => {
-                        const shots = matchState.playerStats.shots[playerId] || 0;
-                        const savePercentage = shots > 0 ? ((saves / shots) * 100).toFixed(1) : '0.0';
-                        return (
-                          <div key={index} className="bg-black/30 p-2 rounded-lg border border-green-500/10">
-                            <div className="flex justify-between items-center">
-                              <span className="text-white">{playerId}</span>
-                              <span className="text-yellow-400">{savePercentage}%</span>
-                            </div>
-                            <div className="text-sm text-gray-400">
-                              Zákroky: {saves}/{shots}
-                            </div>
-                          </div>
-                        );
-                      })}
+                    <div className="overflow-x-auto"> {/* Přidáno pro horizontální posuv */}
+                      <table className="min-w-full text-left">
+                        <thead className="border-b border-green-500/30">
+                          <tr>
+                            <th className="py-2 text-white text-sm font-semibold">Brankář</th>
+                            <th className="py-2 text-white text-sm font-semibold">Tým</th>
+                            <th className="py-2 text-white text-sm font-semibold">Zákroky</th>
+                            <th className="py-2 text-white text-sm font-semibold">Střely</th>
+                            <th className="py-2 text-white text-sm font-semibold">Úspěšnost</th>
+                            <th className="py-2 text-white text-sm font-semibold">Vychytané nuly</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {tournamentState.goalies.map((goalie, index) => {
+                            const savePercentage = goalie.shots > 0 ? ((goalie.saves / goalie.shots) * 100).toFixed(1) : '0.0';
+                            return (
+                              <tr key={index} className="border-b border-green-500/10">
+                                <td className="py-2 text-white text-sm">{goalie.name}</td>
+                                <td className="py-2 text-white text-sm">{goalie.team}</td>
+                                <td className="py-2 text-yellow-400 text-sm">{goalie.saves}</td>
+                                <td className="py-2 text-yellow-400 text-sm">{goalie.shots}</td>
+                                <td className="py-2 text-yellow-400 text-sm">{savePercentage}%</td>
+                                <td className="py-2 text-yellow-400 text-sm">{goalie.shutouts}</td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
                     </div>
                   </div>
 
