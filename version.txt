@@ -1,0 +1,5 @@
+Version: 1.0.10
+Last update: Added match summary screen and fixed goalie statistics
+Date: 2024-01-27
+- Added goalie statistics (saves, shots, shutouts)
+- Updated tournament view with goalie performance 

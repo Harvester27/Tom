@@ -1,0 +1,5 @@
+[33mcommit 6c04e97d59c94453f578684ad937187d89089609[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmaster[m[33m, [m[1;31morigin/master[m[33m, [m[1;31morigin/HEAD[m[33m)[m
+Author: Harvester27 <stepanovsky21@gmail.com>
+Date:   Mon Jan 20 15:44:24 2025 +0100
+
+    Upravena funkce startMatch - sjednocena simulace pro turnajové i normální zápasy
