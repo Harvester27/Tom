@@ -1,6 +1,8 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import { debugGoalieStats } from '../debug';
+import MatchEnd from './MatchEnd';
 
   // Definice týmů pro turnaj
   const teamGinTonic = {
@@ -324,7 +326,7 @@ const CardGame = () => {
   const [showCollection, setShowCollection] = useState(false);
   const [currentCards, setCurrentCards] = useState([]);
   const [confetti, setConfetti] = useState([]);
-  const [money, setMoney] = useState(100);
+  const [money, setMoney] = useState(10000000);
   const [level, setLevel] = useState(1);
   const [xp, setXp] = useState(0);
   const [showRewards, setShowRewards] = useState(false);
