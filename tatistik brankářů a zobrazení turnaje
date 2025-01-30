@@ -1,0 +1,5 @@
+[33mb63fb1c[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmaster[m[33m, [m[1;31morigin/master[m[33m, [m[1;31morigin/HEAD[m[33m)[m Aktualizovány statistiky brankářů v turnaji
+[33meb08340[m Přidány úpravy v CardGame.js
+[33m6c04e97[m Upravena funkce startMatch - sjednocena simulace pro turnajové i normální zápasy
+[33mf92a75f[m Aktualizována verze na v1.0.3
+[33m4e70557[m Opravena funkčnost výběru sestavy a zobrazení playoff zápasů
