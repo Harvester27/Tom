@@ -386,7 +386,7 @@ const CardGame = () => {
     },
     { 
       type: "Gól z otočky",
-      template: "***** přijme přihrávku za brankou, prudce se otočí a tvrdou střelou překvapuje brankáře"
+      template: "***** přijme přihrávku za brankou, prudce se otočí a tvrdou střelou překonává brankáře"
     },
     { 
       type: "Teč před brankou",
