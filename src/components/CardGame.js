@@ -634,7 +634,16 @@ const CardGame = () => {
   const formatTime = (seconds) => {
     // Převedeme čas na formát 00:00-60:00 podle třetiny
     const period = Math.floor((1200 - seconds) / 1200) + 1;
-    const periodSeconds = (period - 1) * 1200 + (1200 - seconds);
+    
+    // Výpočet celkových sekund - opraveno pro správné zobrazení na konci třetiny
+    let periodSeconds;
+    if (period > 3 || (period === 3 && seconds === 0)) {
+      // Na konci třetí třetiny nebo v prodloužení zobrazíme 60:00
+      periodSeconds = 3600;
+    } else {
+      periodSeconds = (period - 1) * 1200 + (1200 - seconds);
+    }
+    
     const mins = Math.floor(periodSeconds / 60);
     const secs = periodSeconds % 60;
     return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
