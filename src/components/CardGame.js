@@ -1731,7 +1731,12 @@ const CardGame = () => {
           return {
             ...prev,
             period: prev.period + 1,
-            time: 1200
+            time: 1200,
+            score: prev.score,
+            events: prev.events,
+            playerStats: prev.playerStats,
+            scheduledEvents: prev.scheduledEvents,
+            penalties: prev.penalties
           };
         } else {
           clearInterval(gameTimer);
@@ -1744,7 +1749,12 @@ const CardGame = () => {
             ...prev,
             isPlaying: false,
             completed: true,
-            time: 0
+            time: 0,
+            score: prev.score,
+            events: prev.events,
+            playerStats: prev.playerStats,
+            scheduledEvents: prev.scheduledEvents,
+            penalties: prev.penalties
           };
         }
       }
