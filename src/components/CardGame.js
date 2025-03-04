@@ -373,6 +373,11 @@ const CardGame = () => {
     currentOpponent: null,
     completed: false
   });
+  const [coins, setCoins] = useState(100);
+  const [selectedPackSize, setSelectedPackSize] = useState(3);
+  const [showPack, setShowPack] = useState(false);
+  // Nový stav pro kontrolu, zda zápas skončil a čeká na potvrzení hráče
+  const [matchCompleteAwaitingConfirmation, setMatchCompleteAwaitingConfirmation] = useState(false);
 
   // Definice typů gólových akcí
   const goalTypes = [
@@ -1192,6 +1197,9 @@ const CardGame = () => {
               if (!tournamentState.phase) {
                 const result = newScore.home > newScore.away ? 'victory' : 'defeat';
                 setShowRewards(true);
+              } else {
+                // Nastavíme příznak čekání na potvrzení
+                setMatchCompleteAwaitingConfirmation(true);
               }
               return {
                 ...prev,
@@ -1315,38 +1323,40 @@ const CardGame = () => {
         }
       }
 
-      // Resetujeme stav zápasu
-      setTimeout(() => {
-        setMatchState(prev => ({
-          ...prev,
-          period: 1,
-          time: 1200,
-          score: { home: 0, away: 0 },
-          events: [],
-          isPlaying: false,
-          gameSpeed: 1,
-          playerStats: {
-            goals: {},
-            assists: {},
-            saves: {},
-            saveAccuracy: {},
-            shots: {}
-          },
-          penalties: [],
-          scheduledEvents: [],
-          currentOpponent: null,
-          completed: false
-        }));
-        
-        // Vždy zůstaň v turnajovém menu po zápase
-        if (tournamentState.phase) {
-          setShowMatch(false);
-          setShowTournament(true);
-          setShowRewards(false);
-        }
-      }, 2000);
+      // Resetujeme stav zápasu pouze pokud není potřeba čekat na potvrzení
+      if (!matchCompleteAwaitingConfirmation) {
+        setTimeout(() => {
+          setMatchState(prev => ({
+            ...prev,
+            period: 1,
+            time: 1200,
+            score: { home: 0, away: 0 },
+            events: [],
+            isPlaying: false,
+            gameSpeed: 1,
+            playerStats: {
+              goals: {},
+              assists: {},
+              saves: {},
+              saveAccuracy: {},
+              shots: {}
+            },
+            penalties: [],
+            scheduledEvents: [],
+            currentOpponent: null,
+            completed: false
+          }));
+          
+          // Vždy zůstaň v turnajovém menu po zápase
+          if (tournamentState.phase) {
+            setShowMatch(false);
+            setShowTournament(true);
+            setShowRewards(false);
+          }
+        }, 2000);
+      }
     }
-  }, [matchState.isPlaying, matchState.completed, tournamentState.phase]);
+  }, [matchState.isPlaying, matchState.completed, tournamentState.phase, matchCompleteAwaitingConfirmation]);
 
   // Ceny prodeje karet podle vzácnosti
   const sellPrices = {
@@ -1358,6 +1368,39 @@ const CardGame = () => {
 
   const getSellPrice = (card) => {
     return sellPrices[card.rarity];
+  };
+
+  // Funkce pro potvrzení odchodu ze zápasu
+  const confirmMatchExit = () => {
+    setMatchCompleteAwaitingConfirmation(false);
+    // Resetujeme stav zápasu
+    setMatchState(prev => ({
+      ...prev,
+      period: 1,
+      time: 1200,
+      score: { home: 0, away: 0 },
+      events: [],
+      isPlaying: false,
+      gameSpeed: 1,
+      playerStats: {
+        goals: {},
+        assists: {},
+        saves: {},
+        saveAccuracy: {},
+        shots: {}
+      },
+      penalties: [],
+      scheduledEvents: [],
+      currentOpponent: null,
+      completed: false
+    }));
+    
+    // Vždy zůstaň v turnajovém menu po zápase
+    if (tournamentState.phase) {
+      setShowMatch(false);
+      setShowTournament(true);
+      setShowRewards(false);
+    }
   };
 
   const sellCard = (cardToSell) => {
@@ -2649,6 +2692,20 @@ const CardGame = () => {
                         </div>
                       ))}
                     </div>
+                    
+                    {/* Tlačítko pro odchod ze zápasu - zobrazí se jen po dokončení zápasu */}
+                    {!matchState.isPlaying && matchState.completed && matchCompleteAwaitingConfirmation && (
+                      <div className="mt-8 flex justify-center">
+                        <button
+                          onClick={confirmMatchExit}
+                          className="bg-gradient-to-r from-blue-500 to-blue-700 hover:from-blue-600 hover:to-blue-800 
+                            text-white font-bold py-3 px-6 rounded-lg transform transition-all duration-300 
+                            hover:scale-105 active:scale-95 text-xl shadow-lg"
+                        >
+                          Odejít ze zápasu
+                        </button>
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>
