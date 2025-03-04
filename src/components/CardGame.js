@@ -539,7 +539,7 @@ const CardGame = () => {
     
     setTimeout(() => {
       setConfetti([]);
-    }, 4000);
+    }, 6000);
   };
 
   const openPack = (size) => {
