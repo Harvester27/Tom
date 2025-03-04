@@ -632,24 +632,16 @@ const CardGame = () => {
   };
 
   const formatTime = (seconds) => {
-    // Převod na formát hokejové časomíry - od 20:00 dolů
-    const minutes = Math.floor(seconds / 60);
-    const remainingSeconds = seconds % 60;
+    // Pro hokejový formát, kde 1200 sekund = 20:00 a 0 sekund = 00:00
+    // Musíme přepočítat zbývající čas na minuty a sekundy
     
-    // Pro zobrazení minut potřebujeme odečíst od 20
-    const displayMinutes = 19 - minutes;
+    // Výpočet minut zbývajících do konce třetiny (20 minut celkem)
+    const minutesRemaining = Math.floor(seconds / 60);
+    // Výpočet sekund zbývajících do konce aktuální minuty
+    const secondsRemaining = seconds % 60;
     
-    // Pro první minutu třetiny zobrazujeme 19:xx
-    // Pro sekundy odečítáme od 60 pouze když nejsme na 19. minutě
-    const displaySeconds = minutes === 0 ? 60 - remainingSeconds : 59 - remainingSeconds;
-    
-    // Pro poslední sekundu třetiny (0) zobrazíme 00:00
-    if (seconds === 0) {
-      return "00:00";
-    }
-    
-    // Formátujeme s leading zeros
-    return `${displayMinutes.toString().padStart(2, '0')}:${displaySeconds.toString().padStart(2, '0')}`;
+    // Formátování s leading zeros
+    return `${minutesRemaining.toString().padStart(2, '0')}:${secondsRemaining.toString().padStart(2, '0')}`;
   };
 
   const generateGameEvent = (eventTime) => {
