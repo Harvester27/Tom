@@ -2566,6 +2566,22 @@ const CardGame = () => {
     setMoney(prevMoney => prevMoney + (tournamentState?.prize || 0));
   };
 
+  // Pomocné funkce pro zobrazení odměn
+  const getMatchResultText = () => {
+    if (!matchResult) return 'Výsledek';
+    if (matchResult.result === 'win') return 'Vítězství!';
+    if (matchResult.result === 'draw') return 'Remíza';
+    return 'Prohra';
+  };
+  
+  const getMoneyReward = () => {
+    return matchResult ? matchResult.moneyReward : 0;
+  };
+  
+  const getXpReward = () => {
+    return matchResult ? matchResult.xpReward : 0;
+  };
+
   return (
     <div className="relative min-h-screen bg-gradient-to-br from-gray-900 to-black font-hokej p-4">
       {/* Version number */}
@@ -3441,7 +3457,7 @@ const CardGame = () => {
           <div className="fixed inset-0 bg-black/95 flex items-center justify-center z-50">
             <div className="bg-gradient-to-b from-yellow-900/50 to-yellow-800/30 p-8 rounded-2xl max-w-md w-full mx-4 border border-yellow-500/20">
               <h2 className="text-4xl font-bold text-center mb-6 bg-gradient-to-r from-yellow-400 to-yellow-600 text-transparent bg-clip-text">
-                {matchResult === 'victory' ? 'Vítězství!' : 'Prohra'}
+                {getMatchResultText()}
               </h2>
               
               <div className="space-y-6">
@@ -3449,10 +3465,10 @@ const CardGame = () => {
                   <h3 className="text-yellow-400 text-xl mb-2">Odměny:</h3>
                   <div className="space-y-2">
                     <p className="text-white">
-                      Peníze: <span className="text-yellow-400 animate-bounce">+{matchResult === 'victory' ? '50' : '20'} Kč</span>
+                      Peníze: <span className="text-yellow-400 animate-bounce">+{getMoneyReward()} Kč</span>
                     </p>
                     <p className="text-white">
-                      Zkušenosti: <span className="text-yellow-400 animate-bounce">+{matchResult === 'victory' ? '20' : '5'} XP</span>
+                      Zkušenosti: <span className="text-yellow-400 animate-bounce">+{getXpReward()} XP</span>
                     </p>
                   </div>
                 </div>
