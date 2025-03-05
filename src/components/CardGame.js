@@ -3994,19 +3994,37 @@ const CardGame = () => {
                         </tr>
                       </thead>
                       <tbody>
-                        {tournamentState?.groups?.A?.map((team, index) => (
-                          <tr key={team.name} className={`border-b border-blue-500/10 ${team.name === selectedTeam.name ? 'bg-blue-900/30' : ''}`}>
-                            <td className="py-2 text-white text-sm">
-                              {index + 1}. {team.name} {team.name === selectedTeam.name && <span className="ml-2 text-yellow-400 font-bold">(VÁŠ TÝM)</span>}
-                            </td>
-                            <td className="py-2 text-gray-300 text-sm text-center">{team.played}</td>
-                            <td className="py-2 text-green-400 text-sm text-center">{team.wins}</td>
-                            <td className="py-2 text-yellow-400 text-sm text-center">{team.draws}</td>
-                            <td className="py-2 text-red-400 text-sm text-center">{team.losses}</td>
-                            <td className="py-2 text-white text-sm text-center">{team.goalsFor}:{team.goalsAgainst}</td>
-                            <td className="py-2 text-yellow-400 font-bold text-sm text-center">{team.points}</td>
-                          </tr>
-                        ))}
+                        {(() => {
+                          // Manuální řazení týmů v souhrnu turnaje
+                          const teamsA = tournamentState?.groups?.A || [];
+                          // Seřazení podle bodů, skóre a vstřelených gólů
+                          return [...teamsA].sort((a, b) => {
+                            // 1. Porovnání podle bodů
+                            if (b.points !== a.points) return b.points - a.points;
+                            
+                            // 2. Porovnání podle rozdílu skóre
+                            const aGoalDiff = a.goalsFor - a.goalsAgainst;
+                            const bGoalDiff = b.goalsFor - b.goalsAgainst;
+                            if (bGoalDiff !== aGoalDiff) return bGoalDiff - aGoalDiff;
+                            
+                            // 3. Porovnání podle vstřelených gólů
+                            if (b.goalsFor !== a.goalsFor) return b.goalsFor - a.goalsFor;
+                            
+                            return 0;
+                          }).map((team, index) => (
+                            <tr key={team.name} className={`border-b border-blue-500/10 ${team.name === selectedTeam.name ? 'bg-blue-900/30' : ''}`}>
+                              <td className="py-2 text-white text-sm">
+                                {index + 1}. {team.name} {team.name === selectedTeam.name && <span className="ml-2 text-yellow-400 font-bold">(VÁŠ TÝM)</span>}
+                              </td>
+                              <td className="py-2 text-gray-300 text-sm text-center">{team.played}</td>
+                              <td className="py-2 text-green-400 text-sm text-center">{team.wins}</td>
+                              <td className="py-2 text-yellow-400 text-sm text-center">{team.draws}</td>
+                              <td className="py-2 text-red-400 text-sm text-center">{team.losses}</td>
+                              <td className="py-2 text-white text-sm text-center">{team.goalsFor}:{team.goalsAgainst}</td>
+                              <td className="py-2 text-yellow-400 font-bold text-sm text-center">{team.points}</td>
+                            </tr>
+                          ));
+                        })()}
                       </tbody>
                     </table>
                   </div>
@@ -4029,19 +4047,37 @@ const CardGame = () => {
                         </tr>
                       </thead>
                       <tbody>
-                        {tournamentState?.groups?.B?.map((team, index) => (
-                          <tr key={team.name} className={`border-b border-purple-500/10 ${team.name === selectedTeam.name ? 'bg-purple-900/30' : ''}`}>
-                            <td className="py-2 text-white text-sm">
-                              {index + 1}. {team.name} {team.name === selectedTeam.name && <span className="ml-2 text-yellow-400 font-bold">(VÁŠ TÝM)</span>}
-                            </td>
-                            <td className="py-2 text-gray-300 text-sm text-center">{team.played}</td>
-                            <td className="py-2 text-green-400 text-sm text-center">{team.wins}</td>
-                            <td className="py-2 text-yellow-400 text-sm text-center">{team.draws}</td>
-                            <td className="py-2 text-red-400 text-sm text-center">{team.losses}</td>
-                            <td className="py-2 text-white text-sm text-center">{team.goalsFor}:{team.goalsAgainst}</td>
-                            <td className="py-2 text-yellow-400 font-bold text-sm text-center">{team.points}</td>
-                          </tr>
-                        ))}
+                        {(() => {
+                          // Manuální řazení týmů v souhrnu turnaje
+                          const teamsB = tournamentState?.groups?.B || [];
+                          // Seřazení podle bodů, skóre a vstřelených gólů
+                          return [...teamsB].sort((a, b) => {
+                            // 1. Porovnání podle bodů
+                            if (b.points !== a.points) return b.points - a.points;
+                            
+                            // 2. Porovnání podle rozdílu skóre
+                            const aGoalDiff = a.goalsFor - a.goalsAgainst;
+                            const bGoalDiff = b.goalsFor - b.goalsAgainst;
+                            if (bGoalDiff !== aGoalDiff) return bGoalDiff - aGoalDiff;
+                            
+                            // 3. Porovnání podle vstřelených gólů
+                            if (b.goalsFor !== a.goalsFor) return b.goalsFor - a.goalsFor;
+                            
+                            return 0;
+                          }).map((team, index) => (
+                            <tr key={team.name} className={`border-b border-purple-500/10 ${team.name === selectedTeam.name ? 'bg-purple-900/30' : ''}`}>
+                              <td className="py-2 text-white text-sm">
+                                {index + 1}. {team.name} {team.name === selectedTeam.name && <span className="ml-2 text-yellow-400 font-bold">(VÁŠ TÝM)</span>}
+                              </td>
+                              <td className="py-2 text-gray-300 text-sm text-center">{team.played}</td>
+                              <td className="py-2 text-green-400 text-sm text-center">{team.wins}</td>
+                              <td className="py-2 text-yellow-400 text-sm text-center">{team.draws}</td>
+                              <td className="py-2 text-red-400 text-sm text-center">{team.losses}</td>
+                              <td className="py-2 text-white text-sm text-center">{team.goalsFor}:{team.goalsAgainst}</td>
+                              <td className="py-2 text-yellow-400 font-bold text-sm text-center">{team.points}</td>
+                            </tr>
+                          ));
+                        })()}
                       </tbody>
                     </table>
                   </div>
@@ -4055,6 +4091,7 @@ const CardGame = () => {
                   <table className="min-w-full">
                     <thead className="border-b border-red-500/30">
                       <tr>
+                        <th className="py-2 text-white text-sm font-semibold text-center w-12">Celkové #</th>
                         <th className="py-2 text-white text-sm font-semibold text-left">Hráč</th>
                         <th className="py-2 text-white text-sm font-semibold text-center">Pozice</th>
                         <th className="py-2 text-white text-sm font-semibold text-center">G</th>
