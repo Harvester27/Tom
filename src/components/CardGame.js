@@ -344,8 +344,16 @@ const CardGame = () => {
   const [tournamentState, setTournamentState] = useState({
     phase: 'groups',
     groups: {
-      A: [],
-      B: []
+      A: [
+        { team: teamKafacBilina, points: 0, score: { for: 0, against: 0 }, played: 0, wins: 0, draws: 0, losses: 0 },
+        { team: teamNorthBlades, points: 0, score: { for: 0, against: 0 }, played: 0, wins: 0, draws: 0, losses: 0 },
+        { team: selectedTeam, points: 0, score: { for: 0, against: 0 }, played: 0, wins: 0, draws: 0, losses: 0 }
+      ],
+      B: [
+        { team: teamGinTonic, points: 0, score: { for: 0, against: 0 }, played: 0, wins: 0, draws: 0, losses: 0 },
+        { team: teamGurmaniZatec, points: 0, score: { for: 0, against: 0 }, played: 0, wins: 0, draws: 0, losses: 0 },
+        { team: teamPredatorsNymburk, points: 0, score: { for: 0, against: 0 }, played: 0, wins: 0, draws: 0, losses: 0 }
+      ]
     },
     matches: {
       groups: [],
@@ -1378,36 +1386,36 @@ const CardGame = () => {
 
       // Resetujeme stav zápasu pouze pokud není potřeba čekat na potvrzení
       if (!matchCompleteAwaitingConfirmation) {
-        setTimeout(() => {
-          setMatchState(prev => ({
-            ...prev,
-            period: 1,
-            time: 1200,
-            score: { home: 0, away: 0 },
-            events: [],
-            isPlaying: false,
-            gameSpeed: 1,
-            playerStats: {
-              goals: {},
-              assists: {},
-              saves: {},
-              saveAccuracy: {},
-              shots: {}
-            },
-            penalties: [],
-            scheduledEvents: [],
-            currentOpponent: null,
-            completed: false
-          }));
-          
-          // Vždy zůstaň v turnajovém menu po zápase
-          if (tournamentState.phase) {
-            setShowMatch(false);
-            setShowTournament(true);
-            setShowRewards(false);
-          }
-        }, 2000);
-      }
+      setTimeout(() => {
+        setMatchState(prev => ({
+          ...prev,
+          period: 1,
+          time: 1200,
+          score: { home: 0, away: 0 },
+          events: [],
+          isPlaying: false,
+          gameSpeed: 1,
+          playerStats: {
+            goals: {},
+            assists: {},
+            saves: {},
+            saveAccuracy: {},
+            shots: {}
+          },
+          penalties: [],
+          scheduledEvents: [],
+          currentOpponent: null,
+          completed: false
+        }));
+        
+        // Vždy zůstaň v turnajovém menu po zápase
+        if (tournamentState.phase) {
+          setShowMatch(false);
+          setShowTournament(true);
+          setShowRewards(false);
+        }
+      }, 2000);
+    }
     }
   }, [matchState.isPlaying, matchState.completed, tournamentState.phase, matchCompleteAwaitingConfirmation]);
 
@@ -1723,14 +1731,14 @@ const CardGame = () => {
         phase: 'groups',
         groups: {
           A: [
-            { team: teamKafacBilina, points: 0, score: { for: 0, against: 0 } },
-            { team: teamNorthBlades, points: 0, score: { for: 0, against: 0 } },
-            { team: selectedTeam, points: 0, score: { for: 0, against: 0 } }
+            { team: teamKafacBilina, points: 0, score: { for: 0, against: 0 }, played: 0, wins: 0, draws: 0, losses: 0 },
+            { team: teamNorthBlades, points: 0, score: { for: 0, against: 0 }, played: 0, wins: 0, draws: 0, losses: 0 },
+            { team: selectedTeam, points: 0, score: { for: 0, against: 0 }, played: 0, wins: 0, draws: 0, losses: 0 }
           ],
           B: [
-            { team: teamGinTonic, points: 0, score: { for: 0, against: 0 } },
-            { team: teamGurmaniZatec, points: 0, score: { for: 0, against: 0 } },
-            { team: teamPredatorsNymburk, points: 0, score: { for: 0, against: 0 } }
+            { team: teamGinTonic, points: 0, score: { for: 0, against: 0 }, played: 0, wins: 0, draws: 0, losses: 0 },
+            { team: teamGurmaniZatec, points: 0, score: { for: 0, against: 0 }, played: 0, wins: 0, draws: 0, losses: 0 },
+            { team: teamPredatorsNymburk, points: 0, score: { for: 0, against: 0 }, played: 0, wins: 0, draws: 0, losses: 0 }
           ]
         }
       }));
@@ -2111,8 +2119,26 @@ const CardGame = () => {
       const updateTeam = (team, goalsFor, goalsAgainst) => {
         team.score.for += goalsFor;
         team.score.against += goalsAgainst;
-        if (goalsFor > goalsAgainst) team.points += 3;
-        else if (goalsFor === goalsAgainst) team.points += 1;
+        
+        // Inicializace statistik, pokud neexistují
+        if (!team.played) team.played = 0;
+        if (!team.wins) team.wins = 0;
+        if (!team.draws) team.draws = 0;
+        if (!team.losses) team.losses = 0;
+        
+        // Aktualizace počtu zápasů
+        team.played += 1;
+        
+        // Aktualizace výher, remíz a proher
+        if (goalsFor > goalsAgainst) {
+          team.wins += 1;
+          team.points += 3;
+        } else if (goalsFor === goalsAgainst) {
+          team.draws += 1;
+          team.points += 1;
+        } else {
+          team.losses += 1;
+        }
       };
 
       // Najdeme a aktualizujeme týmy v obou skupinách
@@ -2443,8 +2469,16 @@ const CardGame = () => {
     setTournamentState({
       phase: 'groups',
       groups: {
-        A: [],
-        B: []
+        A: [
+          { team: teamKafacBilina, points: 0, score: { for: 0, against: 0 }, played: 0, wins: 0, draws: 0, losses: 0 },
+          { team: teamNorthBlades, points: 0, score: { for: 0, against: 0 }, played: 0, wins: 0, draws: 0, losses: 0 },
+          { team: selectedTeam, points: 0, score: { for: 0, against: 0 }, played: 0, wins: 0, draws: 0, losses: 0 }
+        ],
+        B: [
+          { team: teamGinTonic, points: 0, score: { for: 0, against: 0 }, played: 0, wins: 0, draws: 0, losses: 0 },
+          { team: teamGurmaniZatec, points: 0, score: { for: 0, against: 0 }, played: 0, wins: 0, draws: 0, losses: 0 },
+          { team: teamPredatorsNymburk, points: 0, score: { for: 0, against: 0 }, played: 0, wins: 0, draws: 0, losses: 0 }
+        ]
       },
       matches: {
         groups: [],
@@ -4003,24 +4037,24 @@ const CardGame = () => {
                             if (b.points !== a.points) return b.points - a.points;
                             
                             // 2. Porovnání podle rozdílu skóre
-                            const aGoalDiff = a.goalsFor - a.goalsAgainst;
-                            const bGoalDiff = b.goalsFor - b.goalsAgainst;
+                            const aGoalDiff = a.score.for - a.score.against;
+                            const bGoalDiff = b.score.for - b.score.against;
                             if (bGoalDiff !== aGoalDiff) return bGoalDiff - aGoalDiff;
                             
                             // 3. Porovnání podle vstřelených gólů
-                            if (b.goalsFor !== a.goalsFor) return b.goalsFor - a.goalsFor;
+                            if (b.score.for !== a.score.for) return b.score.for - a.score.for;
                             
                             return 0;
                           }).map((team, index) => (
-                            <tr key={team.name} className={`border-b border-blue-500/10 ${team.name === selectedTeam.name ? 'bg-blue-900/30' : ''}`}>
+                            <tr key={team.team.name} className={`border-b border-blue-500/10 ${team.team.name === selectedTeam.name ? 'bg-blue-900/30' : ''}`}>
                               <td className="py-2 text-white text-sm">
-                                {index + 1}. {team.name} {team.name === selectedTeam.name && <span className="ml-2 text-yellow-400 font-bold">(VÁŠ TÝM)</span>}
+                                {index + 1}. {team.team.name} {team.team.name === selectedTeam.name && <span className="ml-2 text-yellow-400 font-bold">(VÁŠ TÝM)</span>}
                               </td>
-                              <td className="py-2 text-gray-300 text-sm text-center">{team.played}</td>
-                              <td className="py-2 text-green-400 text-sm text-center">{team.wins}</td>
-                              <td className="py-2 text-yellow-400 text-sm text-center">{team.draws}</td>
-                              <td className="py-2 text-red-400 text-sm text-center">{team.losses}</td>
-                              <td className="py-2 text-white text-sm text-center">{team.goalsFor}:{team.goalsAgainst}</td>
+                              <td className="py-2 text-gray-300 text-sm text-center">{team.played || 0}</td>
+                              <td className="py-2 text-green-400 text-sm text-center">{team.wins || 0}</td>
+                              <td className="py-2 text-yellow-400 text-sm text-center">{team.draws || 0}</td>
+                              <td className="py-2 text-red-400 text-sm text-center">{team.losses || 0}</td>
+                              <td className="py-2 text-white text-sm text-center">{team.score.for}:{team.score.against}</td>
                               <td className="py-2 text-yellow-400 font-bold text-sm text-center">{team.points}</td>
                             </tr>
                           ));
@@ -4056,24 +4090,24 @@ const CardGame = () => {
                             if (b.points !== a.points) return b.points - a.points;
                             
                             // 2. Porovnání podle rozdílu skóre
-                            const aGoalDiff = a.goalsFor - a.goalsAgainst;
-                            const bGoalDiff = b.goalsFor - b.goalsAgainst;
+                            const aGoalDiff = a.score.for - a.score.against;
+                            const bGoalDiff = b.score.for - b.score.against;
                             if (bGoalDiff !== aGoalDiff) return bGoalDiff - aGoalDiff;
                             
                             // 3. Porovnání podle vstřelených gólů
-                            if (b.goalsFor !== a.goalsFor) return b.goalsFor - a.goalsFor;
+                            if (b.score.for !== a.score.for) return b.score.for - a.score.for;
                             
                             return 0;
                           }).map((team, index) => (
-                            <tr key={team.name} className={`border-b border-purple-500/10 ${team.name === selectedTeam.name ? 'bg-purple-900/30' : ''}`}>
+                            <tr key={team.team.name} className={`border-b border-purple-500/10 ${team.team.name === selectedTeam.name ? 'bg-purple-900/30' : ''}`}>
                               <td className="py-2 text-white text-sm">
-                                {index + 1}. {team.name} {team.name === selectedTeam.name && <span className="ml-2 text-yellow-400 font-bold">(VÁŠ TÝM)</span>}
+                                {index + 1}. {team.team.name} {team.team.name === selectedTeam.name && <span className="ml-2 text-yellow-400 font-bold">(VÁŠ TÝM)</span>}
                               </td>
-                              <td className="py-2 text-gray-300 text-sm text-center">{team.played}</td>
-                              <td className="py-2 text-green-400 text-sm text-center">{team.wins}</td>
-                              <td className="py-2 text-yellow-400 text-sm text-center">{team.draws}</td>
-                              <td className="py-2 text-red-400 text-sm text-center">{team.losses}</td>
-                              <td className="py-2 text-white text-sm text-center">{team.goalsFor}:{team.goalsAgainst}</td>
+                              <td className="py-2 text-gray-300 text-sm text-center">{team.played || 0}</td>
+                              <td className="py-2 text-green-400 text-sm text-center">{team.wins || 0}</td>
+                              <td className="py-2 text-yellow-400 text-sm text-center">{team.draws || 0}</td>
+                              <td className="py-2 text-red-400 text-sm text-center">{team.losses || 0}</td>
+                              <td className="py-2 text-white text-sm text-center">{team.score.for}:{team.score.against}</td>
                               <td className="py-2 text-yellow-400 font-bold text-sm text-center">{team.points}</td>
                             </tr>
                           ));
@@ -4103,33 +4137,57 @@ const CardGame = () => {
                       {(() => {
                         // Získání statistik hráčů z týmu uživatele
                         const teamPlayers = [];
+                        let allScorersSorted = [];
+                        
                         // Seřazení podle kanadských bodů (G+A)
                         if (tournamentState && tournamentState.scorers) {
+                          // Nejprve seřadíme všechny hráče v turnaji pro zjištění celkového pořadí
+                          allScorersSorted = [...tournamentState.scorers];
+                          
+                          // Přidání ID ke všem hráčům
+                          allScorersSorted = allScorersSorted.map(scorer => ({
+                            id: scorer.id,
+                            name: scorer.name,
+                            team: scorer.team,
+                            position: scorer.position,
+                            goals: scorer.goals || 0,
+                            assists: scorer.assists || 0,
+                            points: (scorer.goals || 0) + (scorer.assists || 0)
+                          }));
+                          
+                          // Seřazení všech hráčů podle bodů (nejvíce nahoře)
+                          allScorersSorted.sort((a, b) => b.points - a.points || b.goals - a.goals);
+                          
                           // Filtrujeme jen hráče z týmu uživatele
                           const teamScorers = tournamentState.scorers.filter(
                             scorer => scorer.team === selectedTeam.name
                           );
                           
-                          // Vytvoříme objekty hráčů se všemi potřebnými daty
+                          // Vytvoříme objekty hráčů se všemi potřebnými daty včetně jejich celkového pořadí
                           teamScorers.forEach(scorer => {
+                            // Najdeme pozici hráče v celkovém žebříčku
+                            const overallRank = allScorersSorted.findIndex(player => player.id === scorer.id) + 1;
+                            
                             teamPlayers.push({
+                              id: scorer.id,
                               name: scorer.name,
                               position: scorer.position,
                               goals: scorer.goals || 0,
                               assists: scorer.assists || 0,
-                              points: (scorer.goals || 0) + (scorer.assists || 0)
+                              points: (scorer.goals || 0) + (scorer.assists || 0),
+                              overallRank: overallRank
                             });
                           });
                         }
                         
                         // Seřazení hráčů podle bodů (nejvíce nahoře)
-                        teamPlayers.sort((a, b) => b.points - a.points);
+                        teamPlayers.sort((a, b) => b.points - a.points || b.goals - a.goals);
                         
                         // Pokud nejsou žádní hráči, zobrazíme informační zprávu
                         if (teamPlayers.length === 0) {
                           return (
                             <tr>
-                              <td colSpan="5" className="py-4 text-gray-400 text-sm text-center">
+                              <td colSpan="6" className="py-4 text-gray-400 text-sm text-center">
                                 Žádná data o hráčích nejsou k dispozici
                               </td>
                             </tr>
@@ -4138,6 +4196,11 @@ const CardGame = () => {
                         
                         return teamPlayers.slice(0, 10).map((player, index) => (
                           <tr key={index} className="border-b border-red-500/10">
+                            <td className="py-2 text-center">
+                              <span className="inline-flex items-center justify-center bg-red-500/20 text-red-400 text-sm font-bold rounded-full w-7 h-7 border border-red-500/30">
+                                {player.overallRank}
+                              </span>
+                            </td>
                             <td className="py-2 text-white text-sm">{player.name}</td>
                             <td className="py-2 text-white text-sm text-center">{player.position}</td>
                             <td className="py-2 text-yellow-400 text-sm text-center">{player.goals}</td>
