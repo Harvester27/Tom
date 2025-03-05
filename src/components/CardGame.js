@@ -4033,25 +4033,37 @@ const CardGame = () => {
                         // Získání statistik hráčů z týmu uživatele
                         const teamPlayers = [];
                         // Seřazení podle kanadských bodů (G+A)
-                        if (tournamentState && tournamentState.playerStats) {
-                          Object.entries(tournamentState.playerStats).forEach(([playerId, stats]) => {
-                            if (stats.team === selectedTeam.name) {
-                              const player = cards.find(c => c.id === parseInt(playerId));
-                              if (player) {
-                                teamPlayers.push({
-                                  name: player.name,
-                                  position: player.position,
-                                  goals: stats.goals || 0,
-                                  assists: stats.assists || 0,
-                                  points: (stats.goals || 0) + (stats.assists || 0)
-                                });
-                              }
-                            }
+                        if (tournamentState && tournamentState.scorers) {
+                          // Filtrujeme jen hráče z týmu uživatele
+                          const teamScorers = tournamentState.scorers.filter(
+                            scorer => scorer.team === selectedTeam.name
+                          );
+                          
+                          // Vytvoříme objekty hráčů se všemi potřebnými daty
+                          teamScorers.forEach(scorer => {
+                            teamPlayers.push({
+                              name: scorer.name,
+                              position: scorer.position,
+                              goals: scorer.goals || 0,
+                              assists: scorer.assists || 0,
+                              points: (scorer.goals || 0) + (scorer.assists || 0)
+                            });
                           });
                         }
                         
                         // Seřazení hráčů podle bodů (nejvíce nahoře)
                         teamPlayers.sort((a, b) => b.points - a.points);
+                        
+                        // Pokud nejsou žádní hráči, zobrazíme informační zprávu
+                        if (teamPlayers.length === 0) {
+                          return (
+                            <tr>
+                              <td colSpan="5" className="py-4 text-gray-400 text-sm text-center">
+                                Žádná data o hráčích nejsou k dispozici
+                              </td>
+                            </tr>
+                          );
+                        }
                         
                         return teamPlayers.slice(0, 10).map((player, index) => (
                           <tr key={index} className="border-b border-red-500/10">
