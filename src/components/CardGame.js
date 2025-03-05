@@ -1750,39 +1750,47 @@ const CardGame = () => {
     const homeStrength = getTeamStrength(homeTeam);
     const awayStrength = getTeamStrength(awayTeam);
 
-    // Generujeme góly podle síly týmů
-    const generateGoals = (strength) => {
-      const baseGoals = Math.floor(Math.random() * 4); // 0-3 základní góly
-      const strengthBonus = Math.floor(strength / 20); // Bonus podle síly týmu
-      return baseGoals + strengthBonus;
+    // Generujeme góly podle síly týmů a síly brankářů
+    const generateGoals = (attackingStrength, defenseStrength, goalkeeper) => {
+      // Základní počet střel vygenerujeme podle síly útoku
+      const baseShots = Math.floor(10 + (attackingStrength / 10) + Math.random() * 15); // 15-35 střel
+      
+      // Síla brankáře ovlivní, kolik gólů padne
+      const savePercentage = 0.7 + (goalkeeper.level / 100); // 70-95% úspěšnost podle levelu brankáře
+      
+      // Počet gólů je počet střel, které nejsou chycené
+      const goals = Math.floor(baseShots * (1 - savePercentage));
+      
+      return { goals, shots: baseShots };
     };
 
-    const homeGoals = generateGoals(homeStrength);
-    const awayGoals = generateGoals(awayStrength);
+    const homeResult = generateGoals(homeStrength, awayStrength, awayTeam.goalkeeper);
+    const awayResult = generateGoals(awayStrength, homeStrength, homeTeam.goalkeeper);
 
     // NOVÁ FUNKCE: Generování statistik hráčů (kdo dal góly, asistence, brankáři)
-    generatePlayerStats(homeTeam, awayTeam, homeGoals, awayGoals);
+    generatePlayerStats(homeTeam, awayTeam, homeResult, awayResult);
 
-    return { home: homeGoals, away: awayGoals };
+    return { home: homeResult.goals, away: awayResult.goals };
   };
 
   // Nová funkce pro generování statistik hráčů v turnaji
-  const generatePlayerStats = (homeTeam, awayTeam, homeGoals, awayGoals) => {
-    // Pokud není co generovat, ukončíme
-    if (homeGoals === 0 && awayGoals === 0) return;
+  const generatePlayerStats = (homeTeam, awayTeam, homeResult, awayResult) => {
+    // Počet gólů a střel
+    const homeGoals = homeResult.goals;
+    const homeShots = homeResult.shots;
+    const awayGoals = awayResult.goals;
+    const awayShots = awayResult.shots;
 
     setTournamentState(prev => {
       // Kopie stávajících statistik
-      let updatedGoalies = [...prev.goalies];
-      let updatedScorers = [...prev.scorers];
+      let updatedGoalies = [...(prev.goalies || [])];
+      let updatedScorers = [...(prev.scorers || [])];
 
       // 1. Aktualizace brankářů
       // Domácí brankář
       const homeGoalkeeper = homeTeam.goalkeeper;
-      // Počet střel hostů (přibližně 3x více než gólů, minimálně počet gólů)
-      const homeShots = Math.max(awayGoals, awayGoals * 3 + Math.floor(Math.random() * 5));
       // Počet zákroků (střely mínus góly)
-      const homeSaves = homeShots - awayGoals;
+      const homeSaves = awayShots - awayGoals;
 
       // Najdeme nebo vytvoříme záznam pro domácího brankáře
       const homeGoalieIndex = updatedGoalies.findIndex(g => g.id === homeGoalkeeper.id);
@@ -1790,7 +1798,7 @@ const CardGame = () => {
         // Aktualizace existujícího brankáře
         updatedGoalies[homeGoalieIndex] = {
           ...updatedGoalies[homeGoalieIndex],
-          shots: updatedGoalies[homeGoalieIndex].shots + homeShots,
+          shots: updatedGoalies[homeGoalieIndex].shots + awayShots,
           saves: updatedGoalies[homeGoalieIndex].saves + homeSaves,
           shutouts: updatedGoalies[homeGoalieIndex].shutouts + (awayGoals === 0 ? 1 : 0),
           gamesPlayed: updatedGoalies[homeGoalieIndex].gamesPlayed + 1
@@ -1801,7 +1809,7 @@ const CardGame = () => {
           id: homeGoalkeeper.id,
           name: homeGoalkeeper.name,
           team: homeTeam.name,
-          shots: homeShots,
+          shots: awayShots,
           saves: homeSaves,
           shutouts: awayGoals === 0 ? 1 : 0,
           gamesPlayed: 1
@@ -1810,10 +1818,8 @@ const CardGame = () => {
 
       // Hostující brankář
       const awayGoalkeeper = awayTeam.goalkeeper;
-      // Počet střel domácích (přibližně 3x více než gólů, minimálně počet gólů)
-      const awayShots = Math.max(homeGoals, homeGoals * 3 + Math.floor(Math.random() * 5));
       // Počet zákroků (střely mínus góly)
-      const awaySaves = awayShots - homeGoals;
+      const awaySaves = homeShots - homeGoals;
 
       // Najdeme nebo vytvoříme záznam pro hostujícího brankáře
       const awayGoalieIndex = updatedGoalies.findIndex(g => g.id === awayGoalkeeper.id);
@@ -1821,7 +1827,7 @@ const CardGame = () => {
         // Aktualizace existujícího brankáře
         updatedGoalies[awayGoalieIndex] = {
           ...updatedGoalies[awayGoalieIndex],
-          shots: updatedGoalies[awayGoalieIndex].shots + awayShots,
+          shots: updatedGoalies[awayGoalieIndex].shots + homeShots,
           saves: updatedGoalies[awayGoalieIndex].saves + awaySaves,
           shutouts: updatedGoalies[awayGoalieIndex].shutouts + (homeGoals === 0 ? 1 : 0),
           gamesPlayed: updatedGoalies[awayGoalieIndex].gamesPlayed + 1
@@ -1832,7 +1838,7 @@ const CardGame = () => {
           id: awayGoalkeeper.id,
           name: awayGoalkeeper.name,
           team: awayTeam.name,
-          shots: awayShots,
+          shots: homeShots,
           saves: awaySaves,
           shutouts: homeGoals === 0 ? 1 : 0,
           gamesPlayed: 1
@@ -1841,15 +1847,27 @@ const CardGame = () => {
 
       // 2. Generování gólů a asistencí pro domácí tým
       if (homeGoals > 0) {
-        // Vytvoříme pole s ID hráčů, útočníci mají větší šanci
+        // Vytvoříme pole s ID hráčů, s váhou podle úrovně
         const homePlayers = [
-          ...homeTeam.forwards.map(fw => ({ id: fw.id, name: fw.name, position: 'forward', weight: 3 })),
-          ...homeTeam.defenders.map(def => ({ id: def.id, name: def.name, position: 'defender', weight: 1 }))
+          ...homeTeam.forwards.map(fw => ({ 
+            id: fw.id, 
+            name: fw.name, 
+            level: fw.level, 
+            position: 'forward', 
+            weight: fw.level * 3  // Útočníci mají 3x větší šanci podle jejich úrovně
+          })),
+          ...homeTeam.defenders.map(def => ({ 
+            id: def.id, 
+            name: def.name, 
+            level: def.level,
+            position: 'defender', 
+            weight: def.level * 1  // Obránci mají normální šanci podle jejich úrovně
+          }))
         ];
 
         // Distribuujeme góly mezi hráče
         for (let i = 0; i < homeGoals; i++) {
-          // Vážený náhodný výběr hráče (útočníci mají větší šanci)
+          // Vážený náhodný výběr hráče podle úrovně
           const totalWeight = homePlayers.reduce((sum, player) => sum + player.weight, 0);
           let randomValue = Math.random() * totalWeight;
           let selectedPlayer = null;
@@ -1864,14 +1882,25 @@ const CardGame = () => {
           
           if (!selectedPlayer) selectedPlayer = homePlayers[0]; // Fallback
 
-          // Náhodný výběr asistujícího hráče (ne stejný jako střelec)
+          // Náhodný výběr asistujícího hráče (ne stejný jako střelec), s váhou podle úrovně
           const assistPlayers = homePlayers.filter(p => p.id !== selectedPlayer.id);
           let assistPlayer = null;
           
           // 80% šance na asistenci
           if (assistPlayers.length > 0 && Math.random() < 0.8) {
-            const assistIndex = Math.floor(Math.random() * assistPlayers.length);
-            assistPlayer = assistPlayers[assistIndex];
+            // Vážený výběr asistenta podle úrovně
+            const assistTotalWeight = assistPlayers.reduce((sum, player) => sum + player.weight, 0);
+            let assistRandomValue = Math.random() * assistTotalWeight;
+            
+            for (let player of assistPlayers) {
+              assistRandomValue -= player.weight;
+              if (assistRandomValue <= 0) {
+                assistPlayer = player;
+                break;
+              }
+            }
+            
+            if (!assistPlayer) assistPlayer = assistPlayers[0]; // Fallback
           }
 
           // Aktualizace statistik střelce
@@ -1916,10 +1945,22 @@ const CardGame = () => {
 
       // 3. Generování gólů a asistencí pro hostující tým
       if (awayGoals > 0) {
-        // Vytvoříme pole s ID hráčů, útočníci mají větší šanci
+        // Vytvoříme pole s ID hráčů, s váhou podle úrovně
         const awayPlayers = [
-          ...awayTeam.forwards.map(fw => ({ id: fw.id, name: fw.name, position: 'forward', weight: 3 })),
-          ...awayTeam.defenders.map(def => ({ id: def.id, name: def.name, position: 'defender', weight: 1 }))
+          ...awayTeam.forwards.map(fw => ({ 
+            id: fw.id, 
+            name: fw.name, 
+            level: fw.level,
+            position: 'forward', 
+            weight: fw.level * 3  // Útočníci mají 3x větší šanci podle jejich úrovně
+          })),
+          ...awayTeam.defenders.map(def => ({ 
+            id: def.id, 
+            name: def.name, 
+            level: def.level,
+            position: 'defender', 
+            weight: def.level * 1  // Obránci mají normální šanci podle jejich úrovně
+          }))
         ];
 
         // Distribuujeme góly mezi hráče
@@ -1945,8 +1986,19 @@ const CardGame = () => {
           
           // 80% šance na asistenci
           if (assistPlayers.length > 0 && Math.random() < 0.8) {
-            const assistIndex = Math.floor(Math.random() * assistPlayers.length);
-            assistPlayer = assistPlayers[assistIndex];
+            // Vážený výběr asistenta podle úrovně
+            const assistTotalWeight = assistPlayers.reduce((sum, player) => sum + player.weight, 0);
+            let assistRandomValue = Math.random() * assistTotalWeight;
+            
+            for (let player of assistPlayers) {
+              assistRandomValue -= player.weight;
+              if (assistRandomValue <= 0) {
+                assistPlayer = player;
+                break;
+              }
+            }
+            
+            if (!assistPlayer) assistPlayer = assistPlayers[0]; // Fallback
           }
 
           // Aktualizace statistik střelce
@@ -1990,7 +2042,7 @@ const CardGame = () => {
       }
 
       console.log('Generovány statistiky hráčů pro simulovaný zápas:', 
-        { homeTeam: homeTeam.name, awayTeam: awayTeam.name, homeGoals, awayGoals });
+        { homeTeam: homeTeam.name, awayTeam: awayTeam.name, homeGoals, awayGoals, homeShots, awayShots });
 
       return {
         ...prev,
