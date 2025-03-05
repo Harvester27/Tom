@@ -380,6 +380,57 @@ const CardGame = () => {
   // Nový stav pro kontrolu, zda zápas skončil a čeká na potvrzení hráče
   const [matchCompleteAwaitingConfirmation, setMatchCompleteAwaitingConfirmation] = useState(false);
 
+  // State pro řazení statistik v tabulkách
+  const [sortConfig, setSortConfig] = useState({
+    table: 'scorers', // výchozí tabulka pro řazení
+    key: 'points',    // výchozí řazení podle bodů
+    direction: 'desc' // sestupně (od nejvyššího)
+  });
+
+  // Funkce pro řazení záznamů v tabulkách
+  const handleSort = (table, key) => {
+    let direction = 'desc';
+    if (sortConfig.table === table && sortConfig.key === key) {
+      // Pokud klikneme na stejný sloupec, změníme směr řazení
+      direction = sortConfig.direction === 'asc' ? 'desc' : 'asc';
+    }
+    setSortConfig({ table, key, direction });
+  };
+
+  // Funkce pro získání seřazených dat podle aktuální konfigurace
+  const getSortedData = (data, table) => {
+    if (sortConfig.table !== table || !sortConfig.key) {
+      return data;
+    }
+
+    return [...data].sort((a, b) => {
+      let valueA, valueB;
+      
+      // Speciální případ pro Kanadské bodování a "B" (součet gólů a asistencí)
+      if (table === 'scorers' && sortConfig.key === 'points') {
+        valueA = a.goals + a.assists;
+        valueB = b.goals + b.assists;
+      } else {
+        valueA = a[sortConfig.key];
+        valueB = b[sortConfig.key];
+      }
+      
+      // Speciální případ pro procentuální úspěšnost brankářů
+      if (table === 'goalies' && sortConfig.key === 'savePercentage') {
+        valueA = a.shots > 0 ? (a.saves / a.shots) : 0;
+        valueB = b.shots > 0 ? (b.saves / b.shots) : 0;
+      }
+      
+      if (valueA < valueB) {
+        return sortConfig.direction === 'asc' ? -1 : 1;
+      }
+      if (valueA > valueB) {
+        return sortConfig.direction === 'asc' ? 1 : -1;
+      }
+      return 0;
+    });
+  };
+
   // Definice typů gólových akcí
   const goalTypes = [
     { 
@@ -3400,20 +3451,51 @@ const CardGame = () => {
                   {/* Úspěšnost brankářů */}
                   <div className="bg-gradient-to-br from-green-900/50 to-green-800/20 rounded-xl p-6 border border-green-500/20">
                     <h3 className="text-xl font-bold text-green-400 mb-4">Úspěšnost brankářů</h3>
-                    <div className="overflow-x-auto overflow-y-auto max-h-[300px]"> {/* Přidáno pro vertikální posuv a maximální výška */}
+                    <div className="overflow-x-auto overflow-y-auto max-h-[750px]"> {/* Zvýšena výška pro zobrazení více hráčů */}
                       <table className="min-w-full text-left">
                         <thead className="border-b border-green-500/30 sticky top-0 bg-gray-900/80 backdrop-blur-sm z-10">
                           <tr>
-                            <th className="py-2 text-white text-sm font-semibold">Brankář</th>
-                            <th className="py-2 text-white text-sm font-semibold">Tým</th>
-                            <th className="py-2 text-white text-sm font-semibold">Zákroky</th>
-                            <th className="py-2 text-white text-sm font-semibold">Střely</th>
-                            <th className="py-2 text-white text-sm font-semibold">Úspěšnost</th>
-                            <th className="py-2 text-white text-sm font-semibold">Vychytané nuly</th>
+                            <th 
+                              className="py-2 text-white text-sm font-semibold cursor-pointer hover:text-green-400 transition-colors duration-200"
+                              onClick={() => handleSort('goalies', 'name')}
+                            >
+                              Brankář {sortConfig.table === 'goalies' && sortConfig.key === 'name' && (sortConfig.direction === 'asc' ? '↑' : '↓')}
+                            </th>
+                            <th 
+                              className="py-2 text-white text-sm font-semibold cursor-pointer hover:text-green-400 transition-colors duration-200"
+                              onClick={() => handleSort('goalies', 'team')}
+                            >
+                              Tým {sortConfig.table === 'goalies' && sortConfig.key === 'team' && (sortConfig.direction === 'asc' ? '↑' : '↓')}
+                            </th>
+                            <th 
+                              className="py-2 text-white text-sm font-semibold cursor-pointer hover:text-green-400 transition-colors duration-200"
+                              onClick={() => handleSort('goalies', 'saves')}
+                            >
+                              Zákroky {sortConfig.table === 'goalies' && sortConfig.key === 'saves' && (sortConfig.direction === 'asc' ? '↑' : '↓')}
+                            </th>
+                            <th 
+                              className="py-2 text-white text-sm font-semibold cursor-pointer hover:text-green-400 transition-colors duration-200"
+                              onClick={() => handleSort('goalies', 'shots')}
+                            >
+                              Střely {sortConfig.table === 'goalies' && sortConfig.key === 'shots' && (sortConfig.direction === 'asc' ? '↑' : '↓')}
+                            </th>
+                            <th 
+                              className="py-2 text-white text-sm font-semibold cursor-pointer hover:text-green-400 transition-colors duration-200"
+                              onClick={() => handleSort('goalies', 'savePercentage')}
+                            >
+                              Úspěšnost {sortConfig.table === 'goalies' && sortConfig.key === 'savePercentage' && (sortConfig.direction === 'asc' ? '↑' : '↓')}
+                            </th>
+                            <th 
+                              className="py-2 text-white text-sm font-semibold cursor-pointer hover:text-green-400 transition-colors duration-200"
+                              onClick={() => handleSort('goalies', 'shutouts')}
+                            >
+                              Vychytané nuly {sortConfig.table === 'goalies' && sortConfig.key === 'shutouts' && (sortConfig.direction === 'asc' ? '↑' : '↓')}
+                            </th>
                           </tr>
                         </thead>
                         <tbody>
-                          {tournamentState.goalies && Array.isArray(tournamentState.goalies) && tournamentState.goalies.map((goalie, index) => {
+                          {tournamentState.goalies && Array.isArray(tournamentState.goalies) && 
+                            getSortedData(tournamentState.goalies, 'goalies').map((goalie, index) => {
                             const savePercentage = goalie.shots > 0 ? ((goalie.saves / goalie.shots) * 100).toFixed(1) : '0.0';
                             return (
                               <tr key={index} className="border-b border-green-500/10">
@@ -3434,22 +3516,51 @@ const CardGame = () => {
                   {/* Kanadské bodování */}
                   <div className="bg-gradient-to-br from-red-900/50 to-red-800/20 rounded-xl p-6 border border-red-500/20">
                     <h3 className="text-xl font-bold text-red-400 mb-4">Kanadské bodování</h3>
-                    <div className="overflow-x-auto overflow-y-auto max-h-[300px]"> {/* Přidáno pro vertikální posuv a maximální výška */}
+                    <div className="overflow-x-auto overflow-y-auto max-h-[750px]"> {/* Zvýšena výška pro zobrazení více hráčů */}
                       <table className="min-w-full text-left">
                         <thead className="border-b border-red-500/30 sticky top-0 bg-gray-900/80 backdrop-blur-sm z-10">
                           <tr>
-                            <th className="py-2 text-white text-sm font-semibold">Hráč</th>
-                            <th className="py-2 text-white text-sm font-semibold">Tým</th>
-                            <th className="py-2 text-white text-sm font-semibold">Pozice</th>
-                            <th className="py-2 text-white text-sm font-semibold">G</th>
-                            <th className="py-2 text-white text-sm font-semibold">A</th>
-                            <th className="py-2 text-white text-sm font-semibold">B</th>
+                            <th 
+                              className="py-2 text-white text-sm font-semibold cursor-pointer hover:text-red-400 transition-colors duration-200"
+                              onClick={() => handleSort('scorers', 'name')}
+                            >
+                              Hráč {sortConfig.table === 'scorers' && sortConfig.key === 'name' && (sortConfig.direction === 'asc' ? '↑' : '↓')}
+                            </th>
+                            <th 
+                              className="py-2 text-white text-sm font-semibold cursor-pointer hover:text-red-400 transition-colors duration-200"
+                              onClick={() => handleSort('scorers', 'team')}
+                            >
+                              Tým {sortConfig.table === 'scorers' && sortConfig.key === 'team' && (sortConfig.direction === 'asc' ? '↑' : '↓')}
+                            </th>
+                            <th 
+                              className="py-2 text-white text-sm font-semibold cursor-pointer hover:text-red-400 transition-colors duration-200"
+                              onClick={() => handleSort('scorers', 'position')}
+                            >
+                              Pozice {sortConfig.table === 'scorers' && sortConfig.key === 'position' && (sortConfig.direction === 'asc' ? '↑' : '↓')}
+                            </th>
+                            <th 
+                              className="py-2 text-white text-sm font-semibold cursor-pointer hover:text-red-400 transition-colors duration-200"
+                              onClick={() => handleSort('scorers', 'goals')}
+                            >
+                              G {sortConfig.table === 'scorers' && sortConfig.key === 'goals' && (sortConfig.direction === 'asc' ? '↑' : '↓')}
+                            </th>
+                            <th 
+                              className="py-2 text-white text-sm font-semibold cursor-pointer hover:text-red-400 transition-colors duration-200"
+                              onClick={() => handleSort('scorers', 'assists')}
+                            >
+                              A {sortConfig.table === 'scorers' && sortConfig.key === 'assists' && (sortConfig.direction === 'asc' ? '↑' : '↓')}
+                            </th>
+                            <th 
+                              className="py-2 text-white text-sm font-semibold cursor-pointer hover:text-red-400 transition-colors duration-200"
+                              onClick={() => handleSort('scorers', 'points')}
+                            >
+                              B {sortConfig.table === 'scorers' && sortConfig.key === 'points' && (sortConfig.direction === 'asc' ? '↑' : '↓')}
+                            </th>
                           </tr>
                         </thead>
                         <tbody>
-                          {tournamentState.scorers && tournamentState.scorers
-                            .sort((a, b) => (b.goals + b.assists) - (a.goals + a.assists))
-                            .map((scorer, index) => (
+                          {tournamentState.scorers && 
+                            getSortedData(tournamentState.scorers, 'scorers').map((scorer, index) => (
                               <tr key={index} className="border-b border-red-500/10">
                                 <td className="py-2 text-white text-sm">{scorer.name}</td>
                                 <td className="py-2 text-white text-sm">{scorer.team}</td>
