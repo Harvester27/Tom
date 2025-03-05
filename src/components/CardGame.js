@@ -425,7 +425,7 @@ const CardGame = () => {
     // Nové gólové akce
     {
       type: "Střela z první",
-      template: "přihrávka od mantinelu, ***** bez přípravy pálí z první a překvapuje gólmana"
+      template: "přihrávka od mantinelu, ***** bez přípravy pálí z první a překonává gólmana"
     },
     {
       type: "Blafák do bekhendu",
@@ -1760,7 +1760,244 @@ const CardGame = () => {
     const homeGoals = generateGoals(homeStrength);
     const awayGoals = generateGoals(awayStrength);
 
+    // NOVÁ FUNKCE: Generování statistik hráčů (kdo dal góly, asistence, brankáři)
+    generatePlayerStats(homeTeam, awayTeam, homeGoals, awayGoals);
+
     return { home: homeGoals, away: awayGoals };
+  };
+
+  // Nová funkce pro generování statistik hráčů v turnaji
+  const generatePlayerStats = (homeTeam, awayTeam, homeGoals, awayGoals) => {
+    // Pokud není co generovat, ukončíme
+    if (homeGoals === 0 && awayGoals === 0) return;
+
+    setTournamentState(prev => {
+      // Kopie stávajících statistik
+      let updatedGoalies = [...prev.goalies];
+      let updatedScorers = [...prev.scorers];
+
+      // 1. Aktualizace brankářů
+      // Domácí brankář
+      const homeGoalkeeper = homeTeam.goalkeeper;
+      // Počet střel hostů (přibližně 3x více než gólů, minimálně počet gólů)
+      const homeShots = Math.max(awayGoals, awayGoals * 3 + Math.floor(Math.random() * 5));
+      // Počet zákroků (střely mínus góly)
+      const homeSaves = homeShots - awayGoals;
+
+      // Najdeme nebo vytvoříme záznam pro domácího brankáře
+      const homeGoalieIndex = updatedGoalies.findIndex(g => g.id === homeGoalkeeper.id);
+      if (homeGoalieIndex >= 0) {
+        // Aktualizace existujícího brankáře
+        updatedGoalies[homeGoalieIndex] = {
+          ...updatedGoalies[homeGoalieIndex],
+          shots: updatedGoalies[homeGoalieIndex].shots + homeShots,
+          saves: updatedGoalies[homeGoalieIndex].saves + homeSaves,
+          shutouts: updatedGoalies[homeGoalieIndex].shutouts + (awayGoals === 0 ? 1 : 0),
+          gamesPlayed: updatedGoalies[homeGoalieIndex].gamesPlayed + 1
+        };
+      } else {
+        // Přidání nového brankáře
+        updatedGoalies.push({
+          id: homeGoalkeeper.id,
+          name: homeGoalkeeper.name,
+          team: homeTeam.name,
+          shots: homeShots,
+          saves: homeSaves,
+          shutouts: awayGoals === 0 ? 1 : 0,
+          gamesPlayed: 1
+        });
+      }
+
+      // Hostující brankář
+      const awayGoalkeeper = awayTeam.goalkeeper;
+      // Počet střel domácích (přibližně 3x více než gólů, minimálně počet gólů)
+      const awayShots = Math.max(homeGoals, homeGoals * 3 + Math.floor(Math.random() * 5));
+      // Počet zákroků (střely mínus góly)
+      const awaySaves = awayShots - homeGoals;
+
+      // Najdeme nebo vytvoříme záznam pro hostujícího brankáře
+      const awayGoalieIndex = updatedGoalies.findIndex(g => g.id === awayGoalkeeper.id);
+      if (awayGoalieIndex >= 0) {
+        // Aktualizace existujícího brankáře
+        updatedGoalies[awayGoalieIndex] = {
+          ...updatedGoalies[awayGoalieIndex],
+          shots: updatedGoalies[awayGoalieIndex].shots + awayShots,
+          saves: updatedGoalies[awayGoalieIndex].saves + awaySaves,
+          shutouts: updatedGoalies[awayGoalieIndex].shutouts + (homeGoals === 0 ? 1 : 0),
+          gamesPlayed: updatedGoalies[awayGoalieIndex].gamesPlayed + 1
+        };
+      } else {
+        // Přidání nového brankáře
+        updatedGoalies.push({
+          id: awayGoalkeeper.id,
+          name: awayGoalkeeper.name,
+          team: awayTeam.name,
+          shots: awayShots,
+          saves: awaySaves,
+          shutouts: homeGoals === 0 ? 1 : 0,
+          gamesPlayed: 1
+        });
+      }
+
+      // 2. Generování gólů a asistencí pro domácí tým
+      if (homeGoals > 0) {
+        // Vytvoříme pole s ID hráčů, útočníci mají větší šanci
+        const homePlayers = [
+          ...homeTeam.forwards.map(fw => ({ id: fw.id, name: fw.name, position: 'forward', weight: 3 })),
+          ...homeTeam.defenders.map(def => ({ id: def.id, name: def.name, position: 'defender', weight: 1 }))
+        ];
+
+        // Distribuujeme góly mezi hráče
+        for (let i = 0; i < homeGoals; i++) {
+          // Vážený náhodný výběr hráče (útočníci mají větší šanci)
+          const totalWeight = homePlayers.reduce((sum, player) => sum + player.weight, 0);
+          let randomValue = Math.random() * totalWeight;
+          let selectedPlayer = null;
+          
+          for (let player of homePlayers) {
+            randomValue -= player.weight;
+            if (randomValue <= 0) {
+              selectedPlayer = player;
+              break;
+            }
+          }
+          
+          if (!selectedPlayer) selectedPlayer = homePlayers[0]; // Fallback
+
+          // Náhodný výběr asistujícího hráče (ne stejný jako střelec)
+          const assistPlayers = homePlayers.filter(p => p.id !== selectedPlayer.id);
+          let assistPlayer = null;
+          
+          // 80% šance na asistenci
+          if (assistPlayers.length > 0 && Math.random() < 0.8) {
+            const assistIndex = Math.floor(Math.random() * assistPlayers.length);
+            assistPlayer = assistPlayers[assistIndex];
+          }
+
+          // Aktualizace statistik střelce
+          const scorerIndex = updatedScorers.findIndex(s => s.id === selectedPlayer.id);
+          if (scorerIndex >= 0) {
+            updatedScorers[scorerIndex] = {
+              ...updatedScorers[scorerIndex],
+              goals: updatedScorers[scorerIndex].goals + 1
+            };
+          } else {
+            updatedScorers.push({
+              id: selectedPlayer.id,
+              name: selectedPlayer.name,
+              team: homeTeam.name,
+              position: selectedPlayer.position,
+              goals: 1,
+              assists: 0
+            });
+          }
+
+          // Aktualizace statistik asistenta, pokud byl vybrán
+          if (assistPlayer) {
+            const assistIndex = updatedScorers.findIndex(s => s.id === assistPlayer.id);
+            if (assistIndex >= 0) {
+              updatedScorers[assistIndex] = {
+                ...updatedScorers[assistIndex],
+                assists: updatedScorers[assistIndex].assists + 1
+              };
+            } else {
+              updatedScorers.push({
+                id: assistPlayer.id,
+                name: assistPlayer.name,
+                team: homeTeam.name,
+                position: assistPlayer.position,
+                goals: 0,
+                assists: 1
+              });
+            }
+          }
+        }
+      }
+
+      // 3. Generování gólů a asistencí pro hostující tým
+      if (awayGoals > 0) {
+        // Vytvoříme pole s ID hráčů, útočníci mají větší šanci
+        const awayPlayers = [
+          ...awayTeam.forwards.map(fw => ({ id: fw.id, name: fw.name, position: 'forward', weight: 3 })),
+          ...awayTeam.defenders.map(def => ({ id: def.id, name: def.name, position: 'defender', weight: 1 }))
+        ];
+
+        // Distribuujeme góly mezi hráče
+        for (let i = 0; i < awayGoals; i++) {
+          // Vážený náhodný výběr hráče (útočníci mají větší šanci)
+          const totalWeight = awayPlayers.reduce((sum, player) => sum + player.weight, 0);
+          let randomValue = Math.random() * totalWeight;
+          let selectedPlayer = null;
+          
+          for (let player of awayPlayers) {
+            randomValue -= player.weight;
+            if (randomValue <= 0) {
+              selectedPlayer = player;
+              break;
+            }
+          }
+          
+          if (!selectedPlayer) selectedPlayer = awayPlayers[0]; // Fallback
+
+          // Náhodný výběr asistujícího hráče (ne stejný jako střelec)
+          const assistPlayers = awayPlayers.filter(p => p.id !== selectedPlayer.id);
+          let assistPlayer = null;
+          
+          // 80% šance na asistenci
+          if (assistPlayers.length > 0 && Math.random() < 0.8) {
+            const assistIndex = Math.floor(Math.random() * assistPlayers.length);
+            assistPlayer = assistPlayers[assistIndex];
+          }
+
+          // Aktualizace statistik střelce
+          const scorerIndex = updatedScorers.findIndex(s => s.id === selectedPlayer.id);
+          if (scorerIndex >= 0) {
+            updatedScorers[scorerIndex] = {
+              ...updatedScorers[scorerIndex],
+              goals: updatedScorers[scorerIndex].goals + 1
+            };
+          } else {
+            updatedScorers.push({
+              id: selectedPlayer.id,
+              name: selectedPlayer.name,
+              team: awayTeam.name,
+              position: selectedPlayer.position,
+              goals: 1,
+              assists: 0
+            });
+          }
+
+          // Aktualizace statistik asistenta, pokud byl vybrán
+          if (assistPlayer) {
+            const assistIndex = updatedScorers.findIndex(s => s.id === assistPlayer.id);
+            if (assistIndex >= 0) {
+              updatedScorers[assistIndex] = {
+                ...updatedScorers[assistIndex],
+                assists: updatedScorers[assistIndex].assists + 1
+              };
+            } else {
+              updatedScorers.push({
+                id: assistPlayer.id,
+                name: assistPlayer.name,
+                team: awayTeam.name,
+                position: assistPlayer.position,
+                goals: 0,
+                assists: 1
+              });
+            }
+          }
+        }
+      }
+
+      console.log('Generovány statistiky hráčů pro simulovaný zápas:', 
+        { homeTeam: homeTeam.name, awayTeam: awayTeam.name, homeGoals, awayGoals });
+
+      return {
+        ...prev,
+        goalies: updatedGoalies,
+        scorers: updatedScorers
+      };
+    });
   };
 
   // Funkce pro aktualizaci bodů a skóre po zápase
@@ -2037,7 +2274,7 @@ const CardGame = () => {
     // Seřadíme karty podle úrovně
     const sortedCards = [...cards].sort((a, b) => b.level - a.level);
     
-    // Najdeme nejlepšího dostupného brankáře
+    // Najdeme nejlepší dostupného brankáře
     const bestGoalie = sortedCards.find(card => 
       card.position === 'goalkeeper' && 
       !selectedTeam.goalkeeper
@@ -3111,9 +3348,9 @@ const CardGame = () => {
                   {/* Úspěšnost brankářů */}
                   <div className="bg-gradient-to-br from-green-900/50 to-green-800/20 rounded-xl p-6 border border-green-500/20">
                     <h3 className="text-xl font-bold text-green-400 mb-4">Úspěšnost brankářů</h3>
-                    <div className="overflow-x-auto"> {/* Přidáno pro horizontální posuv */}
+                    <div className="overflow-x-auto overflow-y-auto max-h-[300px]"> {/* Přidáno pro vertikální posuv a maximální výška */}
                       <table className="min-w-full text-left">
-                        <thead className="border-b border-green-500/30">
+                        <thead className="border-b border-green-500/30 sticky top-0 bg-gray-900/80 backdrop-blur-sm z-10">
                           <tr>
                             <th className="py-2 text-white text-sm font-semibold">Brankář</th>
                             <th className="py-2 text-white text-sm font-semibold">Tým</th>
@@ -3145,9 +3382,9 @@ const CardGame = () => {
                   {/* Kanadské bodování */}
                   <div className="bg-gradient-to-br from-red-900/50 to-red-800/20 rounded-xl p-6 border border-red-500/20">
                     <h3 className="text-xl font-bold text-red-400 mb-4">Kanadské bodování</h3>
-                    <div className="overflow-x-auto">
+                    <div className="overflow-x-auto overflow-y-auto max-h-[300px]"> {/* Přidáno pro vertikální posuv a maximální výška */}
                       <table className="min-w-full text-left">
-                        <thead className="border-b border-red-500/30">
+                        <thead className="border-b border-red-500/30 sticky top-0 bg-gray-900/80 backdrop-blur-sm z-10">
                           <tr>
                             <th className="py-2 text-white text-sm font-semibold">Hráč</th>
                             <th className="py-2 text-white text-sm font-semibold">Tým</th>
@@ -3176,36 +3413,6 @@ const CardGame = () => {
                             ))}
                         </tbody>
                       </table>
-                    </div>
-                  </div>
-
-                  {/* Střelci */}
-                  <div className="bg-gradient-to-br from-yellow-900/50 to-yellow-800/20 rounded-xl p-6 border border-yellow-500/20">
-                    <h3 className="text-xl font-bold text-yellow-400 mb-4">Střelci</h3>
-                    <div className="space-y-2">
-                      {Object.entries(matchState.playerStats.goals).map(([playerId, goals], index) => (
-                        <div key={index} className="bg-black/30 p-2 rounded-lg border border-yellow-500/10">
-                          <div className="flex justify-between items-center">
-                            <span className="text-white">{playerId}</span>
-                            <span className="text-yellow-400">{goals}</span>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-
-                  {/* Obránci */}
-                  <div className="bg-gradient-to-br from-blue-900/50 to-blue-800/20 rounded-xl p-6 border border-blue-500/20">
-                    <h3 className="text-xl font-bold text-blue-400 mb-4">Obránci</h3>
-                    <div className="space-y-2">
-                      {Object.entries(matchState.playerStats.assists).map(([playerId, assists], index) => (
-                        <div key={index} className="bg-black/30 p-2 rounded-lg border border-blue-500/10">
-                          <div className="flex justify-between items-center">
-                            <span className="text-white">{playerId}</span>
-                            <span className="text-yellow-400">{assists}</span>
-                          </div>
-                        </div>
-                      ))}
                     </div>
                   </div>
                 </div>
