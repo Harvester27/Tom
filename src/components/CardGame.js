@@ -2444,9 +2444,6 @@ const CardGame = () => {
   };
 
   return (
-  };
-
-  return (
     <div className="relative min-h-screen bg-gradient-to-br from-gray-900 to-black font-hokej p-4">
       {/* Version number */}
       <div className="fixed top-4 left-4 bg-black/50 px-3 py-1 rounded-lg text-sm text-yellow-400">
@@ -4231,7 +4228,6 @@ const CardGame = () => {
             </button>
           </div>
         )}
-      </div>
       </div>
     </div>
   );
