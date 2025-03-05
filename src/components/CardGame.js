@@ -340,6 +340,7 @@ const CardGame = () => {
   const [activePosition, setActivePosition] = useState(null);
   const [showMatch, setShowMatch] = useState(false);
   const [showTournament, setShowTournament] = useState(false);
+  const [showTournamentSummary, setShowTournamentSummary] = useState(false);
   const [tournamentState, setTournamentState] = useState({
     phase: 'groups',
     groups: {
