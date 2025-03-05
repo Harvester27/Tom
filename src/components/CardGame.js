@@ -1372,6 +1372,82 @@ const CardGame = () => {
 
   // Funkce pro potvrzení odchodu ze zápasu
   const confirmMatchExit = () => {
+    // Pokud jsme v turnaji, přeneseme statistiky brankářů do turnajové tabulky
+    if (tournamentState.phase && matchState.completed) {
+      // Získání ID brankářů z obou týmů
+      const homeGoalkeeper = selectedTeam.goalkeeper;
+      const awayGoalkeeper = matchState.currentOpponent.goalkeeper.id;
+      
+      // Získání jmen brankářů
+      const homeGoalieName = cards.find(card => card.id === homeGoalkeeper)?.name || 'Neznámý brankář';
+      const awayGoalieName = matchState.currentOpponent.goalkeeper.name || 'Neznámý brankář';
+      
+      // Statistiky domácího brankáře
+      const homeShots = matchState.playerStats.shots[homeGoalkeeper] || 0;
+      const homeSaves = matchState.playerStats.saves[homeGoalkeeper] || 0;
+      const homeSavePercentage = homeShots > 0 ? Math.round((homeSaves / homeShots) * 100) : 100;
+      
+      // Statistiky hostujícího brankáře
+      const awayShots = matchState.playerStats.shots[awayGoalkeeper] || 0;
+      const awaySaves = matchState.playerStats.saves[awayGoalkeeper] || 0;
+      const awaySavePercentage = awayShots > 0 ? Math.round((awaySaves / awayShots) * 100) : 100;
+      
+      // Aktualizace statistik brankářů v turnajovém stavu
+      setTournamentState(prev => {
+        // Vytvoříme počáteční stav, pokud ještě neexistuje
+        const goalkeeperStats = prev.goalkeeperStats || {};
+        
+        // Aktualizace domácího brankáře
+        const updatedHomeGoalie = goalkeeperStats[homeGoalkeeper] 
+          ? {
+              ...goalkeeperStats[homeGoalkeeper],
+              shots: (goalkeeperStats[homeGoalkeeper].shots || 0) + homeShots,
+              saves: (goalkeeperStats[homeGoalkeeper].saves || 0) + homeSaves,
+              savePercentage: Math.round(((goalkeeperStats[homeGoalkeeper].saves + homeSaves) / 
+                                         (goalkeeperStats[homeGoalkeeper].shots + homeShots)) * 100),
+              gamesPlayed: (goalkeeperStats[homeGoalkeeper].gamesPlayed || 0) + 1
+            }
+          : {
+              name: homeGoalieName,
+              team: selectedTeam.name,
+              shots: homeShots,
+              saves: homeSaves,
+              savePercentage: homeSavePercentage,
+              gamesPlayed: 1
+            };
+            
+        // Aktualizace hostujícího brankáře
+        const updatedAwayGoalie = goalkeeperStats[awayGoalkeeper] 
+          ? {
+              ...goalkeeperStats[awayGoalkeeper],
+              shots: (goalkeeperStats[awayGoalkeeper].shots || 0) + awayShots,
+              saves: (goalkeeperStats[awayGoalkeeper].saves || 0) + awaySaves,
+              savePercentage: Math.round(((goalkeeperStats[awayGoalkeeper].saves + awaySaves) / 
+                                         (goalkeeperStats[awayGoalkeeper].shots + awayShots)) * 100),
+              gamesPlayed: (goalkeeperStats[awayGoalkeeper].gamesPlayed || 0) + 1
+            }
+          : {
+              name: awayGoalieName,
+              team: matchState.currentOpponent.name,
+              shots: awayShots,
+              saves: awaySaves,
+              savePercentage: awaySavePercentage,
+              gamesPlayed: 1
+            };
+        
+        return {
+          ...prev,
+          goalkeeperStats: {
+            ...goalkeeperStats,
+            [homeGoalkeeper]: updatedHomeGoalie,
+            [awayGoalkeeper]: updatedAwayGoalie
+          }
+        };
+      });
+      
+      console.log('Statistiky brankářů byly přeneseny do turnajové tabulky');
+    }
+    
     setMatchCompleteAwaitingConfirmation(false);
     // Resetujeme stav zápasu
     setMatchState(prev => ({
