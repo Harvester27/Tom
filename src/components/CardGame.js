@@ -2431,6 +2431,19 @@ const CardGame = () => {
   
   // Funkce pro opuštění turnaje
   const exitTournament = () => {
+    // Zobrazíme souhrn turnaje místo přímého odchodu
+    setShowTournamentSummary(true);
+    
+    // Pro souhrn turnaje připravíme data
+    // Tady můžeme připravit data pro odměny, zkušenosti, atd.
+  };
+
+  // Funkce pro finální ukončení turnaje po zobrazení souhrnu
+  const finishTournament = () => {
+    // Tady můžeme přidělit hráči peníze, zkušenosti, atd.
+    const finalPrize = determineFinalizePrize();
+    setCoins(prevCoins => prevCoins + finalPrize);
+    
     // Resetování turnajového stavu
     setTournamentState({
       phase: null,
@@ -2449,1434 +2462,395 @@ const CardGame = () => {
     
     // Návrat na hlavní obrazovku
     setShowTournament(false);
+    setShowTournamentSummary(false);
     setShowMainMenu(true);
   };
 
+  // Funkce pro určení finální odměny za turnaj
+  const determineFinalizePrize = () => {
+    // Najdeme finálový zápas
+    const finalMatch = tournamentState.matches.playoff.find(match => match.round === 'final');
+    if (!finalMatch || !finalMatch.score) return 500; // Základní odměna, pokud nemáme výsledek
+    
+    // Určíme umístění hráčova týmu
+    let prize = 500; // Základní odměna
+    
+    if (finalMatch.home === selectedTeam.name || finalMatch.away === selectedTeam.name) {
+      // Hráč byl ve finále
+      const isWinner = (finalMatch.home === selectedTeam.name && finalMatch.score.home > finalMatch.score.away) ||
+                       (finalMatch.away === selectedTeam.name && finalMatch.score.away > finalMatch.score.home);
+      if (isWinner) {
+        prize = 3000; // Vítěz turnaje
+      } else {
+        prize = 2000; // Druhé místo
+      }
+    } else {
+      // Hledáme zápas o 3. místo
+      const thirdPlaceMatch = tournamentState.matches.playoff.find(match => match.round === 'third_place');
+      if (thirdPlaceMatch && (thirdPlaceMatch.home === selectedTeam.name || thirdPlaceMatch.away === selectedTeam.name)) {
+        const isThird = (thirdPlaceMatch.home === selectedTeam.name && thirdPlaceMatch.score.home > thirdPlaceMatch.score.away) ||
+                        (thirdPlaceMatch.away === selectedTeam.name && thirdPlaceMatch.score.away > thirdPlaceMatch.score.home);
+        if (isThird) {
+          prize = 1500; // Třetí místo
+        } else {
+          prize = 1000; // Čtvrté místo
+        }
+      } else {
+        // Tým se nedostal do semifinále - odměna podle skupinového umístění
+        const playerGroup = tournamentState.groups.A.some(g => g.team.name === selectedTeam.name) ? 'A' : 
+                           tournamentState.groups.B.some(g => g.team.name === selectedTeam.name) ? 'B' : null;
+        
+        if (playerGroup) {
+          const groupTeams = [...tournamentState.groups[playerGroup]].sort((a, b) => b.points - a.points);
+          const playerTeamIndex = groupTeams.findIndex(g => g.team.name === selectedTeam.name);
+          
+          switch(playerTeamIndex) {
+            case 0: prize = 800; break; // První ve skupině, ale nepostup do finále
+            case 1: prize = 700; break; // Druhý ve skupině
+            case 2: prize = 600; break; // Třetí ve skupině
+            default: prize = 500; break; // Čtvrtý ve skupině nebo horší
+          }
+        }
+      }
+    }
+    
+    return prize;
+  };
+
+  // Stavy obrazovek
+  const [showMainMenu, setShowMainMenu] = useState(true);
+  const [showStore, setShowStore] = useState(false);
+  const [showCollection, setShowCollection] = useState(false);
+  const [showMatch, setShowMatch] = useState(false);
+  const [showTeamSelection, setShowTeamSelection] = useState(false);
+  const [showRewards, setShowRewards] = useState(false);
+  const [showTournament, setShowTournament] = useState(false);
+  const [showTournamentSummary, setShowTournamentSummary] = useState(false); // Nový stav pro souhrn turnaje
+
   return (
-    <div className="min-h-screen bg-gradient-radial from-blue-900 via-blue-950 to-black text-white p-8">
-      {/* Version number */}
-      <div className="fixed top-4 left-4 bg-black/50 px-3 py-1 rounded-lg text-sm text-yellow-400">
-        v1.0.7
-      </div>
-      <style jsx global>{`
-        @keyframes confetti-fall {
-          0% {
-            transform: translateY(0) rotate(0deg);
-            opacity: 1;
-          }
-          100% {
-            transform: translateY(100vh) rotate(720deg);
-            opacity: 0;
-          }
-        }
+    <div className="relative min-h-screen bg-gradient-to-br from-gray-900 to-black font-hokej p-4">
+      {showTournamentSummary && (
+        <div className="fixed inset-0 bg-black/90 text-white p-8 overflow-y-auto z-50">
+          <div className="max-w-[1200px] mx-auto">
+            <h2 className="text-4xl font-bold mb-8 text-center bg-gradient-to-r from-yellow-400 to-yellow-600 bg-clip-text text-transparent">
+              Souhrn turnaje
+            </h2>
 
-        @keyframes float {
-          0%, 100% {
-            transform: translateY(0);
-          }
-          50% {
-            transform: translateY(-10px);
-          }
-        }
-
-        @keyframes shine {
-          0% {
-            transform: translateX(-100%);
-          }
-          100% {
-            transform: translateX(100%);
-          }
-        }
-
-        .animate-shine {
-          animation: shine 1.5s linear infinite;
-        }
-      `}</style>
-
-      {confetti.map((particle) => (
-        <ConfettiParticle key={particle.id} color={particle.color} />
-      ))}
-
-      <div className="max-w-7xl mx-auto">
-        <header className="text-center mb-12 animate-[float_4s_ease-in-out_infinite]">
-          <div className="inline-block bg-black/30 backdrop-blur-sm p-6 rounded-2xl shadow-2xl border border-yellow-500/20">
-            <h1 className="text-5xl font-bold bg-gradient-to-r from-yellow-400 via-yellow-300 to-yellow-400 text-transparent bg-clip-text mb-4">
-              Sbírka karet
-            </h1>
-            <div className="flex justify-center gap-8 mb-4">
-              <div className="bg-black/40 px-6 py-3 rounded-xl border border-yellow-500/20">
-                <p className="text-yellow-100 text-xl">
-                  Získáno: <span className="font-bold text-yellow-400">{unlockedCards.length}</span> / <span className="font-bold text-yellow-400">{cards.length}</span>
-                </p>
-              </div>
-              <div className="bg-black/40 px-6 py-3 rounded-xl border border-yellow-500/20">
-                <p className="text-yellow-100 text-xl">
-                  Peníze: <span className="font-bold text-yellow-400">{money} Kč</span>
-                </p>
-              </div>
-            </div>
-            {!showCollection && (
-              <div className="flex gap-4 justify-center">
-                <button
-                  onClick={() => canPlayMatch() ? alert('Můžete začít zápas!') : alert('Pro zápas potřebujete: 1 brankáře, 2 obránce a 3 útočníky!')}
-                  className={`bg-gradient-to-r ${canPlayMatch() ? 'from-green-500 to-green-600 hover:from-green-600 hover:to-green-700' : 'from-gray-500 to-gray-600 cursor-not-allowed'} 
-                    text-white font-bold py-3 px-8 rounded-xl shadow-lg transform transition-all duration-300 
-                    ${canPlayMatch() ? 'hover:scale-105 active:scale-95' : ''} border-2 border-white/20`}
-                  disabled={!canPlayMatch()}
-                >
-                  Hrát zápas {!canPlayMatch() && '(Neúplná sestava)'}
-                </button>
-                <button
-                  onClick={() => canPlayMatch() ? startTournament() : alert('Pro turnaj potřebujete: 1 brankáře, 2 obránce a 3 útočníky!')}
-                  className={`bg-gradient-to-r ${canPlayMatch() ? 'from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700' : 'from-gray-500 to-gray-600 cursor-not-allowed'} 
-                    text-white font-bold py-3 px-8 rounded-xl shadow-lg transform transition-all duration-300 
-                    ${canPlayMatch() ? 'hover:scale-105 active:scale-95' : ''} border-2 border-white/20`}
-                  disabled={!canPlayMatch()}
-                >
-                  Hrát turnaj {!canPlayMatch() && '(Neúplná sestava)'}
-                </button>
-              </div>
-            )}
-          </div>
-        </header>
-
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 justify-items-center mb-8">
-          {!showCollection && !showMatch && !showTeamSelection && (
-            <>
-              {[3, 5, 7].map((packSize) => (
-                <div
-                  key={packSize}
-                  className="transform transition-transform hover:scale-105 active:scale-95"
-                  onClick={() => openPack(packSize)}
-                >
-                  <div className={`cursor-pointer rounded-lg overflow-hidden shadow-xl relative group ${
-                    currentCards.length > 0 ? 'opacity-50 cursor-not-allowed' : ''
-                  }`}>
-                    <div className="absolute inset-0 bg-gradient-to-br from-yellow-500/30 to-yellow-700/30 group-hover:opacity-75 transition-opacity"></div>
-                    <img
-                      src="/Images/LancersBalicek.jpg"
-                      alt={`Balíček ${packSize} karet`}
-                      className="w-64 h-80 object-cover"
-                    />
-                    <div className="absolute bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-black/90 to-transparent">
-                      <h3 className="text-xl font-bold text-yellow-400 text-center mb-1">
-                        Balíček {packSize} karet
-                      </h3>
-                      <p className="text-white text-center">
-                        Cena: {packPrices[packSize]} Kč
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </>
-          )}
-        </div>
-
-        {currentCards.length > 0 && !showCollection && !showMatch && !showTeamSelection && (
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 mb-8">
-            {currentCards.map((card) => (
-              <div
-                key={card.uniqueId || card.id}
-                className="relative group cursor-pointer transform hover:scale-105 transition-transform"
-                onClick={() => setSelectedCard(card)}
-              >
-                <img
-                  src={card.image}
-                  alt={card.name}
-                  className="w-full h-auto rounded-lg shadow-lg"
-                />
-                <div className="absolute top-2 right-2 w-8 h-8 bg-gradient-to-br from-yellow-400 to-yellow-600 rounded-full flex items-center justify-center text-black font-bold shadow-lg">
-                  {getCardLevel(card.id)}
-                </div>
-              </div>
-            ))}
-            <div className="col-span-full flex justify-center mt-4">
-              <button
-                onClick={collectCards}
-                className="bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 
-                  text-white font-bold py-3 px-8 rounded-xl shadow-lg transform transition-all duration-300 
-                  hover:scale-105 active:scale-95"
-              >
-                Přesunout do sbírky
-              </button>
-            </div>
-          </div>
-        )}
-
-        {selectedCard && (
-          <div 
-            className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 backdrop-blur-sm"
-            onClick={(e) => {
-              if (e.target === e.currentTarget) {
-                setSelectedCard(null);
-              }
-            }}
-          >
-            <div className="transform transition-all duration-300">
-              <div className="bg-gradient-to-br from-yellow-500 to-yellow-700 p-0.5 rounded-lg shadow-2xl">
-                <div className="relative">
-                  <img
-                    src={selectedCard.image}
-                    alt={selectedCard.name}
-                    className="w-auto h-[70vh] object-contain rounded"
-                  />
-                  <div className="absolute top-4 right-4 w-12 h-12 rounded-full bg-gradient-to-br from-yellow-400 to-yellow-600 flex items-center justify-center border-2 border-yellow-300 shadow-lg">
-                    <span className="text-black font-bold text-lg">{getCardLevel(selectedCard.id)}</span>
-                  </div>
-                </div>
-              </div>
-              <div className="text-center mt-2 space-y-2">
-                <p className="text-yellow-400 text-xl font-bold">{selectedCard.name}</p>
-                <p className="text-yellow-200 text-lg capitalize">{selectedCard.rarity}</p>
-                {unlockedCards.some(c => c.id === selectedCard.id) && (
-                  <div className="flex flex-col items-center gap-2">
-                    {/* Počet stejných karet */}
-                    <p className="text-white">
-                      Počet karet: <span className="text-yellow-400">
-                        {unlockedCards.filter(c => c.id === selectedCard.id).length}x
-                      </span>
-                    </p>
-
-                    {/* Navigační tlačítka pro duplikáty */}
-                    {unlockedCards.filter(c => c.id === selectedCard.id).length > 1 && (
-                      <div className="flex gap-4">
-                        <button
-                          onClick={() => navigateCards('prev')}
-                          className="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded-lg"
-                        >
-                          ←
-                        </button>
-                        <button
-                          onClick={() => navigateCards('next')}
-                          className="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded-lg"
-                        >
-                          →
-                        </button>
-                      </div>
-                    )}
-
-                    {/* Tlačítka pro vylepšení a prodej */}
-                    <div className="flex gap-4">
-                      <button
-                        onClick={() => upgradeCard(selectedCard.id)}
-                        className="bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 
-                          text-white font-bold py-2 px-6 rounded-lg transform transition-all duration-300 
-                          hover:scale-105 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
-                        disabled={money < getUpgradeCost(getCardLevel(selectedCard.id))}
-                      >
-                        Vylepšit ({getUpgradeCost(getCardLevel(selectedCard.id))} Kč)
-                      </button>
-
-                      <button
-                        onClick={() => sellCard(selectedCard)}
-                        className="bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 
-                          text-white font-bold py-2 px-6 rounded-lg transform transition-all duration-300 
-                          hover:scale-105 active:scale-95"
-                        disabled={unlockedCards.filter(c => c.id === selectedCard.id).length <= 1}
-                      >
-                        Prodat ({getSellPrice(selectedCard)} Kč)
-                      </button>
-                    </div>
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
-        )}
-
-        {currentCards.length > 0 && (
-          <div className="fixed bottom-0 left-0 right-0 bg-black bg-opacity-90 p-4">
-            <div className="max-w-7xl mx-auto">
-              <div className="grid grid-cols-7 gap-4 justify-items-center">
-                {currentCards.map(card => (
-                  <div key={card.id} className="transform transition-all duration-300 hover:scale-105">
-                    <div className="bg-gradient-to-br from-yellow-400 to-yellow-600 rounded-lg shadow-xl p-0.5">
-                      <img
-                        src={card.image}
-                        alt={card.name}
-                        className="w-full h-56 object-contain rounded"
-                      />
-                    </div>
-                  </div>
-                ))}
-              </div>
-              <div className="text-center mt-4">
-                <button
-                  onClick={collectCards}
-                  className="bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-8 rounded-full transform transition-transform hover:scale-105 active:scale-95"
-                >
-                  Přesunout do sbírky
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
-
-        <div className="fixed top-4 right-4 flex flex-col gap-4">
-          <button
-            onClick={() => setShowCollection(!showCollection)}
-            className="bg-gradient-to-r from-yellow-500 to-yellow-600 hover:from-yellow-600 hover:to-yellow-700 text-black font-bold py-3 px-6 rounded-xl shadow-lg transform transition-all duration-300 hover:scale-105 active:scale-95 border-2 border-yellow-400/20"
-          >
-            {showCollection ? 'Zpět na balíčky' : 'Zobrazit sbírku'}
-          </button>
-          {!showCollection && (
-            <>
-              <button
-                onClick={startTeamSelection}
-                className={`bg-gradient-to-r ${canPlayMatch() ? 'from-green-500 to-green-600 hover:from-green-600 hover:to-green-700' : 'from-gray-500 to-gray-600 cursor-not-allowed'} 
-                  text-white font-bold py-3 px-6 rounded-xl shadow-lg transform transition-all duration-300 
-                  ${canPlayMatch() ? 'hover:scale-105 active:scale-95' : ''}`}
-                disabled={!canPlayMatch()}
-              >
-                Hrát zápas {!canPlayMatch() && '(Neúplná sestava)'}
-              </button>
-              <button
-                onClick={() => canPlayMatch() ? startTournament() : alert('Pro turnaj potřebujete: 1 brankáře, 2 obránce a 3 útočníky!')}
-                className={`bg-gradient-to-r ${canPlayMatch() ? 'from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700' : 'from-gray-500 to-gray-600 cursor-not-allowed'} 
-                  text-white font-bold py-3 px-6 rounded-xl shadow-lg transform transition-all duration-300 
-                  ${canPlayMatch() ? 'hover:scale-105 active:scale-95' : ''}`}
-                disabled={!canPlayMatch()}
-              >
-                Hrát turnaj {!canPlayMatch() && '(Neúplná sestava)'}
-              </button>
-            </>
-          )}
-        </div>
-
-        {showTeamSelection && (
-          <div className="fixed inset-0 bg-black/90 flex flex-col items-center justify-center z-50 p-8">
-            <h2 className="text-3xl font-bold text-yellow-400 mb-8">Vyberte svou sestavu</h2>
-            <button
-              onClick={autoFillTeam}
-              className="bg-gradient-to-r from-yellow-500 to-yellow-600 hover:from-yellow-600 hover:to-yellow-700 text-white font-bold py-2 px-4 rounded-xl shadow-lg transform transition-all duration-300 hover:scale-105 active:scale-95 mb-8"
-            >
-              Automaticky doplnit sestavu
-            </button>
-            <div className="grid grid-cols-3 gap-8 mb-8">
-              {/* Brankář */}
-              <div className="text-center">
-                <h3 className="text-xl font-bold text-yellow-200 mb-4">Brankář ({selectedTeam.goalkeeper ? '1/1' : '0/1'})</h3>
-                <div 
-                  className={`w-32 h-40 mx-auto cursor-pointer rounded-lg ${!selectedTeam.goalkeeper ? 'border-2 border-dashed border-yellow-500/50' : ''}`}
-                  onClick={() => setActivePosition('goalkeeper')}
-                >
-                  {selectedTeam.goalkeeper ? (
-                    <div className="relative">
-                      <img 
-                        src={cards.find(card => card.id === selectedTeam.goalkeeper)?.image} 
-                        alt="Brankář" 
-                        className="w-32 h-40 object-contain rounded-lg"
-                      />
-                      <div className="absolute top-2 right-2 w-6 h-6 rounded-full bg-gradient-to-br from-yellow-400 to-yellow-600 flex items-center justify-center">
-                        <span className="text-black text-xs font-bold">{getCardLevel(selectedTeam.goalkeeper)}</span>
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="w-full h-full flex items-center justify-center">
-                      <span className="text-yellow-500/50 text-4xl">+</span>
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              {/* Obránci */}
-              <div className="text-center">
-                <h3 className="text-xl font-bold text-yellow-200 mb-4">Obránci ({selectedTeam.defenders.length}/2)</h3>
-                <div className="grid gap-4">
-                  {[0, 1].map((index) => (
-                    <div
-                      key={index}
-                      className={`w-32 h-40 mx-auto cursor-pointer rounded-lg ${!selectedTeam.defenders[index] ? 'border-2 border-dashed border-yellow-500/50' : ''}`}
-                      onClick={() => setActivePosition(`defender-${index}`)}
-                    >
-                      {selectedTeam.defenders[index] ? (
-                        <div className="relative">
-                          <img 
-                            src={cards.find(card => card.id === selectedTeam.defenders[index])?.image} 
-                            alt="Obránce" 
-                            className="w-32 h-40 object-contain rounded-lg"
-                          />
-                          <div className="absolute top-2 right-2 w-6 h-6 rounded-full bg-gradient-to-br from-yellow-400 to-yellow-600 flex items-center justify-center">
-                            <span className="text-black text-xs font-bold">{getCardLevel(selectedTeam.defenders[index])}</span>
-                          </div>
-                        </div>
-                      ) : (
-                        <div className="w-full h-full flex items-center justify-center">
-                          <span className="text-yellow-500/50 text-4xl">+</span>
-                        </div>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              {/* Útočníci */}
-              <div className="text-center">
-                <h3 className="text-xl font-bold text-yellow-200 mb-4">Útočníci ({selectedTeam.forwards.length}/3)</h3>
-                <div className="grid gap-4">
-                  {[0, 1, 2].map((index) => (
-                    <div
-                      key={index}
-                      className={`w-32 h-40 mx-auto cursor-pointer rounded-lg ${!selectedTeam.forwards[index] ? 'border-2 border-dashed border-yellow-500/50' : ''}`}
-                      onClick={() => setActivePosition(`forward-${index}`)}
-                    >
-                      {selectedTeam.forwards[index] ? (
-                        <div className="relative">
-                          <img 
-                            src={cards.find(card => card.id === selectedTeam.forwards[index])?.image} 
-                            alt="Útočník" 
-                            className="w-32 h-40 object-contain rounded-lg"
-                          />
-                          <div className="absolute top-2 right-2 w-6 h-6 rounded-full bg-gradient-to-br from-yellow-400 to-yellow-600 flex items-center justify-center">
-                            <span className="text-black text-xs font-bold">{getCardLevel(selectedTeam.forwards[index])}</span>
-                          </div>
-                        </div>
-                      ) : (
-                        <div className="w-full h-full flex items-center justify-center">
-                          <span className="text-yellow-500/50 text-4xl">+</span>
-                        </div>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
-
-            {/* Seznam dostupných karet pro vybranou pozici */}
-            {activePosition && (
-              <div className="bg-black/50 p-4 rounded-xl">
-                <h3 className="text-xl font-bold text-yellow-200 mb-4">Dostupné karty</h3>
-                <div className="grid grid-cols-5 gap-4">
-                  {cards
-                    .filter(card => {
-                      if (activePosition === 'goalkeeper') return card.position === 'goalkeeper';
-                      if (activePosition.startsWith('defender')) return card.position === 'defender';
-                      if (activePosition.startsWith('forward')) return card.position === 'forward';
-                      return false;
-                    })
-                    .filter(card => unlockedCards.some(c => c.id === card.id))
-                    .map(card => (
-                      <div
-                        key={card.id}
-                        onClick={() => selectPlayer(card)}
-                        className="cursor-pointer transform transition-all duration-300 hover:scale-105"
-                      >
-                        <div className="relative">
-                          <img src={card.image} alt={card.name} className="w-32 h-40 object-contain rounded-lg" />
-                          <div className="absolute top-2 right-2 w-6 h-6 rounded-full bg-gradient-to-br from-yellow-400 to-yellow-600 flex items-center justify-center">
-                            <span className="text-black text-xs font-bold">{getCardLevel(card.id)}</span>
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                </div>
-              </div>
-            )}
-
-            <div className="flex gap-4 mt-8">
-              <button
-                onClick={() => {
-                  setShowTeamSelection(false);
-                  setActivePosition(null);
-                }}
-                className="bg-red-500 hover:bg-red-600 text-white font-bold py-3 px-8 rounded-xl shadow-lg transform transition-all duration-300 hover:scale-105 active:scale-95"
-              >
-                Zrušit
-              </button>
-              <button
-                onClick={() => {
-                  startMatch();
-                  setActivePosition(null);
-                }}
-                disabled={!isTeamComplete()}
-                className={`bg-gradient-to-r ${isTeamComplete() ? 'from-green-500 to-green-600 hover:from-green-600 hover:to-green-700' : 'from-gray-500 to-gray-600 cursor-not-allowed'} 
-                  text-white font-bold py-3 px-8 rounded-xl shadow-lg transform transition-all duration-300 
-                  ${isTeamComplete() ? 'hover:scale-105 active:scale-95' : ''}`}
-              >
-                Spustit zápas
-              </button>
-            </div>
-          </div>
-        )}
-
-        {showMatch && (
-          <div className="fixed inset-0 bg-black/90 flex flex-col items-center justify-center z-50 p-4">
-            <div className="w-full max-w-[95vw] mx-auto"> {/* Změněno z w-[90%] na w-full a max-w-[95vw] */}
-              <div className="flex gap-4">
-                {/* Levá část - časomíra a hřiště */}
-                <div className="flex-1">
-                  {/* Horní panel s logy, časomírou a ovládáním rychlosti */}
-                  <div className="flex justify-between items-center mb-4 bg-black/50 p-4 rounded-xl">
-                    <div className="flex items-center gap-8">
-                      <img src="/Images/Litvinov_Lancers.png" alt="Litvínov Lancers" className="h-20 object-contain" />
-                      {matchState.penalties.filter(p => p.isHomeTeam).map(penalty => {
-                        const player = cards.find(c => c.id === penalty.playerId);
-                        return (
-                          <div key={`${penalty.playerId}-${penalty.startTime}`} className="relative">
-                            <img 
-                              src={player?.image}
-                              alt={player?.name}
-                              className="w-24 h-32 object-contain rounded-lg shadow-lg border-2 border-red-600"
-                            />
-                            <div className="absolute -bottom-2 left-0 right-0 text-center">
-                              <div className="bg-red-900/80 text-white text-sm px-2 py-1 rounded-lg font-mono">
-                                {Math.floor(penalty.timeLeft / 60)}:
-                                {(penalty.timeLeft % 60).toString().padStart(2, '0')}
-                              </div>
-                            </div>
-                          </div>
-                        );
-                      })}
-                    </div>
-                    <div className="text-center">
-                      <div className="text-4xl font-bold text-yellow-400 mb-2">
-                        {matchState.score.home} : {matchState.score.away}
-                      </div>
-                      <div className="text-3xl font-mono text-white">
-                        {formatTime(matchState.time)}
-                      </div>
-                      <div className="text-xl text-yellow-200 mt-2">
-                        {matchState.period}. třetina
-                      </div>
-                      {/* Ovládání rychlosti */}
-                      <div className="flex justify-center gap-2 mt-4">
-                        {gameSpeedOptions.map(speed => (
-                          <button
-                            key={speed}
-                            onClick={() => setGameSpeed(speed)}
-                            className={`px-3 py-1 rounded ${
-                              matchState.gameSpeed === speed
-                                ? 'bg-yellow-500 text-black font-bold'
-                                : 'bg-gray-700 text-white hover:bg-gray-600'
-                            } text-sm transition-colors`}
-                          >
-                            {speed}×
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-8">
-                      {matchState.penalties.filter(p => !p.isHomeTeam).map(penalty => {
-                        const player = matchState.currentOpponent.forwards.concat(matchState.currentOpponent.defenders)
-                          .find(p => p.id === penalty.playerId);
-                        return (
-                          <div key={`${penalty.playerId}-${penalty.startTime}`} className="relative">
-                            <div className="w-24 h-32 bg-gradient-to-br from-gray-800 to-gray-900 rounded-lg shadow-lg flex flex-col items-center justify-center text-gray-400 relative overflow-hidden border-2 border-red-600">
-                              <div className="text-5xl font-bold mb-2">?</div>
-                              <div className="absolute top-2 right-2 w-6 h-6 rounded-full bg-gradient-to-br from-yellow-400 to-yellow-600 flex items-center justify-center">
-                                <span className="text-black text-xs font-bold">{player.level}</span>
-                              </div>
-                              <div className="absolute bottom-0 left-0 w-full bg-gradient-to-r from-gray-900 to-gray-800 p-1">
-                                <p className="text-[8px] text-center text-gray-300 font-bold leading-tight">
-                                  {player.name}
-                                </p>
-                              </div>
-                            </div>
-                            <div className="absolute -bottom-2 left-0 right-0 text-center">
-                              <div className="bg-red-900/80 text-white text-sm px-2 py-1 rounded-lg font-mono">
-                                {Math.floor(penalty.timeLeft / 60)}:
-                                {(penalty.timeLeft % 60).toString().padStart(2, '0')}
-                              </div>
-                            </div>
-                          </div>
-                        );
-                      })}
-                      <img src={matchState.currentOpponent ? `/Images/${matchState.currentOpponent.name.replace(/\s+/g, '_')}.png` : "/Images/HC_Lopaty_Praha.png"} alt={matchState.currentOpponent ? matchState.currentOpponent.name : "HC Lopaty Praha"} className="h-20 object-contain" />
-                    </div>
-                  </div>
-
-                  {/* Vylepšená ledová plocha */}
-                  <div className="relative w-full h-[calc(90vh-200px)] bg-[#e8f0f0] rounded-[200px] overflow-hidden border-8 border-blue-900/30">
-                    {/* Červené čáry */}
-                    <div className="absolute left-0 right-0 top-1/2 h-1 bg-red-600 transform -translate-y-1/2"></div>
-                    <div className="absolute left-1/3 right-1/3 top-0 bottom-0 border-l-2 border-r-2 border-red-600"></div>
-                    
-                    {/* Modré čáry */}
-                    <div className="absolute w-1 h-full bg-blue-600 left-1/4"></div>
-                    <div className="absolute w-1 h-full bg-blue-600 right-1/4"></div>
-                    
-                    {/* Kruhy na vhazování */}
-                    <div className="absolute left-1/6 top-1/4 w-24 h-24 border-2 border-red-600 rounded-full"></div>
-                    <div className="absolute left-1/6 bottom-1/4 w-24 h-24 border-2 border-red-600 rounded-full"></div>
-                    <div className="absolute right-1/6 top-1/4 w-24 h-24 border-2 border-red-600 rounded-full"></div>
-                    <div className="absolute right-1/6 bottom-1/4 w-24 h-24 border-2 border-red-600 rounded-full"></div>
-                    <div className="absolute left-1/2 top-1/2 w-24 h-24 border-2 border-red-600 rounded-full transform -translate-x-1/2 -translate-y-1/2"></div>
-                    
-                    {/* Brankoviště */}
-                    <div className="absolute left-8 top-1/2 w-16 h-32 border-2 border-red-600 rounded-r-lg transform -translate-y-1/2"></div>
-                    <div className="absolute right-8 top-1/2 w-16 h-32 border-2 border-red-600 rounded-l-lg transform -translate-y-1/2"></div>
-
-                    {/* Domácí tým */}
-                    <div className="absolute left-0 right-1/2 top-0 bottom-0 grid grid-cols-3 gap-4 p-8">
-                      {/* Brankář */}
-                      <div className="flex justify-center items-center">
-                        <div className="relative">
-                          <img 
-                            src={cards.find(card => card.id === selectedTeam.goalkeeper)?.image}
-                            alt="Brankář"
-                            className={`w-24 h-32 object-contain transform hover:scale-110 transition-transform rounded-lg shadow-lg
-                              ${matchState.penalties.some(p => p.playerId === selectedTeam.goalkeeper) ? 'opacity-50' : ''}`}
-                          />
-                          <div className="absolute top-2 right-2 w-6 h-6 rounded-full bg-gradient-to-br from-yellow-400 to-yellow-600 flex items-center justify-center">
-                            <span className="text-black text-xs font-bold">{getCardLevel(selectedTeam.goalkeeper)}</span>
-                          </div>
-                          {/* Statistiky brankáře */}
-                          {matchState.playerStats.saves[selectedTeam.goalkeeper] > 0 && (
-                            <div className="absolute -bottom-6 left-0 right-0 text-center">
-                              <div className="bg-blue-900/80 text-white text-sm px-2 py-1 rounded-lg">
-                                {matchState.playerStats.saves[selectedTeam.goalkeeper]} zákroků
-                                <br />
-                                Úspěšnost: {matchState.playerStats.shots[selectedTeam.goalkeeper] > 0 
-                                  ? Math.round((matchState.playerStats.saves[selectedTeam.goalkeeper] / matchState.playerStats.shots[selectedTeam.goalkeeper]) * 100)
-                                  : 100}%
-                              </div>
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                      {/* Obránci */}
-                      <div className="grid grid-rows-2 gap-8">
-                        {selectedTeam.defenders.map(id => (
-                          <div key={id} className="flex justify-center items-center">
-                            <div className="relative">
-                              <img 
-                                src={cards.find(card => card.id === id)?.image}
-                                alt="Obránce"
-                                className={`w-24 h-32 object-contain transform hover:scale-110 transition-transform rounded-lg shadow-lg
-                                  ${matchState.penalties.some(p => p.playerId === id) ? 'opacity-50' : ''}`}
-                              />
-                              <div className="absolute top-2 right-2 w-6 h-6 rounded-full bg-gradient-to-br from-yellow-400 to-yellow-600 flex items-center justify-center">
-                                <span className="text-black text-xs font-bold">{getCardLevel(id)}</span>
-                              </div>
-                              {/* Góly a asistence */}
-                              <div className="absolute -bottom-6 left-0 right-0 flex justify-center gap-2">
-                                {/* Góly - opraveno na event.player */}
-                                {matchState.events.filter(event => 
-                                  event.type === 'goal' && event.player === cards.find(card => card.id === id)?.name
-                                ).length > 0 && Array.from({ length: matchState.events.filter(event => 
-                                  event.type === 'goal' && event.player === cards.find(card => card.id === id)?.name
-                                ).length }).map((_, i) => (
-                                  <img key={i} src="/Images/puck.png" alt="Gól" className="w-4 h-4" />
-                                ))}
-                                {/* Asistence */}
-                                {matchState.events.filter(event => 
-                                  event.type === 'goal' && event.assist === cards.find(card => card.id === id)?.name
-                                ).length > 0 && (
-                                  <span className="bg-yellow-500/80 text-black font-bold text-sm px-2 rounded-lg">
-                                    A: {matchState.events.filter(event => 
-                                      event.type === 'goal' && event.assist === cards.find(card => card.id === id)?.name
-                                    ).length}
-                                  </span>
-                                )}
-                              </div>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                      {/* Útočníci */}
-                      <div className="grid grid-rows-3 gap-4">
-                        {selectedTeam.forwards.map(id => (
-                          <div key={id} className="flex justify-center items-center">
-                            <div className="relative">
-                              <img 
-                                src={cards.find(card => card.id === id)?.image}
-                                alt="Útočník"
-                                className={`w-24 h-32 object-contain transform hover:scale-110 transition-transform rounded-lg shadow-lg
-                                  ${matchState.penalties.some(p => p.playerId === id) ? 'opacity-50' : ''}`}
-                              />
-                              <div className="absolute top-2 right-2 w-6 h-6 rounded-full bg-gradient-to-br from-yellow-400 to-yellow-600 flex items-center justify-center">
-                                <span className="text-black text-xs font-bold">{getCardLevel(id)}</span>
-                              </div>
-                              {/* Góly a asistence */}
-                              <div className="absolute -bottom-6 left-0 right-0 flex justify-center gap-2">
-                                {/* Góly - opraveno na event.player */}
-                                {matchState.events.filter(event => 
-                                  event.type === 'goal' && event.player === cards.find(card => card.id === id)?.name
-                                ).length > 0 && Array.from({ length: matchState.events.filter(event => 
-                                  event.type === 'goal' && event.player === cards.find(card => card.id === id)?.name
-                                ).length }).map((_, i) => (
-                                  <img key={i} src="/Images/puck.png" alt="Gól" className="w-4 h-4" />
-                                ))}
-                                {/* Asistence */}
-                                {matchState.events.filter(event => 
-                                  event.type === 'goal' && event.assist === cards.find(card => card.id === id)?.name
-                                ).length > 0 && (
-                                  <span className="bg-yellow-500/80 text-black font-bold text-sm px-2 rounded-lg">
-                                    A: {matchState.events.filter(event => 
-                                      event.type === 'goal' && event.assist === cards.find(card => card.id === id)?.name
-                                    ).length}
-                                  </span>
-                                )}
-                              </div>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-
-                    {/* Soupeřův tým */}
-                    <div className="absolute left-1/2 right-0 top-0 bottom-0 grid grid-cols-3 gap-4 p-8">
-                      {/* Útočníci */}
-                      <div className="grid grid-rows-3 gap-4">
-                        {matchState.currentOpponent.forwards.map(player => (
-                          <div key={player.name} className="flex justify-center items-center">
-                            <div className="relative">
-                              <div className="w-24 h-32 bg-gradient-to-br from-gray-800 to-gray-900 rounded-lg shadow-lg flex flex-col items-center justify-center text-gray-400 relative overflow-hidden">
-                                <div className="absolute top-0 left-0 w-full bg-gradient-to-r from-red-600 to-red-800 py-1">
-                                  <span className="text-white text-xs font-bold">{player.number}</span>
-                                </div>
-                                <div className="text-5xl font-bold mb-2">?</div>
-                                <div className="absolute top-2 right-2 w-6 h-6 rounded-full bg-gradient-to-br from-yellow-400 to-yellow-600 flex items-center justify-center">
-                                  <span className="text-black text-xs font-bold">{player.level}</span>
-                                </div>
-                                <div className="absolute bottom-0 left-0 w-full bg-gradient-to-r from-gray-900 to-gray-800 p-1">
-                                  <p className="text-[8px] text-center text-gray-300 font-bold leading-tight">
-                                    {player.name}
-                                  </p>
-                                </div>
-                              </div>
-                              {/* Góly a asistence pro útočníky Lopat */}
-                              <div className="absolute -bottom-6 left-0 right-0 flex justify-center gap-2">
-                                {/* Góly - opraveno na event.player */}
-                                {matchState.events.filter(event => 
-                                  event.type === 'goal' && event.player === player.name
-                                ).length > 0 && Array.from({ length: matchState.events.filter(event => 
-                                  event.type === 'goal' && event.player === player.name
-                                ).length }).map((_, i) => (
-                                  <img key={i} src="/Images/puck.png" alt="Gól" className="w-4 h-4" />
-                                ))}
-                                {/* Asistence */}
-                                {matchState.events.filter(event => 
-                                  event.type === 'goal' && event.assist === player.name
-                                ).length > 0 && (
-                                  <span className="bg-yellow-500/80 text-black font-bold text-sm px-2 rounded-lg">
-                                    A: {matchState.events.filter(event => 
-                                      event.type === 'goal' && event.assist === player.name
-                                    ).length}
-                                  </span>
-                                )}
-                              </div>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                      {/* Obránci */}
-                      <div className="grid grid-rows-2 gap-8">
-                        {matchState.currentOpponent.defenders.map(player => (
-                          <div key={player.name} className="flex justify-center items-center">
-                            <div className="relative">
-                              <div className="w-24 h-32 bg-gradient-to-br from-gray-800 to-gray-900 rounded-lg shadow-lg flex flex-col items-center justify-center text-gray-400 relative overflow-hidden">
-                                <div className="absolute top-0 left-0 w-full bg-gradient-to-r from-blue-600 to-blue-800 py-1">
-                                  <span className="text-white text-xs font-bold">{player.number}</span>
-                                </div>
-                                <div className="text-5xl font-bold mb-2">?</div>
-                                <div className="absolute top-2 right-2 w-6 h-6 rounded-full bg-gradient-to-br from-yellow-400 to-yellow-600 flex items-center justify-center">
-                                  <span className="text-black text-xs font-bold">{player.level}</span>
-                                </div>
-                                <div className="absolute bottom-0 left-0 w-full bg-gradient-to-r from-gray-900 to-gray-800 p-1">
-                                  <p className="text-[8px] text-center text-gray-300 font-bold leading-tight">
-                                    {player.name}
-                                  </p>
-                                </div>
-                              </div>
-                              {/* Góly a asistence pro obránce Lopat */}
-                              <div className="absolute -bottom-6 left-0 right-0 flex justify-center gap-2">
-                                {/* Góly - opraveno na event.player */}
-                                {matchState.events.filter(event => 
-                                  event.type === 'goal' && event.player === player.name
-                                ).length > 0 && Array.from({ length: matchState.events.filter(event => 
-                                  event.type === 'goal' && event.player === player.name
-                                ).length }).map((_, i) => (
-                                  <img key={i} src="/Images/puck.png" alt="Gól" className="w-4 h-4" />
-                                ))}
-                                {/* Asistence */}
-                                {matchState.events.filter(event => 
-                                  event.type === 'goal' && event.assist === player.name
-                                ).length > 0 && (
-                                  <span className="bg-yellow-500/80 text-black font-bold text-sm px-2 rounded-lg">
-                                    A: {matchState.events.filter(event => 
-                                      event.type === 'goal' && event.assist === player.name
-                                    ).length}
-                                  </span>
-                                )}
-                              </div>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                      {/* Brankář */}
-                      <div className="flex justify-center items-center">
-                        <div className="relative">
-                          <div className="w-24 h-32 bg-gradient-to-br from-gray-800 to-gray-900 rounded-lg shadow-lg flex flex-col items-center justify-center text-gray-400 transform hover:scale-110 transition-transform relative overflow-hidden">
-                            <div className="absolute top-0 left-0 w-full bg-gradient-to-r from-yellow-600 to-yellow-800 py-1">
-                              <span className="text-white text-xs font-bold">{matchState.currentOpponent.goalkeeper.number}</span>
-                            </div>
-                            <div className="text-5xl font-bold mb-2">?</div>
-                            <div className="absolute top-2 right-2 w-6 h-6 rounded-full bg-gradient-to-br from-yellow-400 to-yellow-600 flex items-center justify-center">
-                              <span className="text-black text-xs font-bold">{matchState.currentOpponent.goalkeeper.level}</span>
-                            </div>
-                            <div className="absolute bottom-0 left-0 w-full bg-gradient-to-r from-gray-900 to-gray-800 p-1">
-                              <p className="text-[8px] text-center text-gray-300 font-bold leading-tight">
-                                {matchState.currentOpponent.goalkeeper.name}
-                              </p>
-                            </div>
-                          </div>
-                          {/* Statistiky brankáře Lopat */}
-                          {matchState.playerStats.saves[matchState.currentOpponent.goalkeeper.id] > 0 && (
-                            <div className="absolute -bottom-6 left-0 right-0 text-center">
-                              <div className="bg-blue-900/80 text-white text-sm px-2 py-1 rounded-lg">
-                                {matchState.playerStats.saves[matchState.currentOpponent.goalkeeper.id]} zákroků
-                                <br />
-                                Úspěšnost: {matchState.playerStats.shots[matchState.currentOpponent.goalkeeper.id] > 0 
-                                  ? Math.round((matchState.playerStats.saves[matchState.currentOpponent.goalkeeper.id] / matchState.playerStats.shots[matchState.currentOpponent.goalkeeper.id]) * 100)
-                                  : 100}%
-                              </div>
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Pravá část - události */}
-                <div className="w-[500px] flex flex-col">
-                  <div className="bg-gradient-to-b from-black/50 to-black/30 rounded-xl p-8 h-full">
-                    <h3 className="text-3xl font-bold text-yellow-400 sticky top-0 bg-black/50 backdrop-blur-sm p-4 rounded-lg mb-6 border-b border-yellow-500/20">
-                      Průběh zápasu
-                    </h3>
-                    <div className="space-y-4 max-h-[calc(90vh-200px)] overflow-y-auto pr-4">
-                      {[...matchState.events].reverse().map(event => (
-                        <div
-                          key={event.id}
-                          className={`p-4 rounded-lg ${
-                            event.type === 'goal'
-                              ? 'bg-green-900/40 border-l-4 border-green-500'
-                              : event.type === 'penalty'
-                              ? 'bg-red-900/40 border-l-4 border-red-500'
-                              : event.type === 'save'
-                              ? 'bg-blue-900/40 border-l-4 border-blue-500'
-                              : event.type === 'period'
-                              ? 'bg-white/10'
-                              : 'bg-gray-800/40'
-                          }`}
-                        >
-                          <div className="flex items-center justify-between mb-2">
-                            <div className="flex items-center gap-2">
-                              <span className="text-gray-400 font-mono">{event.time}</span>
-                              {event.type !== 'period' && (
-                                <img 
-                                  src={event.isHomeTeam ? "/Images/Litvinov_Lancers.png" : "/Images/HC_Lopaty_Praha.png"} 
-                                  alt={event.isHomeTeam ? "Litvínov Lancers" : "HC Lopaty Praha"}
-                                  className="h-6 object-contain"
-                                />
-                              )}
-                            </div>
-                            {event.type === 'goal' && (
-                              <div className="flex items-center gap-2">
-                                <div className="flex flex-col items-end">
-                                  <span className="text-yellow-400 font-bold">
-                                    {event.player} (Level {event.level})
-                                  </span>
-                                  {event.assist && (
-                                    <span className="text-yellow-400/80 text-sm">
-                                      Asistence: {event.assist} (Level {event.assistLevel})
-                                    </span>
-                                  )}
-                                </div>
-                              </div>
-                            )}
-                          </div>
-                          <p className="text-lg text-white">{event.message}</p>
-                        </div>
-                      ))}
-                    </div>
-                    
-                    {/* Tlačítko pro odchod ze zápasu - zobrazí se jen po dokončení zápasu */}
-                    {!matchState.isPlaying && matchState.completed && matchCompleteAwaitingConfirmation && (
-                      <div className="mt-8 flex justify-center">
-                        <button
-                          onClick={confirmMatchExit}
-                          className="bg-gradient-to-r from-blue-500 to-blue-700 hover:from-blue-600 hover:to-blue-800 
-                            text-white font-bold py-3 px-6 rounded-lg transform transition-all duration-300 
-                            hover:scale-105 active:scale-95 text-xl shadow-lg"
-                        >
-                          Odejít ze zápasu
-                        </button>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {showRewards && (
-          <div className="fixed inset-0 bg-black/95 flex items-center justify-center z-50">
-            <div className="bg-gradient-to-b from-yellow-900/50 to-yellow-800/30 p-8 rounded-2xl max-w-md w-full mx-4 border border-yellow-500/20">
-              <h2 className="text-4xl font-bold text-center mb-6 bg-gradient-to-r from-yellow-400 to-yellow-600 text-transparent bg-clip-text">
-                {matchResult === 'victory' ? 'Vítězství!' : 'Prohra'}
-              </h2>
-              
-              <div className="space-y-6">
-                <div className="bg-black/30 p-4 rounded-xl">
-                  <h3 className="text-yellow-400 text-xl mb-2">Odměny:</h3>
-                  <div className="space-y-2">
-                    <p className="text-white">
-                      Peníze: <span className="text-yellow-400 animate-bounce">+{matchResult === 'victory' ? '50' : '20'} Kč</span>
-                    </p>
-                    <p className="text-white">
-                      Zkušenosti: <span className="text-yellow-400 animate-bounce">+{matchResult === 'victory' ? '20' : '5'} XP</span>
-                    </p>
-                  </div>
-                </div>
-
-                <div className="bg-black/30 p-4 rounded-xl relative overflow-hidden">
-                  <div className="relative z-10">
-                    <h3 className="text-yellow-400 text-xl mb-2 flex items-center justify-between">
-                      <span>Level {level}</span>
-                      {xp >= 20 && (
-                        <span className="text-sm bg-yellow-500 text-black px-2 py-1 rounded-full animate-pulse">
-                          Level Up!
-                        </span>
-                      )}
-                    </h3>
-                    <div className="bg-gray-900 rounded-full h-4 overflow-hidden">
-                      <div 
-                        className="bg-gradient-to-r from-yellow-500 to-yellow-600 h-full transition-all duration-1000 ease-out"
-                        style={{ width: `${(xp / 20) * 100}%` }}
-                      ></div>
-                    </div>
-                    <p className="text-center text-yellow-200 mt-2">{xp}/20 XP</p>
-                  </div>
-                  {xp >= 20 && (
-                    <div className="absolute inset-0 animate-shine pointer-events-none">
-                      <div className="absolute inset-0 bg-gradient-to-r from-transparent via-yellow-500/20 to-transparent" style={{ transform: 'translateX(-100%)' }}></div>
-                    </div>
-                  )}
-                </div>
-
-                <button
-                  onClick={() => {
-                    setShowRewards(false);
-                    setShowMatch(false);
-                    setMatchState(prev => ({
-                      ...prev,
-                      period: 1,
-                      time: 1200,
-                      score: { home: 0, away: 0 },
-                      events: [],
-                      isPlaying: false,
-                      gameSpeed: 1,
-                      playerStats: {
-                        goals: {},
-                        assists: {},
-                        saves: {},
-                        saveAccuracy: {},
-                        shots: {}
-                      },
-                      penalties: [],
-                      scheduledEvents: [],
-                      currentOpponent: null
-                    }));
-                  }}
-                  className="w-full bg-gradient-to-r from-yellow-500 to-yellow-600 hover:from-yellow-600 hover:to-yellow-700 text-black font-bold py-3 px-6 rounded-xl shadow-lg transform transition-all duration-300 hover:scale-105 active:scale-95"
-                >
-                  Pokračovat
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {showCollection && (
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
-            {cards.map((card) => (
-              <div
-                key={card.id}
-                className={`transform transition-all duration-300 hover:scale-105 cursor-pointer ${
-                  unlockedCards.some(c => c.id === card.id) ? '' : 'opacity-50'
-                }`}
-                onClick={() => unlockedCards.some(c => c.id === card.id) && setSelectedCard(card)}
-              >
-                <div className={`
-                  relative overflow-hidden rounded-lg shadow-xl
-                  ${unlockedCards.some(c => c.id === card.id) 
-                    ? 'bg-gradient-to-br from-yellow-500 to-yellow-700 p-0.5' 
-                    : 'bg-zinc-800 p-0.5'}
-                `}>
-                  {unlockedCards.some(c => c.id === card.id) ? (
-                    <div className="relative">
-                      <img
-                        src={card.image}
-                        alt={card.name}
-                        className="w-full h-56 object-contain rounded"
-                      />
-                      <div className="absolute top-2 right-2 w-8 h-8 rounded-full bg-gradient-to-br from-yellow-400 to-yellow-600 flex items-center justify-center border-2 border-yellow-300 shadow-lg">
-                        <span className="text-black font-bold text-sm">{getCardLevel(card.id)}</span>
-                      </div>
-                      {unlockedCards.filter(c => c.id === card.id).length > 1 && (
-                        <div className="absolute bottom-2 right-2 bg-black/70 px-2 py-1 rounded-full text-yellow-400 text-sm font-bold">
-                          {unlockedCards.filter(c => c.id === card.id).length}×
-                        </div>
-                      )}
-                    </div>
-                  ) : (
-                    <div className="w-full h-56 flex items-center justify-center text-4xl text-gray-500">
-                      ?
-                    </div>
-                  )}
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-
-        {/* Turnaj */}
-        {showTournament && tournamentState.phase && (
-          <div className="fixed inset-0 bg-black/90 text-white p-8 overflow-y-auto">
-            <div className="max-w-[1800px] mx-auto">
-              <h2 className="text-4xl font-bold mb-8 text-center bg-gradient-to-r from-yellow-400 to-yellow-600 bg-clip-text text-transparent">
-                Turnaj
-              </h2>
-              
-              {/* Tlačítko pro opuštění turnaje, které se zobrazí po odehrání finálového zápasu */}
-              {isTournamentCompleted() && (
-                <>
-                  {/* Zobrazení vítěze turnaje */}
-                  <div className="mb-8">
-                    {(() => {
-                      // Najdeme finálový zápas a určíme vítěze
-                      const finalMatch = tournamentState.matches.playoff.find(match => match.round === 'final');
-                      if (finalMatch && finalMatch.score) {
-                        const winner = finalMatch.score.home > finalMatch.score.away ? finalMatch.home : finalMatch.away;
-                        const score = `${finalMatch.score.home} : ${finalMatch.score.away}`;
-                        const isPlayerTeam = winner === selectedTeam.name;
-                        
-                        return (
-                          <div className="text-center animate-bounce">
-                            <div className="inline-block bg-gradient-to-r from-yellow-500 to-yellow-300 text-black text-xl font-bold py-2 px-6 rounded-full mb-4">
-                              {isPlayerTeam ? 'Gratulujeme! Vyhráli jste turnaj!' : `Vítěz turnaje: ${winner}`}
-                            </div>
-                            <div className="text-lg text-gray-300">
-                              Finálový zápas: {finalMatch.home} vs {finalMatch.away} <span className="font-bold text-yellow-400">{score}</span>
-                            </div>
-                          </div>
-                        );
-                      }
-                      return null;
-                    })()}
-                  </div>
+            {/* Výsledek a odměna */}
+            <div className="bg-gradient-to-br from-purple-900/50 to-purple-800/20 rounded-xl p-8 border border-purple-500/20 mb-8">
+              {(() => {
+                // Najdeme finálový zápas a určíme vítěze
+                const finalMatch = tournamentState.matches.playoff.find(match => match.round === 'final');
+                const prize = determineFinalizePrize();
+                let placement = "Neznámé umístění";
+                let placementColor = "text-gray-400";
+                
+                if (finalMatch && finalMatch.score) {
+                  const winner = finalMatch.score.home > finalMatch.score.away ? finalMatch.home : finalMatch.away;
+                  const isPlayerTeam = winner === selectedTeam.name;
                   
-                  {/* Tlačítko pro odchod z turnaje */}
-                  <div className="mb-8 flex justify-center">
-                    <button
-                      onClick={exitTournament}
-                      className="bg-gradient-to-r from-purple-500 to-purple-700 hover:from-purple-600 hover:to-purple-800 
-                        text-white text-lg font-bold py-2 px-6 rounded-lg shadow-lg transform transition-all duration-300 
-                        hover:scale-105 active:scale-95 animate-pulse">
-                      Odejít z turnaje
-                    </button>
+                  // Určíme umístění hráče
+                  if (finalMatch.home === selectedTeam.name || finalMatch.away === selectedTeam.name) {
+                    if (isPlayerTeam) {
+                      placement = "1. místo - VÍTĚZ TURNAJE";
+                      placementColor = "text-yellow-400";
+                    } else {
+                      placement = "2. místo - FINALISTA";
+                      placementColor = "text-gray-300";
+                    }
+                  } else {
+                    // Hledáme zápas o 3. místo
+                    const thirdPlaceMatch = tournamentState.matches.playoff.find(match => match.round === 'third_place');
+                    if (thirdPlaceMatch && (thirdPlaceMatch.home === selectedTeam.name || thirdPlaceMatch.away === selectedTeam.name)) {
+                      const isThird = (thirdPlaceMatch.home === selectedTeam.name && thirdPlaceMatch.score.home > thirdPlaceMatch.score.away) ||
+                                      (thirdPlaceMatch.away === selectedTeam.name && thirdPlaceMatch.score.away > thirdPlaceMatch.score.home);
+                      if (isThird) {
+                        placement = "3. místo - BRONZ";
+                        placementColor = "text-amber-700";
+                      } else {
+                        placement = "4. místo";
+                        placementColor = "text-gray-400";
+                      }
+                    } else {
+                      // Tým se nedostal do semifinále - určíme umístění ze skupin
+                      const playerGroup = tournamentState.groups.A.some(g => g.team.name === selectedTeam.name) ? 'A' : 
+                                        tournamentState.groups.B.some(g => g.team.name === selectedTeam.name) ? 'B' : null;
+                      
+                      if (playerGroup) {
+                        const groupTeams = [...tournamentState.groups[playerGroup]].sort((a, b) => b.points - a.points);
+                        const playerTeamIndex = groupTeams.findIndex(g => g.team.name === selectedTeam.name);
+                        
+                        switch(playerTeamIndex) {
+                          case 0: placement = "5. místo (1. ve skupině)"; break;
+                          case 1: placement = "6. místo (2. ve skupině)"; break;
+                          case 2: placement = "7. místo (3. ve skupině)"; break;
+                          default: placement = "8. místo (4. ve skupině)"; break;
+                        }
+                      }
+                    }
+                  }
+                }
+                
+                return (
+                  <div className="text-center">
+                    <div className={`text-2xl font-bold mb-4 ${placementColor}`}>
+                      {placement}
+                    </div>
+                    <div className="text-xl mb-6">
+                      Váš tým: <span className="text-blue-400 font-bold">{selectedTeam.name}</span>
+                    </div>
+                    <div className="text-3xl font-bold mb-2 text-yellow-400">
+                      Odměna: {prize} <img src="/Images/coin.png" alt="Mince" className="w-6 h-6 inline mb-1" />
+                    </div>
+                    <div className="text-lg text-gray-400">
+                      Odměna byla vypočítána na základě vašeho umístění v turnaji
+                    </div>
                   </div>
-                </>
-              )}
+                );
+              })()}
+            </div>
+            
+            {/* Tabulky umístění týmů */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
+              {/* Skupina A */}
+              <div className="bg-gradient-to-br from-blue-900/50 to-blue-800/20 rounded-xl p-6 border border-blue-500/20">
+                <h3 className="text-xl font-bold text-blue-400 mb-4">Skupina A - Konečné pořadí</h3>
+                <div className="overflow-x-auto">
+                  <table className="min-w-full">
+                    <thead className="border-b border-blue-500/30">
+                      <tr>
+                        <th className="py-2 text-white text-sm font-semibold text-left">Tým</th>
+                        <th className="py-2 text-white text-sm font-semibold text-center">Z</th>
+                        <th className="py-2 text-white text-sm font-semibold text-center">V</th>
+                        <th className="py-2 text-white text-sm font-semibold text-center">R</th>
+                        <th className="py-2 text-white text-sm font-semibold text-center">P</th>
+                        <th className="py-2 text-white text-sm font-semibold text-center">Skóre</th>
+                        <th className="py-2 text-white text-sm font-semibold text-center">Body</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {[...tournamentState.groups.A]
+                        .sort((a, b) => b.points - a.points)
+                        .map((teamData, index) => {
+                          // Počítáme výhry, remízy a prohry
+                          const matches = tournamentState.matches.groups.filter(
+                            m => (m.home === teamData.team.name || m.away === teamData.team.name) && m.score
+                          );
+                          
+                          let wins = 0, draws = 0, losses = 0;
+                          
+                          matches.forEach(match => {
+                            if (match.home === teamData.team.name) {
+                              if (match.score.home > match.score.away) wins++;
+                              else if (match.score.home === match.score.away) draws++;
+                              else losses++;
+                            } else {
+                              if (match.score.away > match.score.home) wins++;
+                              else if (match.score.away === match.score.home) draws++;
+                              else losses++;
+                            }
+                          });
+                          
+                          return (
+                            <tr key={index} className={`border-b border-blue-500/10 ${teamData.team.name === selectedTeam.name ? 'bg-blue-900/30' : ''}`}>
+                              <td className="py-2 text-white text-sm">
+                                {index + 1}. {teamData.team.name}
+                                {teamData.team.name === selectedTeam.name && <span className="ml-2 text-yellow-400 font-bold">(VÁŠ TÝM)</span>}
+                              </td>
+                              <td className="py-2 text-gray-300 text-sm text-center">{matches.length}</td>
+                              <td className="py-2 text-green-400 text-sm text-center">{wins}</td>
+                              <td className="py-2 text-yellow-400 text-sm text-center">{draws}</td>
+                              <td className="py-2 text-red-400 text-sm text-center">{losses}</td>
+                              <td className="py-2 text-white text-sm text-center">{teamData.score.for}:{teamData.score.against}</td>
+                              <td className="py-2 text-yellow-400 font-bold text-sm text-center">{teamData.points}</td>
+                            </tr>
+                          );
+                        })}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+              
+              {/* Skupina B */}
+              <div className="bg-gradient-to-br from-purple-900/50 to-purple-800/20 rounded-xl p-6 border border-purple-500/20">
+                <h3 className="text-xl font-bold text-purple-400 mb-4">Skupina B - Konečné pořadí</h3>
+                <div className="overflow-x-auto">
+                  <table className="min-w-full">
+                    <thead className="border-b border-purple-500/30">
+                      <tr>
+                        <th className="py-2 text-white text-sm font-semibold text-left">Tým</th>
+                        <th className="py-2 text-white text-sm font-semibold text-center">Z</th>
+                        <th className="py-2 text-white text-sm font-semibold text-center">V</th>
+                        <th className="py-2 text-white text-sm font-semibold text-center">R</th>
+                        <th className="py-2 text-white text-sm font-semibold text-center">P</th>
+                        <th className="py-2 text-white text-sm font-semibold text-center">Skóre</th>
+                        <th className="py-2 text-white text-sm font-semibold text-center">Body</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {[...tournamentState.groups.B]
+                        .sort((a, b) => b.points - a.points)
+                        .map((teamData, index) => {
+                          // Počítáme výhry, remízy a prohry
+                          const matches = tournamentState.matches.groups.filter(
+                            m => (m.home === teamData.team.name || m.away === teamData.team.name) && m.score
+                          );
+                          
+                          let wins = 0, draws = 0, losses = 0;
+                          
+                          matches.forEach(match => {
+                            if (match.home === teamData.team.name) {
+                              if (match.score.home > match.score.away) wins++;
+                              else if (match.score.home === match.score.away) draws++;
+                              else losses++;
+                            } else {
+                              if (match.score.away > match.score.home) wins++;
+                              else if (match.score.away === match.score.home) draws++;
+                              else losses++;
+                            }
+                          });
+                          
+                          return (
+                            <tr key={index} className={`border-b border-purple-500/10 ${teamData.team.name === selectedTeam.name ? 'bg-purple-900/30' : ''}`}>
+                              <td className="py-2 text-white text-sm">
+                                {index + 1}. {teamData.team.name}
+                                {teamData.team.name === selectedTeam.name && <span className="ml-2 text-yellow-400 font-bold">(VÁŠ TÝM)</span>}
+                              </td>
+                              <td className="py-2 text-gray-300 text-sm text-center">{matches.length}</td>
+                              <td className="py-2 text-green-400 text-sm text-center">{wins}</td>
+                              <td className="py-2 text-yellow-400 text-sm text-center">{draws}</td>
+                              <td className="py-2 text-red-400 text-sm text-center">{losses}</td>
+                              <td className="py-2 text-white text-sm text-center">{teamData.score.for}:{teamData.score.against}</td>
+                              <td className="py-2 text-yellow-400 font-bold text-sm text-center">{teamData.points}</td>
+                            </tr>
+                          );
+                        })}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
 
-              <div className="grid grid-cols-[350px_1fr_400px] gap-8">
-                {/* Levý sloupec - Skupiny */}
-                <div className="space-y-8">
-                  {/* Skupina A */}
-                  <div className="bg-gradient-to-br from-blue-900/50 to-blue-800/20 rounded-xl p-6 border border-blue-500/20">
-                    <h3 className="text-2xl font-bold text-blue-400 mb-4">Skupina A</h3>
-                    <div className="space-y-2">
-                      {tournamentState.groups.A.map((teamData, index) => (
-                        <div key={index} className="bg-black/30 p-3 rounded-lg border border-blue-500/10">
+            {/* Nejlepší hráči vašeho týmu */}
+            <div className="bg-gradient-to-br from-red-900/50 to-red-800/20 rounded-xl p-6 border border-red-500/20 mb-8">
+              <h3 className="text-xl font-bold text-red-400 mb-4">Nejlepší hráči vašeho týmu</h3>
+              <div className="overflow-x-auto">
+                <table className="min-w-full">
+                  <thead className="border-b border-red-500/30">
+                    <tr>
+                      <th className="py-2 text-white text-sm font-semibold text-left">Hráč</th>
+                      <th className="py-2 text-white text-sm font-semibold text-center">Pozice</th>
+                      <th className="py-2 text-white text-sm font-semibold text-center">G</th>
+                      <th className="py-2 text-white text-sm font-semibold text-center">A</th>
+                      <th className="py-2 text-white text-sm font-semibold text-center">B</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {tournamentState.scorers
+                      .filter(scorer => scorer.team === selectedTeam.name)
+                      .sort((a, b) => (b.goals + b.assists) - (a.goals + a.assists))
+                      .map((player, index) => (
+                        <tr key={index} className="border-b border-red-500/10">
+                          <td className="py-2 text-white text-sm">{player.name}</td>
+                          <td className="py-2 text-white text-sm text-center">
+                            {player.position === 'goalkeeper' ? 'Brankář' : 
+                             player.position === 'defender' ? 'Obránce' : 
+                             player.position === 'forward' ? 'Útočník' : 'Neznámá'}
+                          </td>
+                          <td className="py-2 text-yellow-400 text-sm text-center">{player.goals}</td>
+                          <td className="py-2 text-yellow-400 text-sm text-center">{player.assists}</td>
+                          <td className="py-2 text-yellow-400 text-sm font-bold text-center">{player.goals + player.assists}</td>
+                        </tr>
+                      ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            {/* Výsledky play-off */}
+            <div className="bg-gradient-to-br from-green-900/50 to-green-800/20 rounded-xl p-6 border border-green-500/20 mb-8">
+              <h3 className="text-xl font-bold text-green-400 mb-4">Výsledky play-off</h3>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                {/* Čtvrtfinále */}
+                <div>
+                  <h4 className="text-sm font-semibold text-green-400 mb-2">Čtvrtfinále</h4>
+                  <div className="space-y-2">
+                    {tournamentState.matches.playoff
+                      .filter(match => match.round === 'quarterfinal' && match.score)
+                      .map((match, index) => (
+                        <div key={index} className={`bg-black/30 p-3 rounded-lg text-sm border ${
+                          match.home === selectedTeam.name || match.away === selectedTeam.name ? 'border-yellow-500/50' : 'border-green-500/10'
+                        }`}>
                           <div className="flex justify-between items-center">
-                            <span className="text-white">{teamData.team.name}</span>
-                            <span className="text-yellow-400 font-bold">{teamData.points} b.</span>
-                          </div>
-                          <div className="text-sm text-gray-400 mt-1">
-                            Skóre: {teamData.score.for}:{teamData.score.against}
+                            <span className={`${match.home === selectedTeam.name ? 'text-yellow-400 font-bold' : 'text-white'}`}>{match.home}</span>
+                            <span className="text-yellow-400 font-bold mx-2">{match.score.home} : {match.score.away}</span>
+                            <span className={`${match.away === selectedTeam.name ? 'text-yellow-400 font-bold' : 'text-white'}`}>{match.away}</span>
                           </div>
                         </div>
                       ))}
-                    </div>
                   </div>
-
-                  {/* Skupina B */}
-                  <div className="bg-gradient-to-br from-purple-900/50 to-purple-800/20 rounded-xl p-6 border border-purple-500/20">
-                    <h3 className="text-2xl font-bold text-purple-400 mb-4">Skupina B</h3>
-                    <div className="space-y-2">
-                      {tournamentState.groups.B.map((teamData, index) => (
-                        <div key={index} className="bg-black/30 p-3 rounded-lg border border-purple-500/10">
+                </div>
+                
+                {/* Semifinále */}
+                <div>
+                  <h4 className="text-sm font-semibold text-green-400 mb-2">Semifinále</h4>
+                  <div className="space-y-2">
+                    {tournamentState.matches.playoff
+                      .filter(match => match.round === 'semifinal' && match.score)
+                      .map((match, index) => (
+                        <div key={index} className={`bg-black/30 p-3 rounded-lg text-sm border ${
+                          match.home === selectedTeam.name || match.away === selectedTeam.name ? 'border-yellow-500/50' : 'border-green-500/10'
+                        }`}>
                           <div className="flex justify-between items-center">
-                            <span className="text-white">{teamData.team.name}</span>
-                            <span className="text-yellow-400 font-bold">{teamData.points} b.</span>
-                          </div>
-                          <div className="text-sm text-gray-400 mt-1">
-                            Skóre: {teamData.score.for}:{teamData.score.against}
+                            <span className={`${match.home === selectedTeam.name ? 'text-yellow-400 font-bold' : 'text-white'}`}>{match.home}</span>
+                            <span className="text-yellow-400 font-bold mx-2">{match.score.home} : {match.score.away}</span>
+                            <span className={`${match.away === selectedTeam.name ? 'text-yellow-400 font-bold' : 'text-white'}`}>{match.away}</span>
                           </div>
                         </div>
                       ))}
-                    </div>
                   </div>
                 </div>
-
-                {/* Prostřední sloupec - Statistiky */}
-                <div className="grid grid-cols-2 gap-4">
-                  {/* Úspěšnost brankářů */}
-                  <div className="bg-gradient-to-br from-green-900/50 to-green-800/20 rounded-xl p-6 border border-green-500/20">
-                    <h3 className="text-xl font-bold text-green-400 mb-4">Úspěšnost brankářů</h3>
-                    <div className="overflow-x-auto overflow-y-auto max-h-[750px]"> {/* Zvýšena výška pro zobrazení více hráčů */}
-                      <table className="min-w-full text-left">
-                        <thead className="border-b border-green-500/30 sticky top-0 bg-gray-900/80 backdrop-blur-sm z-10">
-                          <tr>
-                            <th 
-                              className="py-2 text-white text-sm font-semibold cursor-pointer hover:text-green-400 transition-colors duration-200"
-                              onClick={() => handleSort('goalies', 'name')}
-                            >
-                              Brankář {sortConfig.table === 'goalies' && sortConfig.key === 'name' && (sortConfig.direction === 'asc' ? '↑' : '↓')}
-                            </th>
-                            <th 
-                              className="py-2 text-white text-sm font-semibold cursor-pointer hover:text-green-400 transition-colors duration-200"
-                              onClick={() => handleSort('goalies', 'team')}
-                            >
-                              Tým {sortConfig.table === 'goalies' && sortConfig.key === 'team' && (sortConfig.direction === 'asc' ? '↑' : '↓')}
-                            </th>
-                            <th 
-                              className="py-2 text-white text-sm font-semibold cursor-pointer hover:text-green-400 transition-colors duration-200"
-                              onClick={() => handleSort('goalies', 'saves')}
-                            >
-                              Zákroky {sortConfig.table === 'goalies' && sortConfig.key === 'saves' && (sortConfig.direction === 'asc' ? '↑' : '↓')}
-                            </th>
-                            <th 
-                              className="py-2 text-white text-sm font-semibold cursor-pointer hover:text-green-400 transition-colors duration-200"
-                              onClick={() => handleSort('goalies', 'shots')}
-                            >
-                              Střely {sortConfig.table === 'goalies' && sortConfig.key === 'shots' && (sortConfig.direction === 'asc' ? '↑' : '↓')}
-                            </th>
-                            <th 
-                              className="py-2 text-white text-sm font-semibold cursor-pointer hover:text-green-400 transition-colors duration-200"
-                              onClick={() => handleSort('goalies', 'savePercentage')}
-                            >
-                              Úspěšnost {sortConfig.table === 'goalies' && sortConfig.key === 'savePercentage' && (sortConfig.direction === 'asc' ? '↑' : '↓')}
-                            </th>
-                            <th 
-                              className="py-2 text-white text-sm font-semibold cursor-pointer hover:text-green-400 transition-colors duration-200"
-                              onClick={() => handleSort('goalies', 'shutouts')}
-                            >
-                              Vychytané nuly {sortConfig.table === 'goalies' && sortConfig.key === 'shutouts' && (sortConfig.direction === 'asc' ? '↑' : '↓')}
-                            </th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {tournamentState.goalies && Array.isArray(tournamentState.goalies) && 
-                            getSortedData(tournamentState.goalies, 'goalies').map((goalie, index) => {
-                            const savePercentage = goalie.shots > 0 ? ((goalie.saves / goalie.shots) * 100).toFixed(1) : '0.0';
-                            return (
-                              <tr key={index} className="border-b border-green-500/10">
-                                <td className="py-2 text-white text-sm">{goalie.name}</td>
-                                <td className="py-2 text-white text-sm">{goalie.team}</td>
-                                <td className="py-2 text-yellow-400 text-sm">{goalie.saves}</td>
-                                <td className="py-2 text-yellow-400 text-sm">{goalie.shots}</td>
-                                <td className="py-2 text-yellow-400 text-sm">{savePercentage}%</td>
-                                <td className="py-2 text-yellow-400 text-sm">{goalie.shutouts}</td>
-                              </tr>
-                            );
-                          })}
-                        </tbody>
-                      </table>
-                    </div>
-                  </div>
-
-                  {/* Kanadské bodování */}
-                  <div className="bg-gradient-to-br from-red-900/50 to-red-800/20 rounded-xl p-6 border border-red-500/20">
-                    <h3 className="text-xl font-bold text-red-400 mb-4">Kanadské bodování</h3>
-                    <div className="overflow-x-auto overflow-y-auto max-h-[750px]"> {/* Zvýšena výška pro zobrazení více hráčů */}
-                      <table className="min-w-full text-left">
-                        <thead className="border-b border-red-500/30 sticky top-0 bg-gray-900/80 backdrop-blur-sm z-10">
-                          <tr>
-                            <th 
-                              className="py-2 text-white text-sm font-semibold cursor-pointer hover:text-red-400 transition-colors duration-200"
-                              onClick={() => handleSort('scorers', 'name')}
-                            >
-                              Hráč {sortConfig.table === 'scorers' && sortConfig.key === 'name' && (sortConfig.direction === 'asc' ? '↑' : '↓')}
-                            </th>
-                            <th 
-                              className="py-2 text-white text-sm font-semibold cursor-pointer hover:text-red-400 transition-colors duration-200"
-                              onClick={() => handleSort('scorers', 'team')}
-                            >
-                              Tým {sortConfig.table === 'scorers' && sortConfig.key === 'team' && (sortConfig.direction === 'asc' ? '↑' : '↓')}
-                            </th>
-                            <th 
-                              className="py-2 text-white text-sm font-semibold cursor-pointer hover:text-red-400 transition-colors duration-200"
-                              onClick={() => handleSort('scorers', 'position')}
-                            >
-                              Pozice {sortConfig.table === 'scorers' && sortConfig.key === 'position' && (sortConfig.direction === 'asc' ? '↑' : '↓')}
-                            </th>
-                            <th 
-                              className="py-2 text-white text-sm font-semibold cursor-pointer hover:text-red-400 transition-colors duration-200"
-                              onClick={() => handleSort('scorers', 'goals')}
-                            >
-                              G {sortConfig.table === 'scorers' && sortConfig.key === 'goals' && (sortConfig.direction === 'asc' ? '↑' : '↓')}
-                            </th>
-                            <th 
-                              className="py-2 text-white text-sm font-semibold cursor-pointer hover:text-red-400 transition-colors duration-200"
-                              onClick={() => handleSort('scorers', 'assists')}
-                            >
-                              A {sortConfig.table === 'scorers' && sortConfig.key === 'assists' && (sortConfig.direction === 'asc' ? '↑' : '↓')}
-                            </th>
-                            <th 
-                              className="py-2 text-white text-sm font-semibold cursor-pointer hover:text-red-400 transition-colors duration-200"
-                              onClick={() => handleSort('scorers', 'points')}
-                            >
-                              B {sortConfig.table === 'scorers' && sortConfig.key === 'points' && (sortConfig.direction === 'asc' ? '↑' : '↓')}
-                            </th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {tournamentState.scorers && 
-                            getSortedData(tournamentState.scorers, 'scorers').map((scorer, index) => (
-                              <tr key={index} className="border-b border-red-500/10">
-                                <td className="py-2 text-white text-sm">{scorer.name}</td>
-                                <td className="py-2 text-white text-sm">{scorer.team}</td>
-                                <td className="py-2 text-white text-sm">
-                                  {scorer.position === 'goalkeeper' ? 'Brankář' : 
-                                   scorer.position === 'defender' ? 'Obránce' : 
-                                   scorer.position === 'forward' ? 'Útočník' : 'Neznámá'}
-                                </td>
-                                <td className="py-2 text-yellow-400 text-sm">{scorer.goals}</td>
-                                <td className="py-2 text-yellow-400 text-sm">{scorer.assists}</td>
-                                <td className="py-2 text-yellow-400 text-sm font-bold">{scorer.goals + scorer.assists}</td>
-                              </tr>
-                            ))}
-                        </tbody>
-                      </table>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Pravý sloupec - Rozpis zápasů */}
-                <div className="space-y-8">
-                  <div className="bg-gradient-to-br from-gray-900/50 to-gray-800/20 rounded-xl p-6 border border-gray-500/20">
-                    <h3 className="text-2xl font-bold text-gray-400 mb-4">Rozpis zápasů</h3>
-                    
-                    {/* Zápasy skupiny A */}
-                    <div className="mb-6">
-                      <h4 className="text-lg font-semibold text-blue-400 mb-2">Skupina A</h4>
-                      <div className="space-y-2">
-                        {tournamentState.matches.groups
-                          .filter(match => match.group === 'A')
-                          .map((match, index) => (
-                            <div key={index} className="bg-black/30 p-3 rounded-lg text-sm border border-blue-500/10">
-                              <div className="flex justify-between items-center">
-                                <span className="text-white">{match.home}</span>
-                                <span className="text-yellow-400 font-bold mx-2">
-                                  {match.score ? `${match.score.home} : ${match.score.away}` : 'vs'}
-                                </span>
-                                <span className="text-white">{match.away}</span>
-                              </div>
-                              {!match.score && (
-                                <div className="flex justify-center gap-2 mt-2">
-                                  {(match.home === selectedTeam.name || match.away === selectedTeam.name) ? (
-                                    <button
-                                      onClick={() => startNextTournamentMatch()}
-                                      className="bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 
-                                        text-white text-sm font-bold py-1 px-4 rounded-lg transform transition-all duration-300 
-                                        hover:scale-105 active:scale-95">
-                                      Hrát zápas
-                                    </button>
-                                  ) : (
-                                    <button
-                                      onClick={() => startNextTournamentMatch()}
-                                      className="bg-gradient-to-r from-gray-500 to-gray-600 hover:from-gray-600 hover:to-gray-700 
-                                        text-white text-sm font-bold py-1 px-4 rounded-lg transform transition-all duration-300 
-                                        hover:scale-105 active:scale-95">
-                                      Simulovat zápas
-                                    </button>
-                                  )}
-                                </div>
-                              )}
-                            </div>
-                          ))}
-                      </div>
-                    </div>
-
-                    {/* Zápasy skupiny B */}
-                    <div className="mb-6">
-                      <h4 className="text-lg font-semibold text-purple-400 mb-2">Skupina B</h4>
-                      <div className="space-y-2">
-                        {tournamentState.matches.groups
-                          .filter(match => match.group === 'B')
-                          .map((match, index) => (
-                            <div key={index} className="bg-black/30 p-3 rounded-lg text-sm border border-purple-500/10">
-                              <div className="flex justify-between items-center">
-                                <span className="text-white">{match.home}</span>
-                                <span className="text-yellow-400 font-bold mx-2">
-                                  {match.score ? `${match.score.home} : ${match.score.away}` : 'vs'}
-                                </span>
-                                <span className="text-white">{match.away}</span>
-                              </div>
-                              {!match.score && (
-                                <div className="flex justify-center gap-2 mt-2">
-                                  {(match.home === selectedTeam.name || match.away === selectedTeam.name) ? (
-                                    <button
-                                      onClick={() => startNextTournamentMatch()}
-                                      className="bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 
-                                        text-white text-sm font-bold py-1 px-4 rounded-lg transform transition-all duration-300 
-                                        hover:scale-105 active:scale-95">
-                                      Hrát zápas
-                                    </button>
-                                  ) : (
-                                    <button
-                                      onClick={() => startNextTournamentMatch()}
-                                      className="bg-gradient-to-r from-gray-500 to-gray-600 hover:from-gray-600 hover:to-gray-700 
-                                        text-white text-sm font-bold py-1 px-4 rounded-lg transform transition-all duration-300 
-                                        hover:scale-105 active:scale-95">
-                                      Simulovat zápas
-                                    </button>
-                                  )}
-                                </div>
-                              )}
-                            </div>
-                          ))}
-                      </div>
-                    </div>
-
-                    {/* Play-off */}
-                    <div>
-                      <h4 className="text-lg font-semibold text-red-400 mb-2">Play-off</h4>
-                      <div className="space-y-4">
-                        {/* Čtvrtfinále */}
-                        <div className="space-y-2">
-                          <div className="text-sm text-red-400">Čtvrtfinále</div>
-                          {tournamentState.matches.playoff
-                            .filter(match => match.round === 'quarterfinal')
-                            .map((match, index) => (
-                              <div key={index} className="bg-black/30 p-3 rounded-lg text-sm border border-red-500/10">
-                                <div className="flex justify-between items-center">
-                                  <span className="text-white">{match.home}</span>
-                                  <span className="text-yellow-400 font-bold mx-2">
-                                    {match.score ? `${match.score.home} : ${match.score.away}` : 'vs'}
-                                  </span>
-                                  <span className="text-white">{match.away}</span>
-                                </div>
-                                {!match.score && (
-                                  <div className="flex justify-center gap-2 mt-2">
-                                    {(match.home === selectedTeam.name || match.away === selectedTeam.name) ? (
-                                      <button
-                                        onClick={() => startNextTournamentMatch()}
-                                        className="bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 
-                                          text-white text-sm font-bold py-1 px-4 rounded-lg transform transition-all duration-300 
-                                          hover:scale-105 active:scale-95">
-                                        Hrát zápas
-                                      </button>
-                                    ) : (
-                                      <button
-                                        onClick={() => startNextTournamentMatch()}
-                                        className="bg-gradient-to-r from-gray-500 to-gray-600 hover:from-gray-600 hover:to-gray-700 
-                                          text-white text-sm font-bold py-1 px-4 rounded-lg transform transition-all duration-300 
-                                          hover:scale-105 active:scale-95">
-                                        Simulovat zápas
-                                      </button>
-                                    )}
-                                  </div>
-                                )}
-                              </div>
-                            ))}
+                
+                {/* Finálové zápasy */}
+                <div>
+                  <h4 className="text-sm font-semibold text-green-400 mb-2">Finálové zápasy</h4>
+                  <div className="space-y-2">
+                    {tournamentState.matches.playoff
+                      .filter(match => ['third_place', 'final'].includes(match.round) && match.score)
+                      .map((match, index) => (
+                        <div key={index} className={`bg-black/30 p-3 rounded-lg text-sm border ${
+                          match.home === selectedTeam.name || match.away === selectedTeam.name ? 'border-yellow-500/50' : 'border-green-500/10'
+                        }`}>
+                          <div className="text-xs text-green-400 mb-1">
+                            {match.round === 'third_place' ? 'O 3. místo' : 'Finále'}
+                          </div>
+                          <div className="flex justify-between items-center">
+                            <span className={`${match.home === selectedTeam.name ? 'text-yellow-400 font-bold' : 'text-white'}`}>{match.home}</span>
+                            <span className="text-yellow-400 font-bold mx-2">{match.score.home} : {match.score.away}</span>
+                            <span className={`${match.away === selectedTeam.name ? 'text-yellow-400 font-bold' : 'text-white'}`}>{match.away}</span>
+                          </div>
                         </div>
-
-                        {/* Semifinále */}
-                        <div className="space-y-2">
-                          <div className="text-sm text-red-400">Semifinále</div>
-                          {tournamentState.matches.playoff
-                            .filter(match => match.round === 'semifinal')
-                            .map((match, index) => (
-                              <div key={index} className="bg-black/30 p-3 rounded-lg text-sm border border-red-500/10">
-                                <div className="flex justify-between items-center">
-                                  <span className="text-white">{match.home}</span>
-                                  <span className="text-yellow-400 font-bold mx-2">
-                                    {match.score ? `${match.score.home} : ${match.score.away}` : 'vs'}
-                                  </span>
-                                  <span className="text-white">{match.away}</span>
-                                </div>
-                                {!match.score && (
-                                  <div className="flex justify-center gap-2 mt-2">
-                                    {(match.home === selectedTeam.name || match.away === selectedTeam.name) ? (
-                                      <button
-                                        onClick={() => startNextTournamentMatch()}
-                                        className="bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 
-                                          text-white text-sm font-bold py-1 px-4 rounded-lg transform transition-all duration-300 
-                                          hover:scale-105 active:scale-95">
-                                        Hrát zápas
-                                      </button>
-                                    ) : (
-                                      <button
-                                        onClick={() => startNextTournamentMatch()}
-                                        className="bg-gradient-to-r from-gray-500 to-gray-600 hover:from-gray-600 hover:to-gray-700 
-                                          text-white text-sm font-bold py-1 px-4 rounded-lg transform transition-all duration-300 
-                                          hover:scale-105 active:scale-95">
-                                        Simulovat zápas
-                                      </button>
-                                    )}
-                                  </div>
-                                )}
-                              </div>
-                            ))}
-                        </div>
-
-                        {/* O umístění */}
-                        <div className="space-y-2">
-                          <div className="text-sm text-red-400">O umístění</div>
-                          {tournamentState.matches.playoff
-                            .filter(match => ['fifth_place', 'third_place', 'final'].includes(match.round))
-                            .map((match, index) => (
-                              <div key={index} className="bg-black/30 p-3 rounded-lg text-sm border border-red-500/10">
-                                <div className="text-xs text-red-400 mb-1">
-                                  {match.round === 'fifth_place' ? 'O 5. místo' :
-                                   match.round === 'third_place' ? 'O 3. místo' : 'Finále'}
-                                </div>
-                                <div className="flex justify-between items-center">
-                                  <span className="text-white">{match.home}</span>
-                                  <span className="text-yellow-400 font-bold mx-2">
-                                    {match.score ? `${match.score.home} : ${match.score.away}` : 'vs'}
-                                  </span>
-                                  <span className="text-white">{match.away}</span>
-                                </div>
-                                {!match.score && (
-                                  <div className="flex justify-center gap-2 mt-2">
-                                    {(match.home === selectedTeam.name || match.away === selectedTeam.name) ? (
-                                      <button
-                                        onClick={() => startNextTournamentMatch()}
-                                        className="bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 
-                                          text-white text-sm font-bold py-1 px-4 rounded-lg transform transition-all duration-300 
-                                          hover:scale-105 active:scale-95">
-                                        Hrát zápas
-                                      </button>
-                                    ) : (
-                                      <button
-                                        onClick={() => startNextTournamentMatch()}
-                                        className="bg-gradient-to-r from-gray-500 to-gray-600 hover:from-gray-600 hover:to-gray-700 
-                                          text-white text-sm font-bold py-1 px-4 rounded-lg transform transition-all duration-300 
-                                          hover:scale-105 active:scale-95">
-                                        Simulovat zápas
-                                      </button>
-                                    )}
-                                  </div>
-                                )}
-                              </div>
-                            ))}
-                        </div>
-                      </div>
-                    </div>
+                      ))}
                   </div>
                 </div>
               </div>
             </div>
+
+            {/* Tlačítko pro ukončení turnaje */}
+            <div className="flex justify-center mt-8">
+              <button
+                onClick={finishTournament}
+                className="bg-gradient-to-r from-blue-500 to-blue-700 hover:from-blue-600 hover:to-blue-800 
+                  text-white text-lg font-bold py-3 px-8 rounded-lg shadow-lg transform transition-all duration-300 
+                  hover:scale-105 active:scale-95">
+                Ukončit turnaj a vrátit se do menu
+              </button>
+            </div>
           </div>
-        )}
-      </div>
+        </div>
+      )}
+    
+      {/* Hlavní menu */}
     </div>
   );
 };
