@@ -1488,6 +1488,9 @@ const CardGame = () => {
 
   // Funkce pro potvrzení odchodu ze zápasu
   const confirmMatchExit = () => {
+    // Nejprve zkontrolujeme, zda jde o přátelský zápas s Lopatami Praha
+    const isFriendlyMatch = matchState.awayTeam && matchState.awayTeam.name === "Lopaty Praha";
+
     // Pokud jsme v turnaji, přeneseme statistiky brankářů do turnajové tabulky
     if (tournamentState.phase && matchState.completed) {
       // Získání ID brankářů z obou týmů
@@ -1716,21 +1719,70 @@ const CardGame = () => {
       ? 25  // Výhra
       : matchState.score.home === matchState.score.away 
         ? 10  // Remíza
-        : 5;  // Prohra
-    
-    // Bonus za vstřelené góly
-    const goalBonus = matchState.score.home * 5;
-    
-    // Celkem získané zkušenosti
-    const totalXpEarned = earnedXp + goalBonus;
+        : 1;  // Prohra
     
     // Přidání zkušeností
-    setXp(prevXp => prevXp + totalXpEarned);
+    setXp(prevXp => prevXp + earnedXp);
     
-    // Oznámení o získaných zkušenostech
-    alert(`Získali jste ${totalXpEarned} zkušenostních bodů! (${earnedXp} za zápas + ${goalBonus} za vstřelené góly)`);
+    // Pro přátelský zápas s Lopatami Praha zobrazit obrazovku odměn
+    if (isFriendlyMatch) {
+      // Určení peněžní odměny
+      const moneyReward = matchState.score.home > matchState.score.away 
+        ? 50  // Výhra
+        : matchState.score.home === matchState.score.away 
+          ? 10  // Remíza
+          : 1;  // Prohra
+      
+      // Přidání peněz hráči
+      setMoney(prevMoney => prevMoney + moneyReward);
+      
+      // Nastavení výsledku zápasu pro zobrazení odměn
+      setMatchResult({
+        result: matchState.score.home > matchState.score.away 
+          ? "win" 
+          : matchState.score.home === matchState.score.away 
+            ? "draw" 
+            : "loss",
+        xpReward: earnedXp,
+        moneyReward: moneyReward,
+        homeScore: matchState.score.home,
+        awayScore: matchState.score.away
+      });
+      
+      // Resetujeme stav zápasu, ale nezavíráme obrazovku zápasu ještě
+      setMatchState(prev => ({
+        ...prev,
+        period: 1,
+        time: 1200,
+        score: { home: 0, away: 0 },
+        events: [],
+        isPlaying: false,
+        gameSpeed: 1,
+        playerStats: {
+          goals: {},
+          assists: {},
+          saves: {},
+          saveAccuracy: {},
+          shots: {}
+        },
+        penalties: [],
+        scheduledEvents: [],
+        currentOpponent: null,
+        completed: false
+      }));
+      
+      // Skryjeme obrazovku zápasu a zobrazíme obrazovku odměn
+      setMatchCompleteAwaitingConfirmation(false);
+      setShowMatch(false);
+      setShowRewards(true);
+      
+      // Nebudeme už dělat nic dalšího - vše ostatní se zpracuje při kliknutí na tlačítko "Pokračovat" na obrazovce odměn
+      return;
+    }
     
+    // Pro ostatní zápasy (ne přátelský s Lopatami) pokračujeme s původní logikou
     setMatchCompleteAwaitingConfirmation(false);
+    
     // Resetujeme stav zápasu
     setMatchState(prev => ({
       ...prev,
@@ -1753,10 +1805,14 @@ const CardGame = () => {
       completed: false
     }));
     
-    // Vždy zůstaň v turnajovém menu po zápase
+    // Pro turnaj zůstaneme v turnajovém menu
     if (tournamentState.phase) {
       setShowMatch(false);
       setShowTournament(true);
+      setShowRewards(false);
+    } else {
+      // Pro ostatní zápasy (ne turnaj a ne přátelský s Lopatami)
+      setShowMatch(false);
       setShowRewards(false);
     }
   };
@@ -3456,9 +3512,29 @@ const CardGame = () => {
         {showRewards && (
           <div className="fixed inset-0 bg-black/95 flex items-center justify-center z-50">
             <div className="bg-gradient-to-b from-yellow-900/50 to-yellow-800/30 p-8 rounded-2xl max-w-md w-full mx-4 border border-yellow-500/20">
-              <h2 className="text-4xl font-bold text-center mb-6 bg-gradient-to-r from-yellow-400 to-yellow-600 text-transparent bg-clip-text">
+              {/* Hlavička s typem zápasu */}
+              <div className="text-center mb-2">
+                <p className="text-yellow-300 text-sm uppercase tracking-wider">Přátelský zápas</p>
+              </div>
+              
+              <h2 className="text-4xl font-bold text-center mb-2 bg-gradient-to-r from-yellow-400 to-yellow-600 text-transparent bg-clip-text">
                 {getMatchResultText()}
               </h2>
+              
+              {/* Zobrazení týmů a skóre */}
+              <div className="bg-black/30 p-4 rounded-xl mb-6">
+                <div className="flex justify-between items-center">
+                  <div className="text-center">
+                    <p className="text-white font-bold">{selectedTeam?.name || "Váš tým"}</p>
+                    <p className="text-3xl text-yellow-400 font-bold">{matchResult?.homeScore || 0}</p>
+                  </div>
+                  <div className="text-white text-xs">vs</div>
+                  <div className="text-center">
+                    <p className="text-white font-bold">Lopaty Praha</p>
+                    <p className="text-3xl text-yellow-400 font-bold">{matchResult?.awayScore || 0}</p>
+                  </div>
+                </div>
+              </div>
               
               <div className="space-y-6">
                 <div className="bg-black/30 p-4 rounded-xl">
@@ -3502,6 +3578,9 @@ const CardGame = () => {
                   onClick={() => {
                     setShowRewards(false);
                     setShowMatch(false);
+                    
+                    // Po přátelském zápase s Lopaty Praha se vracíme na hlavní obrazovku
+                    // a resetujeme všechny potřebné stavy
                     setMatchState(prev => ({
                       ...prev,
                       period: 1,
@@ -3519,8 +3598,16 @@ const CardGame = () => {
                       },
                       penalties: [],
                       scheduledEvents: [],
-                      currentOpponent: null
+                      currentOpponent: null,
+                      completed: false,
+                      homeTeam: null,
+                      awayTeam: null
                     }));
+                    
+                    // Přidáme krátkou animaci konfetti jako oslavu získání odměn
+                    if (matchResult && matchResult.result === "win") {
+                      createConfetti();
+                    }
                   }}
                   className="w-full bg-gradient-to-r from-yellow-500 to-yellow-600 hover:from-yellow-600 hover:to-yellow-700 text-black font-bold py-3 px-6 rounded-xl shadow-lg transform transition-all duration-300 hover:scale-105 active:scale-95"
                 >
