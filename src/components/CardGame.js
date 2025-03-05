@@ -549,6 +549,61 @@ const CardGame = () => {
     return currentLevel * 50; // Každý level stojí o 50 Kč více
   };
 
+  // Funkce pro výpočet potřebných zkušeností pro daný level
+  const getXpForLevel = (level) => {
+    if (level <= 1) return 0;
+    if (level === 2) return 100;
+    
+    // Pro levely 3 a výše přidáváme vždy o 10% více zkušeností než pro předchozí level
+    let xpTotal = 100; // XP pro level 2
+    let xpForPrevLevel = 100;
+    
+    for (let i = 3; i <= level; i++) {
+      const xpForThisLevel = Math.ceil(xpForPrevLevel * 1.1); // 10% nárůst
+      xpTotal += xpForThisLevel;
+      xpForPrevLevel = xpForThisLevel;
+    }
+    
+    return xpTotal;
+  };
+
+  // Funkce pro výpočet aktuálního levelu hráče na základě zkušeností
+  const getLevelFromXp = (xp) => {
+    if (xp < 100) return 1; // Level 1 až do 100 XP
+    
+    let level = 2;
+    let xpRequired = 100;
+    let totalXpRequired = 100;
+    
+    while (true) {
+      xpRequired = Math.ceil(xpRequired * 1.1); // 10% nárůst
+      totalXpRequired += xpRequired;
+      
+      if (xp < totalXpRequired) break;
+      level++;
+    }
+    
+    return level;
+  };
+
+  // Funkce pro výpočet zbývajících zkušeností do dalšího levelu
+  const getXpToNextLevel = (xp) => {
+    const currentLevel = getLevelFromXp(xp);
+    const totalXpForNextLevel = getXpForLevel(currentLevel + 1);
+    return totalXpForNextLevel - xp;
+  };
+
+  // Funkce pro výpočet procenta dokončení aktuálního levelu
+  const getLevelProgress = (xp) => {
+    const currentLevel = getLevelFromXp(xp);
+    const totalXpForCurrentLevel = getXpForLevel(currentLevel);
+    const totalXpForNextLevel = getXpForLevel(currentLevel + 1);
+    const xpForThisLevel = totalXpForNextLevel - totalXpForCurrentLevel;
+    const xpProgress = xp - totalXpForCurrentLevel;
+    
+    return (xpProgress / xpForThisLevel) * 100;
+  };
+
   const upgradeCard = (cardId) => {
     const currentLevel = getCardLevel(cardId);
     const cost = getUpgradeCost(currentLevel);
@@ -1656,6 +1711,25 @@ const CardGame = () => {
       });
     }
     
+    // Přidání zkušeností po dokončení zápasu
+    const earnedXp = matchState.score.home > matchState.score.away 
+      ? 25  // Výhra
+      : matchState.score.home === matchState.score.away 
+        ? 10  // Remíza
+        : 5;  // Prohra
+    
+    // Bonus za vstřelené góly
+    const goalBonus = matchState.score.home * 5;
+    
+    // Celkem získané zkušenosti
+    const totalXpEarned = earnedXp + goalBonus;
+    
+    // Přidání zkušeností
+    setXp(prevXp => prevXp + totalXpEarned);
+    
+    // Oznámení o získaných zkušenostech
+    alert(`Získali jste ${totalXpEarned} zkušenostních bodů! (${earnedXp} za zápas + ${goalBonus} za vstřelené góly)`);
+    
     setMatchCompleteAwaitingConfirmation(false);
     // Resetujeme stav zápasu
     setMatchState(prev => ({
@@ -2543,7 +2617,7 @@ const CardGame = () => {
             <h1 className="text-5xl font-bold bg-gradient-to-r from-yellow-400 via-yellow-300 to-yellow-400 text-transparent bg-clip-text mb-4">
               Sbírka karet
             </h1>
-            <div className="flex justify-center gap-8 mb-4">
+            <div className="flex justify-center gap-4 mb-4">
               <div className="bg-black/40 px-6 py-3 rounded-xl border border-yellow-500/20">
                 <p className="text-yellow-100 text-xl">
                   Získáno: <span className="font-bold text-yellow-400">{unlockedCards.length}</span> / <span className="font-bold text-yellow-400">{cards.length}</span>
@@ -2553,6 +2627,16 @@ const CardGame = () => {
                 <p className="text-yellow-100 text-xl">
                   Peníze: <span className="font-bold text-yellow-400">{money} Kč</span>
                 </p>
+              </div>
+              <div className="bg-black/40 px-6 py-3 rounded-xl border border-yellow-500/20 relative overflow-hidden">
+                <p className="text-yellow-100 text-xl relative z-10">
+                  Level: <span className="font-bold text-yellow-400">{getLevelFromXp(xp)}</span>
+                  <span className="ml-1 text-sm text-yellow-200">({xp} XP)</span>
+                </p>
+                <div className="absolute bottom-0 left-0 h-1 bg-gradient-to-r from-yellow-500 to-yellow-600" style={{ width: `${getLevelProgress(xp)}%` }}></div>
+                <div className="absolute top-1 right-2 text-xs text-yellow-200">
+                  {getXpToNextLevel(xp)} XP do dalšího levelu
+                </div>
               </div>
             </div>
             {!showCollection && (
@@ -3951,8 +4035,8 @@ const CardGame = () => {
                   // Určení umístění na základě výsledků play-off
                   const isWinner = tournamentState.matches.playoff.find(
                     m => m.round === 'final' && (
-                      (m.homeTeam === selectedTeam.name && m.score && m.score.home > m.score.away) ||
-                      (m.awayTeam === selectedTeam.name && m.score && m.score.away > m.score.home)
+                      (m.home === selectedTeam.name && m.score && m.score.home > m.score.away) ||
+                      (m.away === selectedTeam.name && m.score && m.score.away > m.score.home)
                     )
                   );
                   
@@ -3969,36 +4053,36 @@ const CardGame = () => {
                     placementColor = "text-yellow-400";
                     prize = 3000;
                   } else if (finalMatch && (
-                    (finalMatch.homeTeam === selectedTeam.name && finalMatch.score && finalMatch.score.home < finalMatch.score.away) ||
-                    (finalMatch.awayTeam === selectedTeam.name && finalMatch.score && finalMatch.score.away < finalMatch.score.home)
+                    (finalMatch.home === selectedTeam.name && finalMatch.score && finalMatch.score.home < finalMatch.score.away) ||
+                    (finalMatch.away === selectedTeam.name && finalMatch.score && finalMatch.score.away < finalMatch.score.home)
                   )) {
                     placement = "2. místo";
                     placementColor = "text-gray-300";
                     prize = 2000;
                   } else if (bronzeMatch && (
-                    (bronzeMatch.homeTeam === selectedTeam.name && bronzeMatch.score && bronzeMatch.score.home > bronzeMatch.score.away) ||
-                    (bronzeMatch.awayTeam === selectedTeam.name && bronzeMatch.score && bronzeMatch.score.away > bronzeMatch.score.home)
+                    (bronzeMatch.home === selectedTeam.name && bronzeMatch.score && bronzeMatch.score.home > bronzeMatch.score.away) ||
+                    (bronzeMatch.away === selectedTeam.name && bronzeMatch.score && bronzeMatch.score.away > bronzeMatch.score.home)
                   )) {
                     placement = "3. místo";
                     placementColor = "text-amber-700";
                     prize = 1500;
                   } else if (bronzeMatch && (
-                    (bronzeMatch.homeTeam === selectedTeam.name) ||
-                    (bronzeMatch.awayTeam === selectedTeam.name)
+                    (bronzeMatch.home === selectedTeam.name) ||
+                    (bronzeMatch.away === selectedTeam.name)
                   )) {
                     placement = "4. místo";
                     placementColor = "text-gray-500";
                     prize = 1000;
                   } else if (fifthPlaceMatch && (
-                    (fifthPlaceMatch.homeTeam === selectedTeam.name && fifthPlaceMatch.score && fifthPlaceMatch.score.home > fifthPlaceMatch.score.away) ||
-                    (fifthPlaceMatch.awayTeam === selectedTeam.name && fifthPlaceMatch.score && fifthPlaceMatch.score.away > fifthPlaceMatch.score.home)
+                    (fifthPlaceMatch.home === selectedTeam.name && fifthPlaceMatch.score && fifthPlaceMatch.score.home > fifthPlaceMatch.score.away) ||
+                    (fifthPlaceMatch.away === selectedTeam.name && fifthPlaceMatch.score && fifthPlaceMatch.score.away > fifthPlaceMatch.score.home)
                   )) {
                     placement = "5. místo";
                     placementColor = "text-green-400";
                     prize = 800;
                   } else if (fifthPlaceMatch && (
-                    (fifthPlaceMatch.homeTeam === selectedTeam.name) ||
-                    (fifthPlaceMatch.awayTeam === selectedTeam.name)
+                    (fifthPlaceMatch.home === selectedTeam.name) ||
+                    (fifthPlaceMatch.away === selectedTeam.name)
                   )) {
                     placement = "6. místo";
                     placementColor = "text-indigo-400";
@@ -4250,20 +4334,20 @@ const CardGame = () => {
                           <div 
                             key={index} 
                             className={`bg-black/30 p-3 rounded-lg text-sm ${
-                              match.homeTeam === selectedTeam.name || match.awayTeam === selectedTeam.name 
+                              match.home === selectedTeam.name || match.away === selectedTeam.name 
                                 ? 'border border-yellow-500/50' 
                                 : 'border border-green-500/10'
                             }`}
                           >
                             <div className="flex justify-between items-center">
-                              <span className={match.homeTeam === selectedTeam.name ? 'text-yellow-400 font-bold' : 'text-white'}>
-                                {match.homeTeam}
+                              <span className={match.home === selectedTeam.name ? 'text-yellow-400 font-bold' : 'text-white'}>
+                                {match.home}
                               </span>
                               <span className="text-yellow-400 font-bold mx-2">
-                                {match.result ? `${match.result.home} : ${match.result.away}` : ' - '}
+                                {match.score ? `${match.score.home} : ${match.score.away}` : ' - '}
                               </span>
-                              <span className={match.awayTeam === selectedTeam.name ? 'text-yellow-400 font-bold' : 'text-white'}>
-                                {match.awayTeam}
+                              <span className={match.away === selectedTeam.name ? 'text-yellow-400 font-bold' : 'text-white'}>
+                                {match.away}
                               </span>
                             </div>
                           </div>
@@ -4282,20 +4366,20 @@ const CardGame = () => {
                           <div 
                             key={index} 
                             className={`bg-black/30 p-3 rounded-lg text-sm ${
-                              match.homeTeam === selectedTeam.name || match.awayTeam === selectedTeam.name 
+                              match.home === selectedTeam.name || match.away === selectedTeam.name 
                                 ? 'border border-yellow-500/50' 
                                 : 'border border-green-500/10'
                             }`}
                           >
                             <div className="flex justify-between items-center">
-                              <span className={match.homeTeam === selectedTeam.name ? 'text-yellow-400 font-bold' : 'text-white'}>
-                                {match.homeTeam}
+                              <span className={match.home === selectedTeam.name ? 'text-yellow-400 font-bold' : 'text-white'}>
+                                {match.home}
                               </span>
                               <span className="text-yellow-400 font-bold mx-2">
-                                {match.result ? `${match.result.home} : ${match.result.away}` : ' - '}
+                                {match.score ? `${match.score.home} : ${match.score.away}` : ' - '}
                               </span>
-                              <span className={match.awayTeam === selectedTeam.name ? 'text-yellow-400 font-bold' : 'text-white'}>
-                                {match.awayTeam}
+                              <span className={match.away === selectedTeam.name ? 'text-yellow-400 font-bold' : 'text-white'}>
+                                {match.away}
                               </span>
                             </div>
                           </div>
@@ -4315,7 +4399,7 @@ const CardGame = () => {
                           <div 
                             key={index} 
                             className={`bg-black/30 p-3 rounded-lg text-sm ${
-                              match.homeTeam === selectedTeam.name || match.awayTeam === selectedTeam.name 
+                              match.home === selectedTeam.name || match.away === selectedTeam.name 
                                 ? 'border border-yellow-500/50' 
                                 : 'border border-green-500/10'
                             }`}
@@ -4324,14 +4408,14 @@ const CardGame = () => {
                               O 3. místo
                             </div>
                             <div className="flex justify-between items-center">
-                              <span className={match.homeTeam === selectedTeam.name ? 'text-yellow-400 font-bold' : 'text-white'}>
-                                {match.homeTeam}
+                              <span className={match.home === selectedTeam.name ? 'text-yellow-400 font-bold' : 'text-white'}>
+                                {match.home}
                               </span>
                               <span className="text-yellow-400 font-bold mx-2">
-                                {match.result ? `${match.result.home} : ${match.result.away}` : ' - '}
+                                {match.score ? `${match.score.home} : ${match.score.away}` : ' - '}
                               </span>
-                              <span className={match.awayTeam === selectedTeam.name ? 'text-yellow-400 font-bold' : 'text-white'}>
-                                {match.awayTeam}
+                              <span className={match.away === selectedTeam.name ? 'text-yellow-400 font-bold' : 'text-white'}>
+                                {match.away}
                               </span>
                             </div>
                           </div>
@@ -4344,7 +4428,7 @@ const CardGame = () => {
                           <div 
                             key={index} 
                             className={`bg-black/30 p-3 rounded-lg text-sm ${
-                              match.homeTeam === selectedTeam.name || match.awayTeam === selectedTeam.name 
+                              match.home === selectedTeam.name || match.away === selectedTeam.name 
                                 ? 'border border-yellow-500/50' 
                                 : 'border border-green-500/10'
                             }`}
@@ -4353,14 +4437,14 @@ const CardGame = () => {
                               Finále
                             </div>
                             <div className="flex justify-between items-center">
-                              <span className={match.homeTeam === selectedTeam.name ? 'text-yellow-400 font-bold' : 'text-white'}>
-                                {match.homeTeam}
+                              <span className={match.home === selectedTeam.name ? 'text-yellow-400 font-bold' : 'text-white'}>
+                                {match.home}
                               </span>
                               <span className="text-yellow-400 font-bold mx-2">
-                                {match.result ? `${match.result.home} : ${match.result.away}` : ' - '}
+                                {match.score ? `${match.score.home} : ${match.score.away}` : ' - '}
                               </span>
-                              <span className={match.awayTeam === selectedTeam.name ? 'text-yellow-400 font-bold' : 'text-white'}>
-                                {match.awayTeam}
+                              <span className={match.away === selectedTeam.name ? 'text-yellow-400 font-bold' : 'text-white'}>
+                                {match.away}
                               </span>
                             </div>
                           </div>
