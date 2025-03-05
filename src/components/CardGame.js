@@ -3951,8 +3951,8 @@ const CardGame = () => {
                   // Určení umístění na základě výsledků play-off
                   const isWinner = tournamentState.matches.playoff.find(
                     m => m.round === 'final' && (
-                      (m.homeTeam === selectedTeam.name && m.result && m.result.home > m.result.away) ||
-                      (m.awayTeam === selectedTeam.name && m.result && m.result.away > m.result.home)
+                      (m.homeTeam === selectedTeam.name && m.score && m.score.home > m.score.away) ||
+                      (m.awayTeam === selectedTeam.name && m.score && m.score.away > m.score.home)
                     )
                   );
                   
@@ -3961,30 +3961,52 @@ const CardGame = () => {
                   let prize = 0;
                   
                   const finalMatch = tournamentState.matches.playoff.find(m => m.round === 'final');
-                  const bronzeMatch = tournamentState.matches.playoff.find(m => m.round === 'bronze');
+                  const bronzeMatch = tournamentState.matches.playoff.find(m => m.round === 'third_place');
+                  const fifthPlaceMatch = tournamentState.matches.playoff.find(m => m.round === 'fifth_place');
                   
                   if (isWinner) {
                     placement = "1. místo - VÍTĚZ TURNAJE";
                     placementColor = "text-yellow-400";
                     prize = 3000;
                   } else if (finalMatch && (
-                    (finalMatch.homeTeam === selectedTeam.name && finalMatch.result && finalMatch.result.home < finalMatch.result.away) ||
-                    (finalMatch.awayTeam === selectedTeam.name && finalMatch.result && finalMatch.result.away < finalMatch.result.home)
+                    (finalMatch.homeTeam === selectedTeam.name && finalMatch.score && finalMatch.score.home < finalMatch.score.away) ||
+                    (finalMatch.awayTeam === selectedTeam.name && finalMatch.score && finalMatch.score.away < finalMatch.score.home)
                   )) {
                     placement = "2. místo";
                     placementColor = "text-gray-300";
                     prize = 2000;
                   } else if (bronzeMatch && (
-                    (bronzeMatch.homeTeam === selectedTeam.name && bronzeMatch.result && bronzeMatch.result.home > bronzeMatch.result.away) ||
-                    (bronzeMatch.awayTeam === selectedTeam.name && bronzeMatch.result && bronzeMatch.result.away > bronzeMatch.result.home)
+                    (bronzeMatch.homeTeam === selectedTeam.name && bronzeMatch.score && bronzeMatch.score.home > bronzeMatch.score.away) ||
+                    (bronzeMatch.awayTeam === selectedTeam.name && bronzeMatch.score && bronzeMatch.score.away > bronzeMatch.score.home)
                   )) {
                     placement = "3. místo";
                     placementColor = "text-amber-700";
                     prize = 1500;
-                  } else {
+                  } else if (bronzeMatch && (
+                    (bronzeMatch.homeTeam === selectedTeam.name) ||
+                    (bronzeMatch.awayTeam === selectedTeam.name)
+                  )) {
                     placement = "4. místo";
                     placementColor = "text-gray-500";
                     prize = 1000;
+                  } else if (fifthPlaceMatch && (
+                    (fifthPlaceMatch.homeTeam === selectedTeam.name && fifthPlaceMatch.score && fifthPlaceMatch.score.home > fifthPlaceMatch.score.away) ||
+                    (fifthPlaceMatch.awayTeam === selectedTeam.name && fifthPlaceMatch.score && fifthPlaceMatch.score.away > fifthPlaceMatch.score.home)
+                  )) {
+                    placement = "5. místo";
+                    placementColor = "text-green-400";
+                    prize = 800;
+                  } else if (fifthPlaceMatch && (
+                    (fifthPlaceMatch.homeTeam === selectedTeam.name) ||
+                    (fifthPlaceMatch.awayTeam === selectedTeam.name)
+                  )) {
+                    placement = "6. místo";
+                    placementColor = "text-indigo-400";
+                    prize = 500;
+                  } else {
+                    placement = "Turnaj nedokončen";
+                    placementColor = "text-gray-400";
+                    prize = 0;
                   }
                   
                   // Uložení odměny do state pro pozdější přičtení
