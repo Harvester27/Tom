@@ -2439,9 +2439,23 @@ const CardGame = () => {
   // Nová funkce pro finální opuštění turnaje po zobrazení souhrnu
   const finishTournament = () => {
     setShowTournamentSummary(false);
-    setTournamentState(null);
-    setGameState('main');
-    updateWallet(wallet + (tournamentState?.prize || 0)); // Přidání odměny do peněženky
+    setShowTournament(false);
+    setTournamentState({
+      phase: 'groups',
+      groups: {
+        A: [],
+        B: []
+      },
+      matches: {
+        groups: [],
+        playoff: []
+      },
+      goalies: [],
+      scorers: [],
+      currentMatchIndex: 0
+    });
+    // Přidání odměny do peněženky
+    setMoney(prevMoney => prevMoney + (tournamentState?.prize || 0));
   };
 
   return (
@@ -3525,6 +3539,11 @@ const CardGame = () => {
                         <thead className="border-b border-green-500/30 sticky top-0 bg-gray-900/80 backdrop-blur-sm z-10">
                           <tr>
                             <th 
+                              className="py-2 text-white text-sm font-semibold text-center w-12"
+                            >
+                              #
+                            </th>
+                            <th 
                               className="py-2 text-white text-sm font-semibold cursor-pointer hover:text-green-400 transition-colors duration-200"
                               onClick={() => handleSort('goalies', 'name')}
                             >
@@ -3568,6 +3587,11 @@ const CardGame = () => {
                             const savePercentage = goalie.shots > 0 ? ((goalie.saves / goalie.shots) * 100).toFixed(1) : '0.0';
                             return (
                               <tr key={index} className="border-b border-green-500/10">
+                                <td className="py-2 text-center">
+                                  <span className="inline-flex items-center justify-center bg-green-500/20 text-green-400 text-sm font-bold rounded-full w-7 h-7 border border-green-500/30">
+                                    {index + 1}
+                                  </span>
+                                </td>
                                 <td className="py-2 text-white text-sm">{goalie.name}</td>
                                 <td className="py-2 text-white text-sm">{goalie.team}</td>
                                 <td className="py-2 text-yellow-400 text-sm">{goalie.saves}</td>
@@ -3589,6 +3613,11 @@ const CardGame = () => {
                       <table className="min-w-full text-left">
                         <thead className="border-b border-red-500/30 sticky top-0 bg-gray-900/80 backdrop-blur-sm z-10">
                           <tr>
+                            <th 
+                              className="py-2 text-white text-sm font-semibold text-center w-12"
+                            >
+                              #
+                            </th>
                             <th 
                               className="py-2 text-white text-sm font-semibold cursor-pointer hover:text-red-400 transition-colors duration-200"
                               onClick={() => handleSort('scorers', 'name')}
@@ -3631,6 +3660,11 @@ const CardGame = () => {
                           {tournamentState.scorers && 
                             getSortedData(tournamentState.scorers, 'scorers').map((scorer, index) => (
                               <tr key={index} className="border-b border-red-500/10">
+                                <td className="py-2 text-center">
+                                  <span className="inline-flex items-center justify-center bg-red-500/20 text-red-400 text-sm font-bold rounded-full w-7 h-7 border border-red-500/30">
+                                    {index + 1}
+                                  </span>
+                                </td>
                                 <td className="py-2 text-white text-sm">{scorer.name}</td>
                                 <td className="py-2 text-white text-sm">{scorer.team}</td>
                                 <td className="py-2 text-white text-sm">
