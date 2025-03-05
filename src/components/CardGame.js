@@ -351,6 +351,7 @@ const CardGame = () => {
       playoff: []
     },
     goalies: [], // Inicializace goalies jako prázdné pole
+    scorers: [], // Nové pole pro kanadské bodování
     currentMatchIndex: 0
   });
   const [cardLevels, setCardLevels] = useState({});
@@ -1447,11 +1448,150 @@ const CardGame = () => {
           });
         }
         
-        console.log('Statistiky brankářů byly přeneseny do turnajové tabulky', updatedGoalies);
+        // Aktualizace kanadského bodování
+        let updatedScorers = [...prev.scorers];
+        
+        // Procházíme všechny hráče, kteří dali gól nebo asistenci
+        const homePlayerIds = [
+          ...selectedTeam.forwards,
+          ...selectedTeam.defenders,
+          selectedTeam.goalkeeper
+        ];
+        
+        // Zpracování domácích hráčů
+        homePlayerIds.forEach(playerId => {
+          const goals = matchState.events.filter(
+            event => event.type === 'goal' && 
+            event.isHomeTeam && 
+            event.player === cards.find(c => c.id === playerId)?.name
+          ).length;
+          
+          const assists = matchState.events.filter(
+            event => event.type === 'goal' && 
+            event.isHomeTeam && 
+            event.assist === cards.find(c => c.id === playerId)?.name
+          ).length;
+          
+          if (goals > 0 || assists > 0) {
+            const player = cards.find(c => c.id === playerId);
+            if (player) {
+              const scorerIndex = updatedScorers.findIndex(s => s.id === playerId);
+              if (scorerIndex >= 0) {
+                // Aktualizace existujícího hráče
+                updatedScorers[scorerIndex] = {
+                  ...updatedScorers[scorerIndex],
+                  goals: updatedScorers[scorerIndex].goals + goals,
+                  assists: updatedScorers[scorerIndex].assists + assists
+                };
+              } else {
+                // Přidání nového hráče
+                updatedScorers.push({
+                  id: playerId,
+                  name: player.name,
+                  team: selectedTeam.name,
+                  position: player.position,
+                  goals: goals,
+                  assists: assists
+                });
+              }
+            }
+          }
+        });
+        
+        // Zpracování hostujících hráčů
+        const awayPlayersIds = {
+          forwards: matchState.currentOpponent.forwards.map(p => p.id),
+          defenders: matchState.currentOpponent.defenders.map(p => p.id),
+          goalkeeper: matchState.currentOpponent.goalkeeper.id
+        };
+        
+        // Pomocná funkce pro získání jména a pozice hostujícího hráče
+        const getAwayPlayerInfo = (playerId) => {
+          const forwardPlayer = matchState.currentOpponent.forwards.find(p => p.id === playerId);
+          if (forwardPlayer) return { name: forwardPlayer.name, position: 'forward' };
+          
+          const defenderPlayer = matchState.currentOpponent.defenders.find(p => p.id === playerId);
+          if (defenderPlayer) return { name: defenderPlayer.name, position: 'defender' };
+          
+          if (playerId === matchState.currentOpponent.goalkeeper.id)
+            return { name: matchState.currentOpponent.goalkeeper.name, position: 'goalkeeper' };
+          
+          return { name: 'Neznámý hráč', position: 'unknown' };
+        };
+        
+        // Projdeme všechny góly a asistence hostujícího týmu
+        matchState.events.forEach(event => {
+          if (event.type === 'goal' && !event.isHomeTeam) {
+            // Najdeme hráče podle jména
+            const awayPlayerIds = [
+              ...awayPlayersIds.forwards,
+              ...awayPlayersIds.defenders,
+              awayPlayersIds.goalkeeper
+            ];
+            
+            const scorerId = awayPlayerIds.find(id => {
+              const info = getAwayPlayerInfo(id);
+              return info.name === event.player;
+            });
+            
+            if (scorerId) {
+              const { name, position } = getAwayPlayerInfo(scorerId);
+              const scorerIndex = updatedScorers.findIndex(s => s.id === scorerId);
+              
+              if (scorerIndex >= 0) {
+                updatedScorers[scorerIndex] = {
+                  ...updatedScorers[scorerIndex],
+                  goals: updatedScorers[scorerIndex].goals + 1
+                };
+              } else {
+                updatedScorers.push({
+                  id: scorerId,
+                  name: name,
+                  team: matchState.currentOpponent.name,
+                  position: position,
+                  goals: 1,
+                  assists: 0
+                });
+              }
+            }
+            
+            // Zpracování asistencí
+            if (event.assist) {
+              const assistId = awayPlayerIds.find(id => {
+                const info = getAwayPlayerInfo(id);
+                return info.name === event.assist;
+              });
+              
+              if (assistId) {
+                const { name, position } = getAwayPlayerInfo(assistId);
+                const assistIndex = updatedScorers.findIndex(s => s.id === assistId);
+                
+                if (assistIndex >= 0) {
+                  updatedScorers[assistIndex] = {
+                    ...updatedScorers[assistIndex],
+                    assists: updatedScorers[assistIndex].assists + 1
+                  };
+                } else {
+                  updatedScorers.push({
+                    id: assistId,
+                    name: name,
+                    team: matchState.currentOpponent.name,
+                    position: position,
+                    goals: 0,
+                    assists: 1
+                  });
+                }
+              }
+            }
+          }
+        });
+        
+        console.log('Statistiky brankářů a hráčů byly přeneseny do turnajové tabulky', updatedGoalies, updatedScorers);
         
         return {
           ...prev,
-          goalies: updatedGoalies
+          goalies: updatedGoalies,
+          scorers: updatedScorers
         };
       });
     }
@@ -3005,21 +3145,37 @@ const CardGame = () => {
                   {/* Kanadské bodování */}
                   <div className="bg-gradient-to-br from-red-900/50 to-red-800/20 rounded-xl p-6 border border-red-500/20">
                     <h3 className="text-xl font-bold text-red-400 mb-4">Kanadské bodování</h3>
-                    <div className="space-y-2">
-                      {Object.entries(matchState.playerStats.goals).map(([playerId, goals], index) => {
-                        const assists = matchState.playerStats.assists[playerId] || 0;
-                        return (
-                          <div key={index} className="bg-black/30 p-2 rounded-lg border border-red-500/10">
-                            <div className="flex justify-between items-center">
-                              <span className="text-white">{playerId}</span>
-                              <span className="text-yellow-400">{goals + assists} b.</span>
-                            </div>
-                            <div className="text-sm text-gray-400">
-                              {goals}+{assists}
-                            </div>
-                          </div>
-                        );
-                      })}
+                    <div className="overflow-x-auto">
+                      <table className="min-w-full text-left">
+                        <thead className="border-b border-red-500/30">
+                          <tr>
+                            <th className="py-2 text-white text-sm font-semibold">Hráč</th>
+                            <th className="py-2 text-white text-sm font-semibold">Tým</th>
+                            <th className="py-2 text-white text-sm font-semibold">Pozice</th>
+                            <th className="py-2 text-white text-sm font-semibold">G</th>
+                            <th className="py-2 text-white text-sm font-semibold">A</th>
+                            <th className="py-2 text-white text-sm font-semibold">B</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {tournamentState.scorers && tournamentState.scorers
+                            .sort((a, b) => (b.goals + b.assists) - (a.goals + a.assists))
+                            .map((scorer, index) => (
+                              <tr key={index} className="border-b border-red-500/10">
+                                <td className="py-2 text-white text-sm">{scorer.name}</td>
+                                <td className="py-2 text-white text-sm">{scorer.team}</td>
+                                <td className="py-2 text-white text-sm">
+                                  {scorer.position === 'goalkeeper' ? 'Brankář' : 
+                                   scorer.position === 'defender' ? 'Obránce' : 
+                                   scorer.position === 'forward' ? 'Útočník' : 'Neznámá'}
+                                </td>
+                                <td className="py-2 text-yellow-400 text-sm">{scorer.goals}</td>
+                                <td className="py-2 text-yellow-400 text-sm">{scorer.assists}</td>
+                                <td className="py-2 text-yellow-400 text-sm font-bold">{scorer.goals + scorer.assists}</td>
+                              </tr>
+                            ))}
+                        </tbody>
+                      </table>
                     </div>
                   </div>
 
