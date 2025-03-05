@@ -2416,6 +2416,42 @@ const CardGame = () => {
     }
   };
 
+  // Funkce pro kontrolu, zda byl turnaj dokončen (všechny zápasy mají výsledek)
+  const isTournamentCompleted = () => {
+    if (!tournamentState.phase || !tournamentState.matches) return false;
+    
+    // Kontrola jestli všechny zápasy v playoff mají výsledek
+    if (tournamentState.phase === 'playoff' && tournamentState.matches.playoff) {
+      // Hledáme finálový zápas a kontrolujeme, zda má výsledek
+      const finalMatch = tournamentState.matches.playoff.find(match => match.round === 'final');
+      return finalMatch && finalMatch.score;
+    }
+    return false;
+  };
+  
+  // Funkce pro opuštění turnaje
+  const exitTournament = () => {
+    // Resetování turnajového stavu
+    setTournamentState({
+      phase: null,
+      groups: {
+        A: [],
+        B: []
+      },
+      matches: {
+        groups: [],
+        playoff: []
+      },
+      currentMatchIndex: 0,
+      goalies: [],
+      scorers: []
+    });
+    
+    // Návrat na hlavní obrazovku
+    setShowTournament(false);
+    setShowMainMenu(true);
+  };
+
   return (
     <div className="min-h-screen bg-gradient-radial from-blue-900 via-blue-950 to-black text-white p-8">
       {/* Version number */}
@@ -3405,6 +3441,47 @@ const CardGame = () => {
               <h2 className="text-4xl font-bold mb-8 text-center bg-gradient-to-r from-yellow-400 to-yellow-600 bg-clip-text text-transparent">
                 Turnaj
               </h2>
+              
+              {/* Tlačítko pro opuštění turnaje, které se zobrazí po odehrání finálového zápasu */}
+              {isTournamentCompleted() && (
+                <>
+                  {/* Zobrazení vítěze turnaje */}
+                  <div className="mb-8">
+                    {(() => {
+                      // Najdeme finálový zápas a určíme vítěze
+                      const finalMatch = tournamentState.matches.playoff.find(match => match.round === 'final');
+                      if (finalMatch && finalMatch.score) {
+                        const winner = finalMatch.score.home > finalMatch.score.away ? finalMatch.home : finalMatch.away;
+                        const score = `${finalMatch.score.home} : ${finalMatch.score.away}`;
+                        const isPlayerTeam = winner === selectedTeam.name;
+                        
+                        return (
+                          <div className="text-center animate-bounce">
+                            <div className="inline-block bg-gradient-to-r from-yellow-500 to-yellow-300 text-black text-xl font-bold py-2 px-6 rounded-full mb-4">
+                              {isPlayerTeam ? 'Gratulujeme! Vyhráli jste turnaj!' : `Vítěz turnaje: ${winner}`}
+                            </div>
+                            <div className="text-lg text-gray-300">
+                              Finálový zápas: {finalMatch.home} vs {finalMatch.away} <span className="font-bold text-yellow-400">{score}</span>
+                            </div>
+                          </div>
+                        );
+                      }
+                      return null;
+                    })()}
+                  </div>
+                  
+                  {/* Tlačítko pro odchod z turnaje */}
+                  <div className="mb-8 flex justify-center">
+                    <button
+                      onClick={exitTournament}
+                      className="bg-gradient-to-r from-purple-500 to-purple-700 hover:from-purple-600 hover:to-purple-800 
+                        text-white text-lg font-bold py-2 px-6 rounded-lg shadow-lg transform transition-all duration-300 
+                        hover:scale-105 active:scale-95 animate-pulse">
+                      Odejít z turnaje
+                    </button>
+                  </div>
+                </>
+              )}
 
               <div className="grid grid-cols-[350px_1fr_400px] gap-8">
                 {/* Levý sloupec - Skupiny */}
