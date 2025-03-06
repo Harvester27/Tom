@@ -1488,9 +1488,9 @@ const CardGame = () => {
 
   // Funkce pro potvrzení odchodu ze zápasu
   const confirmMatchExit = () => {
-    // Nejprve zkontrolujeme, zda jde o přátelský zápas s Lopatami Praha
+    // Nejprve zjistíme, zda jde o přátelský zápas s Lopaty Praha
     const isFriendlyMatch = matchState.awayTeam && matchState.awayTeam.name === "Lopaty Praha";
-
+    
     // Pokud jsme v turnaji, přeneseme statistiky brankářů do turnajové tabulky
     if (tournamentState.phase && matchState.completed) {
       // Získání ID brankářů z obou týmů
@@ -1724,7 +1724,7 @@ const CardGame = () => {
     // Přidání zkušeností
     setXp(prevXp => prevXp + earnedXp);
     
-    // Pro přátelský zápas s Lopatami Praha zobrazit obrazovku odměn
+    // Pro přátelský zápas s Lopaty Praha zobrazit obrazovku odměn
     if (isFriendlyMatch) {
       // Určení peněžní odměny
       const moneyReward = matchState.score.home > matchState.score.away 
@@ -1774,6 +1774,7 @@ const CardGame = () => {
       // Skryjeme obrazovku zápasu a zobrazíme obrazovku odměn
       setMatchCompleteAwaitingConfirmation(false);
       setShowMatch(false);
+      setShowTournament(false); // Důležité - vypneme turnajovou obrazovku 
       setShowRewards(true);
       
       // Nebudeme už dělat nic dalšího - vše ostatní se zpracuje při kliknutí na tlačítko "Pokračovat" na obrazovce odměn
