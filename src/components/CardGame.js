@@ -1082,35 +1082,59 @@ const CardGame = () => {
   };
 
   const startMatch = () => {
-    if (isTeamComplete()) {
-      setShowMatch(true);
-      setShowTeamSelection(false);
-      
-      let opponent;
-      let isHomeTeam = true;  // Vždy budeme domácí tým
-      
-      // Určení soupeře podle typu zápasu
-      if (tournamentState.phase === 'playoff') {
-        const currentMatch = tournamentState.matches.playoff.find(match => !match.score);
-        if (currentMatch) {
-          isHomeTeam = currentMatch.home === selectedTeam.name;  // Tady byl problém
-          const opponentName = isHomeTeam ? currentMatch.away : currentMatch.home;
-          opponent = getTeamByName(opponentName);
-        }
-      } else if (tournamentState.phase === 'groups') {
-        const currentMatch = tournamentState.matches.groups[tournamentState.currentMatchIndex];
-        if (currentMatch) {
-          isHomeTeam = currentMatch.home === selectedTeam.name;  // A tady taky
-          const opponentName = isHomeTeam ? currentMatch.away : currentMatch.home;
-          opponent = getTeamByName(opponentName);
-        }
+    console.log("Spouštím přátelský zápas");
+    
+    // Explicitně resetujeme tournamentState.phase na null pro přátelský zápas
+    setTournamentState(prev => ({
+      ...prev,
+      phase: null
+    }));
+    
+    // Provedeme zbývající inicializaci zápasu
+    setShowMatch(true);
+    setShowTeamSelection(false);
+    
+    let opponent;
+    let isHomeTeam = true;  // Vždy budeme domácí tým
+    
+    // Určení soupeře podle typu zápasu
+    if (tournamentState.phase === 'playoff') {
+      const currentMatch = tournamentState.matches.playoff.find(match => !match.score);
+      if (currentMatch) {
+        isHomeTeam = currentMatch.home === selectedTeam.name;  // Tady byl problém
+        const opponentName = isHomeTeam ? currentMatch.away : currentMatch.home;
+        opponent = getTeamByName(opponentName);
       }
-      
-      // Pokud není turnajový soupeř, použijeme výchozího
-      if (!opponent) {
-        opponent = opponentTeam;
+    } else if (tournamentState.phase === 'groups') {
+      const currentMatch = tournamentState.matches.groups[tournamentState.currentMatchIndex];
+      if (currentMatch) {
+        isHomeTeam = currentMatch.home === selectedTeam.name;  // A tady taky
+        const opponentName = isHomeTeam ? currentMatch.away : currentMatch.home;
+        opponent = getTeamByName(opponentName);
       }
+    }
+    
+    // Pokud není turnajový soupeř, použijeme výchozího
+    if (!opponent) {
+      opponent = opponentTeam;
+    }
 
+    // Generování časů střel pro oba týmy
+    const shotTimes = generateShotTimes(selectedTeam, opponent);
+    
+    // Inicializace stavu zápasu
+    setMatchState(prev => ({
+      ...prev,
+      period: 1,
+      time: 1200,
+      isPlaying: true,
+      score: { home: 0, away: 0 },
+      events: [],
+      playerStats: {
+        goals: {},
+        assists: {},
+        saves: {},
+        saveAccuracy: {},
       // Generování časů střel pro oba týmy
       const shotTimes = generateShotTimes(selectedTeam, opponent);
       
@@ -1490,6 +1514,7 @@ const CardGame = () => {
   const confirmMatchExit = () => {
     // Zjistíme, zda jde o přátelský zápas s Lopaty Praha
     // OPRAVA: Používáme matchState.currentOpponent místo matchState.awayTeam
+    // Hra rozlišuje přátelský zápas od turnaje pomocí tournamentState.phase
     const isFriendlyMatch = !tournamentState.phase;
     console.log("Ukončení zápasu - přátelský zápas:", isFriendlyMatch);
     console.log("Je turnaj:", !!tournamentState.phase);
@@ -1551,6 +1576,12 @@ const CardGame = () => {
         scheduledEvents: [],
         currentOpponent: null,
         completed: false
+      }));
+      
+      // DŮLEŽITÉ: Explicitně resetujeme stav turnaje - nastavíme phase na null
+      setTournamentState(prev => ({
+        ...prev,
+        phase: null
       }));
       
       // Skryjeme obrazovku zápasu a zobrazíme obrazovku odměn
@@ -3517,6 +3548,12 @@ const CardGame = () => {
                                   setShowMatch(false);
                                   setShowTournament(false); // Důležité - VYPNEME turnajovou obrazovku
                                   setShowRewards(true);
+                                  
+                                  // DŮLEŽITÉ: Explicitně resetujeme stav turnaje - nastavíme fázi na null
+                                  setTournamentState(prev => ({
+                                    ...prev,
+                                    phase: null
+                                  }));
                                   
                                   // Resetujeme stav zápasu
                                   setMatchState(prev => ({
