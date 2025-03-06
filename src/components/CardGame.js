@@ -3514,13 +3514,13 @@ const CardGame = () => {
                             ) ? (
                               // Tlačítko pro přátelský zápas
                               <button 
-                                className="px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600"
+                                className="px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600 font-bold"
                                 onClick={() => {
                                   console.log("Kliknuto na tlačítko pro přátelský zápas");
                                   // Funkce pro přátelský zápas - vždy zobrazí obrazovku odměn
                                   setMatchCompleteAwaitingConfirmation(false);
                                   setShowMatch(false);
-                                  setShowTournament(false); // Důležité - VYPNEME turnajovou obrazovku
+                                  setShowTournament(false); // Důležité - VYPNEME turnajovou obrazovku 
                                   setShowRewards(true);
                                   
                                   // Resetujeme stav zápasu
@@ -3546,7 +3546,7 @@ const CardGame = () => {
                                   }));
                                 }}
                               >
-                                Zobrazit odměny
+                                ✨ Zobrazit odměny ✨
                               </button>
                             ) : (
                               // Původní tlačítko pro turnajové zápasy
