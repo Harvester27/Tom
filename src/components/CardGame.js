@@ -1489,12 +1489,10 @@ const CardGame = () => {
   // Funkce pro potvrzení odchodu ze zápasu
   const confirmMatchExit = () => {
     // Zjistíme, zda jde o přátelský zápas s Lopaty Praha
-    const isFriendlyMatch = matchState.awayTeam && (
-      matchState.awayTeam.name === "HC Lopaty Praha" || 
-      matchState.awayTeam.name === "Lopaty Praha"
-    );
+    // OPRAVA: Používáme matchState.currentOpponent místo matchState.awayTeam
+    const isFriendlyMatch = !tournamentState.phase;
     console.log("Ukončení zápasu - přátelský zápas:", isFriendlyMatch);
-    console.log("Soupeř:", matchState.awayTeam?.name);
+    console.log("Je turnaj:", !!tournamentState.phase);
     
     // Přidání zkušeností po dokončení zápasu
     const earnedXp = matchState.score.home > matchState.score.away 
@@ -3508,10 +3506,7 @@ const CardGame = () => {
                             <h2 className="text-2xl mb-4 text-white">Zápas dokončen</h2>
                             <p className="mb-4 text-white">Konečný stav: {matchState.score.home} - {matchState.score.away}</p>
                             {/* Přidáváme podmínku pro zobrazení různých tlačítek podle typu zápasu */}
-                            {matchState.awayTeam && (
-                              matchState.awayTeam.name === "HC Lopaty Praha" || 
-                              matchState.awayTeam.name === "Lopaty Praha"
-                            ) ? (
+                            {!tournamentState.phase ? (
                               // Tlačítko pro přátelský zápas
                               <button 
                                 className="px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600 font-bold"
@@ -3520,7 +3515,7 @@ const CardGame = () => {
                                   // Funkce pro přátelský zápas - vždy zobrazí obrazovku odměn
                                   setMatchCompleteAwaitingConfirmation(false);
                                   setShowMatch(false);
-                                  setShowTournament(false); // Důležité - VYPNEME turnajovou obrazovku 
+                                  setShowTournament(false); // Důležité - VYPNEME turnajovou obrazovku
                                   setShowRewards(true);
                                   
                                   // Resetujeme stav zápasu
