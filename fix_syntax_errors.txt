@@ -1,0 +1,59 @@
+# Instrukce pro opravu syntaktických chyb v CardGame.js
+
+## Chyba 1: Deklarace shotTimes uvnitř objektu (řádek cca 1138)
+
+Najdi tuto část kódu v souboru:
+
+```javascript
+playerStats: {
+  goals: {},
+  assists: {},
+  saves: {},
+  saveAccuracy: {},
+  // Generování časů střel pro oba týmy
+  const shotTimes = generateShotTimes(selectedTeam, opponent);
+  
+  // Inicializace stavu zápasu
+  setMatchState(prev => ({
+```
+
+A přesuň deklaraci shotTimes MIMO objekt playerStats:
+
+```javascript
+playerStats: {
+  goals: {},
+  assists: {},
+  saves: {},
+  saveAccuracy: {},
+  shots: {}
+},
+
+// Generování časů střel pro oba týmy
+const shotTimes = generateShotTimes(selectedTeam, opponent);
+
+// Inicializace stavu zápasu
+setMatchState(prev => ({
+```
+
+## Chyba 2: Funkce generateShotTimes je deklarovaná po jejím použití
+
+Najdi deklaraci funkce generateShotTimes (kolem řádku 1165) a přesuň ji PŘED funkci startMatch, aby byla deklarována dříve, než je použita.
+
+Postup:
+1. Zkopíruj celou funkci generateShotTimes
+2. Najdi místo před funkcí startMatch
+3. Vlož tam funkci generateShotTimes
+
+## Chyba 3: Funkce generateEventsForAllPeriods je také deklarovaná po použití
+
+Najdi deklaraci funkce generateEventsForAllPeriods a přesuň ji také před funkci startMatch.
+
+## Další možné chyby:
+
+Pokud Vercel stále hlásí "Declaration or statement expected" na konci souboru, zkontroluj, že na konci souboru je pouze:
+
+```javascript
+export default CardGame;
+```
+
+a ne nějaké extra závorky nebo syntaktické prvky. 
