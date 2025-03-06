@@ -1488,8 +1488,82 @@ const CardGame = () => {
 
   // Funkce pro potvrzení odchodu ze zápasu
   const confirmMatchExit = () => {
-    // Nejprve zjistíme, zda jde o přátelský zápas s Lopaty Praha
+    // Zjistíme, zda jde o přátelský zápas s Lopaty Praha
     const isFriendlyMatch = matchState.awayTeam && matchState.awayTeam.name === "Lopaty Praha";
+    console.log("Ukončení zápasu - přátelský zápas:", isFriendlyMatch);
+    console.log("Soupeř:", matchState.awayTeam?.name);
+    
+    // Přidání zkušeností po dokončení zápasu
+    const earnedXp = matchState.score.home > matchState.score.away 
+      ? 25  // Výhra
+      : matchState.score.home === matchState.score.away 
+        ? 10  // Remíza
+        : 1;  // Prohra
+    
+    // Přidání zkušeností
+    setXp(prevXp => prevXp + earnedXp);
+    
+    if (isFriendlyMatch) {
+      console.log("Přepínám na obrazovku odměn pro přátelský zápas");
+      // Pro přátelský zápas s Lopaty Praha zobrazit obrazovku odměn
+      
+      // Určení peněžní odměny
+      const moneyReward = matchState.score.home > matchState.score.away 
+        ? 50  // Výhra
+        : matchState.score.home === matchState.score.away 
+          ? 10  // Remíza
+          : 1;  // Prohra
+      
+      // Přidání peněz hráči
+      setMoney(prevMoney => prevMoney + moneyReward);
+      
+      // Nastavení výsledku zápasu pro zobrazení odměn
+      setMatchResult({
+        result: matchState.score.home > matchState.score.away 
+          ? "win" 
+          : matchState.score.home === matchState.score.away 
+            ? "draw" 
+            : "loss",
+        xpReward: earnedXp,
+        moneyReward: moneyReward,
+        homeScore: matchState.score.home,
+        awayScore: matchState.score.away
+      });
+      
+      // Resetujeme stav zápasu, ale nezavíráme obrazovku zápasu ještě
+      setMatchState(prev => ({
+        ...prev,
+        period: 1,
+        time: 1200,
+        score: { home: 0, away: 0 },
+        events: [],
+        isPlaying: false,
+        gameSpeed: 1,
+        playerStats: {
+          goals: {},
+          assists: {},
+          saves: {},
+          saveAccuracy: {},
+          shots: {}
+        },
+        penalties: [],
+        scheduledEvents: [],
+        currentOpponent: null,
+        completed: false
+      }));
+      
+      // Skryjeme obrazovku zápasu a zobrazíme obrazovku odměn
+      setMatchCompleteAwaitingConfirmation(false);
+      setShowMatch(false);
+      setShowTournament(false); // Důležité - VYPNEME turnajovou obrazovku 
+      setShowRewards(true);
+      
+      // Pro přátelský zápas vracíme již tady, aby se další kód nespustil
+      return;
+    }
+    
+    // Kód níže se spustí JEN pro turnajové zápasy
+    console.log("Přepínám na turnajovou obrazovku");
     
     // Pokud jsme v turnaji, přeneseme statistiky brankářů do turnajové tabulky
     if (tournamentState.phase && matchState.completed) {
@@ -1714,73 +1788,6 @@ const CardGame = () => {
       });
     }
     
-    // Přidání zkušeností po dokončení zápasu
-    const earnedXp = matchState.score.home > matchState.score.away 
-      ? 25  // Výhra
-      : matchState.score.home === matchState.score.away 
-        ? 10  // Remíza
-        : 1;  // Prohra
-    
-    // Přidání zkušeností
-    setXp(prevXp => prevXp + earnedXp);
-    
-    // Pro přátelský zápas s Lopaty Praha zobrazit obrazovku odměn
-    if (isFriendlyMatch) {
-      // Určení peněžní odměny
-      const moneyReward = matchState.score.home > matchState.score.away 
-        ? 50  // Výhra
-        : matchState.score.home === matchState.score.away 
-          ? 10  // Remíza
-          : 1;  // Prohra
-      
-      // Přidání peněz hráči
-      setMoney(prevMoney => prevMoney + moneyReward);
-      
-      // Nastavení výsledku zápasu pro zobrazení odměn
-      setMatchResult({
-        result: matchState.score.home > matchState.score.away 
-          ? "win" 
-          : matchState.score.home === matchState.score.away 
-            ? "draw" 
-            : "loss",
-        xpReward: earnedXp,
-        moneyReward: moneyReward,
-        homeScore: matchState.score.home,
-        awayScore: matchState.score.away
-      });
-      
-      // Resetujeme stav zápasu, ale nezavíráme obrazovku zápasu ještě
-      setMatchState(prev => ({
-        ...prev,
-        period: 1,
-        time: 1200,
-        score: { home: 0, away: 0 },
-        events: [],
-        isPlaying: false,
-        gameSpeed: 1,
-        playerStats: {
-          goals: {},
-          assists: {},
-          saves: {},
-          saveAccuracy: {},
-          shots: {}
-        },
-        penalties: [],
-        scheduledEvents: [],
-        currentOpponent: null,
-        completed: false
-      }));
-      
-      // Skryjeme obrazovku zápasu a zobrazíme obrazovku odměn
-      setMatchCompleteAwaitingConfirmation(false);
-      setShowMatch(false);
-      setShowTournament(false); // Důležité - vypneme turnajovou obrazovku 
-      setShowRewards(true);
-      
-      // Nebudeme už dělat nic dalšího - vše ostatní se zpracuje při kliknutí na tlačítko "Pokračovat" na obrazovce odměn
-      return;
-    }
-    
     // Pro ostatní zápasy (ne přátelský s Lopatami) pokračujeme s původní logikou
     setMatchCompleteAwaitingConfirmation(false);
     
@@ -1812,7 +1819,7 @@ const CardGame = () => {
       setShowTournament(true);
       setShowRewards(false);
     } else {
-      // Pro ostatní zápasy (ne turnaj a ne přátelský s Lopatami)
+      // Pro ostatní zápasy (ne turnaj a ne přátelský s Lopatami - tato větev by neměla nastat)
       setShowMatch(false);
       setShowRewards(false);
     }
