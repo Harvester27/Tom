@@ -1489,7 +1489,10 @@ const CardGame = () => {
   // Funkce pro potvrzení odchodu ze zápasu
   const confirmMatchExit = () => {
     // Zjistíme, zda jde o přátelský zápas s Lopaty Praha
-    const isFriendlyMatch = matchState.awayTeam && matchState.awayTeam.name === "Lopaty Praha";
+    const isFriendlyMatch = matchState.awayTeam && (
+      matchState.awayTeam.name === "HC Lopaty Praha" || 
+      matchState.awayTeam.name === "Lopaty Praha"
+    );
     console.log("Ukončení zápasu - přátelský zápas:", isFriendlyMatch);
     console.log("Soupeř:", matchState.awayTeam?.name);
     
@@ -3505,11 +3508,15 @@ const CardGame = () => {
                             <h2 className="text-2xl mb-4 text-white">Zápas dokončen</h2>
                             <p className="mb-4 text-white">Konečný stav: {matchState.score.home} - {matchState.score.away}</p>
                             {/* Přidáváme podmínku pro zobrazení různých tlačítek podle typu zápasu */}
-                            {matchState.awayTeam && matchState.awayTeam.name === "Lopaty Praha" ? (
+                            {matchState.awayTeam && (
+                              matchState.awayTeam.name === "HC Lopaty Praha" || 
+                              matchState.awayTeam.name === "Lopaty Praha"
+                            ) ? (
                               // Tlačítko pro přátelský zápas
                               <button 
                                 className="px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600"
                                 onClick={() => {
+                                  console.log("Kliknuto na tlačítko pro přátelský zápas");
                                   // Funkce pro přátelský zápas - vždy zobrazí obrazovku odměn
                                   setMatchCompleteAwaitingConfirmation(false);
                                   setShowMatch(false);
