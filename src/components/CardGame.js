@@ -3521,60 +3521,13 @@ const CardGame = () => {
                           <div className="match-complete-dialog">
                             <h2 className="text-2xl mb-4 text-white">Zápas dokončen</h2>
                             <p className="mb-4 text-white">Konečný stav: {matchState.score.home} - {matchState.score.away}</p>
-                            {/* Přidáváme podmínku pro zobrazení různých tlačítek podle typu zápasu */}
-                            {!tournamentState.phase ? (
-                              // Tlačítko pro přátelský zápas
-                              <button 
-                                className="px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600 font-bold"
-                                onClick={() => {
-                                  console.log("Kliknuto na tlačítko pro přátelský zápas");
-                                  // Funkce pro přátelský zápas - vždy zobrazí obrazovku odměn
-                                  setMatchCompleteAwaitingConfirmation(false);
-                                  setShowMatch(false);
-                                  setShowTournament(false); // Důležité - VYPNEME turnajovou obrazovku
-                                  setShowRewards(true);
-                                  
-                                  // DŮLEŽITÉ: Explicitně resetujeme stav turnaje - nastavíme fázi na null
-                                  setTournamentState(prev => ({
-                                    ...prev,
-                                    phase: null
-                                  }));
-                                  
-                                  // Resetujeme stav zápasu
-                                  setMatchState(prev => ({
-                                    ...prev,
-                                    period: 1,
-                                    time: 1200,
-                                    score: { home: 0, away: 0 },
-                                    events: [],
-                                    isPlaying: false,
-                                    gameSpeed: 1,
-                                    playerStats: {
-                                      goals: {},
-                                      assists: {},
-                                      saves: {},
-                                      saveAccuracy: {},
-                                      shots: {}
-                                    },
-                                    penalties: [],
-                                    scheduledEvents: [],
-                                    currentOpponent: null,
-                                    completed: false
-                                  }));
-                                }}
-                              >
-                                ✨ Zobrazit odměny ✨
-                              </button>
-                            ) : (
-                              // Původní tlačítko pro turnajové zápasy
-                              <button 
-                                className="px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600"
-                                onClick={confirmMatchExit}
-                              >
-                                {/* Změna textu tlačítka podle typu zápasu */}
-                                {!tournamentState.phase ? 'Opustit zápas' : 'Odejít ze zápasu'}
-                              </button>
-                            )}
+                            {/* Sjednocení na jedno tlačítko volající confirmMatchExit */}
+                            <button 
+                              className="px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600 font-bold"
+                              onClick={confirmMatchExit}
+                            >
+                              {!tournamentState.phase ? 'Opustit zápas' : 'Odejít ze zápasu'}
+                            </button>
                           </div>
                         </div>
                       </div>
