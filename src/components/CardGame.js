@@ -3201,7 +3201,7 @@ const CardGame = () => {
                           </div>
                         );
                       })}
-                      <img src={matchState.currentOpponent ? `/Images/${matchState.currentOpponent.name.replace(/\s+/g, '_')}.png` : "/Images/HC_Lopaty_Praha.png"} alt={matchState.currentOpponent ? matchState.currentOpponent.name : "HC Lopaty Praha"} className="h-20 object-contain" />
+                      <img src={matchState.currentOpponent ? `/Images/${matchState.currentOpponent.name.replace(/\s+/g, '_')}.png` : "/Images/question_mark.png"} alt={matchState.currentOpponent ? matchState.currentOpponent.name : "Soupeř"} className="h-20 object-contain" />
                     </div>
                   </div>
 
@@ -3334,128 +3334,130 @@ const CardGame = () => {
                       </div>
                     </div>
 
-                    {/* Soupeřův tým */}
-                    <div className="absolute left-1/2 right-0 top-0 bottom-0 grid grid-cols-3 gap-4 p-8">
-                      {/* Útočníci */}
-                      <div className="grid grid-rows-3 gap-4">
-                        {matchState.currentOpponent.forwards.map(player => (
-                          <div key={player.name} className="flex justify-center items-center">
-                            <div className="relative">
-                              <div className="w-24 h-32 bg-gradient-to-br from-gray-800 to-gray-900 rounded-lg shadow-lg flex flex-col items-center justify-center text-gray-400 relative overflow-hidden">
-                                <div className="absolute top-0 left-0 w-full bg-gradient-to-r from-red-600 to-red-800 py-1">
-                                  <span className="text-white text-xs font-bold">{player.number}</span>
+                    {/* Soupeřův tým - Add check for currentOpponent */}
+                    {matchState.currentOpponent && (
+                      <div className="absolute left-1/2 right-0 top-0 bottom-0 grid grid-cols-3 gap-4 p-8">
+                        {/* Útočníci */}
+                        <div className="grid grid-rows-3 gap-4">
+                          {matchState.currentOpponent.forwards.map(player => (
+                            <div key={player.name} className="flex justify-center items-center">
+                              <div className="relative">
+                                <div className="w-24 h-32 bg-gradient-to-br from-gray-800 to-gray-900 rounded-lg shadow-lg flex flex-col items-center justify-center text-gray-400 relative overflow-hidden">
+                                  <div className="absolute top-0 left-0 w-full bg-gradient-to-r from-red-600 to-red-800 py-1">
+                                    <span className="text-white text-xs font-bold">{player.number}</span>
+                                  </div>
+                                  <div className="text-5xl font-bold mb-2">?</div>
+                                  <div className="absolute top-2 right-2 w-6 h-6 rounded-full bg-gradient-to-br from-yellow-400 to-yellow-600 flex items-center justify-center">
+                                    <span className="text-black text-xs font-bold">{player.level}</span>
+                                  </div>
+                                  <div className="absolute bottom-0 left-0 w-full bg-gradient-to-r from-gray-900 to-gray-800 p-1">
+                                    <p className="text-[8px] text-center text-gray-300 font-bold leading-tight">
+                                      {player.name}
+                                    </p>
+                                  </div>
                                 </div>
-                                <div className="text-5xl font-bold mb-2">?</div>
-                                <div className="absolute top-2 right-2 w-6 h-6 rounded-full bg-gradient-to-br from-yellow-400 to-yellow-600 flex items-center justify-center">
-                                  <span className="text-black text-xs font-bold">{player.level}</span>
+                                {/* Góly a asistence pro útočníky Lopat */}
+                                <div className="absolute -bottom-6 left-0 right-0 flex justify-center gap-2">
+                                  {/* Góly - opraveno na event.player */}
+                                  {matchState.events.filter(event => 
+                                    event.type === 'goal' && event.player === player.name
+                                  ).length > 0 && Array.from({ length: matchState.events.filter(event => 
+                                    event.type === 'goal' && event.player === player.name
+                                  ).length }).map((_, i) => (
+                                    <img key={i} src="/Images/puck.png" alt="Gól" className="w-4 h-4" />
+                                  ))}
+                                  {/* Asistence */}
+                                  {matchState.events.filter(event => 
+                                    event.type === 'goal' && event.assist === player.name
+                                  ).length > 0 && (
+                                    <span className="bg-yellow-500/80 text-black font-bold text-sm px-2 rounded-lg">
+                                      A: {matchState.events.filter(event => 
+                                        event.type === 'goal' && event.assist === player.name
+                                      ).length}
+                                    </span>
+                                  )}
                                 </div>
-                                <div className="absolute bottom-0 left-0 w-full bg-gradient-to-r from-gray-900 to-gray-800 p-1">
-                                  <p className="text-[8px] text-center text-gray-300 font-bold leading-tight">
-                                    {player.name}
-                                  </p>
-                                </div>
-                              </div>
-                              {/* Góly a asistence pro útočníky Lopat */}
-                              <div className="absolute -bottom-6 left-0 right-0 flex justify-center gap-2">
-                                {/* Góly - opraveno na event.player */}
-                                {matchState.events.filter(event => 
-                                  event.type === 'goal' && event.player === player.name
-                                ).length > 0 && Array.from({ length: matchState.events.filter(event => 
-                                  event.type === 'goal' && event.player === player.name
-                                ).length }).map((_, i) => (
-                                  <img key={i} src="/Images/puck.png" alt="Gól" className="w-4 h-4" />
-                                ))}
-                                {/* Asistence */}
-                                {matchState.events.filter(event => 
-                                  event.type === 'goal' && event.assist === player.name
-                                ).length > 0 && (
-                                  <span className="bg-yellow-500/80 text-black font-bold text-sm px-2 rounded-lg">
-                                    A: {matchState.events.filter(event => 
-                                      event.type === 'goal' && event.assist === player.name
-                                    ).length}
-                                  </span>
-                                )}
                               </div>
                             </div>
+                          ))}
+                        </div>
+                        {/* Obránci */}
+                        <div className="grid grid-rows-2 gap-8">
+                          {matchState.currentOpponent.defenders.map(player => (
+                            <div key={player.name} className="flex justify-center items-center">
+                              <div className="relative">
+                                <div className="w-24 h-32 bg-gradient-to-br from-gray-800 to-gray-900 rounded-lg shadow-lg flex flex-col items-center justify-center text-gray-400 relative overflow-hidden">
+                                  <div className="absolute top-0 left-0 w-full bg-gradient-to-r from-blue-600 to-blue-800 py-1">
+                                    <span className="text-white text-xs font-bold">{player.number}</span>
+                                  </div>
+                                  <div className="text-5xl font-bold mb-2">?</div>
+                                  <div className="absolute top-2 right-2 w-6 h-6 rounded-full bg-gradient-to-br from-yellow-400 to-yellow-600 flex items-center justify-center">
+                                    <span className="text-black text-xs font-bold">{player.level}</span>
+                                  </div>
+                                  <div className="absolute bottom-0 left-0 w-full bg-gradient-to-r from-gray-900 to-gray-800 p-1">
+                                    <p className="text-[8px] text-center text-gray-300 font-bold leading-tight">
+                                      {player.name}
+                                    </p>
+                                  </div>
+                                </div>
+                                {/* Góly a asistence pro obránce Lopat */}
+                                <div className="absolute -bottom-6 left-0 right-0 flex justify-center gap-2">
+                                  {/* Góly - opraveno na event.player */}
+                                  {matchState.events.filter(event => 
+                                    event.type === 'goal' && event.player === player.name
+                                  ).length > 0 && Array.from({ length: matchState.events.filter(event => 
+                                    event.type === 'goal' && event.player === player.name
+                                  ).length }).map((_, i) => (
+                                    <img key={i} src="/Images/puck.png" alt="Gól" className="w-4 h-4" />
+                                  ))}
+                                  {/* Asistence */}
+                                  {matchState.events.filter(event => 
+                                    event.type === 'goal' && event.assist === player.name
+                                  ).length > 0 && (
+                                    <span className="bg-yellow-500/80 text-black font-bold text-sm px-2 rounded-lg">
+                                      A: {matchState.events.filter(event => 
+                                        event.type === 'goal' && event.assist === player.name
+                                      ).length}
+                                    </span>
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                        {/* Brankář */}
+                        <div className="flex justify-center items-center">
+                          <div className="relative">
+                            <div className="w-24 h-32 bg-gradient-to-br from-gray-800 to-gray-900 rounded-lg shadow-lg flex flex-col items-center justify-center text-gray-400 transform hover:scale-110 transition-transform relative overflow-hidden">
+                              <div className="absolute top-0 left-0 w-full bg-gradient-to-r from-yellow-600 to-yellow-800 py-1">
+                                <span className="text-white text-xs font-bold">{matchState.currentOpponent.goalkeeper.number}</span>
+                              </div>
+                              <div className="text-5xl font-bold mb-2">?</div>
+                              <div className="absolute top-2 right-2 w-6 h-6 rounded-full bg-gradient-to-br from-yellow-400 to-yellow-600 flex items-center justify-center">
+                                <span className="text-black text-xs font-bold">{matchState.currentOpponent.goalkeeper.level}</span>
+                              </div>
+                              <div className="absolute bottom-0 left-0 w-full bg-gradient-to-r from-gray-900 to-gray-800 p-1">
+                                <p className="text-[8px] text-center text-gray-300 font-bold leading-tight">
+                                  {matchState.currentOpponent.goalkeeper.name}
+                                </p>
+                              </div>
+                            </div>
+                            {/* Statistiky brankáře Lopat */}
+                            {matchState.playerStats.saves[matchState.currentOpponent.goalkeeper.id] > 0 && (
+                              <div className="absolute -bottom-6 left-0 right-0 text-center">
+                                <div className="bg-blue-900/80 text-white text-sm px-2 py-1 rounded-lg">
+                                  {matchState.playerStats.saves[matchState.currentOpponent.goalkeeper.id]} zákroků
+                                  <br />
+                                  Úspěšnost: {matchState.playerStats.shots[matchState.currentOpponent.goalkeeper.id] > 0 
+                                    ? Math.round((matchState.playerStats.saves[matchState.currentOpponent.goalkeeper.id] / matchState.playerStats.shots[matchState.currentOpponent.goalkeeper.id]) * 100)
+                                    : 100}%
+                                </div>
+                              </div>
+                            )}
                           </div>
-                        ))}
-                      </div>
-                      {/* Obránci */}
-                      <div className="grid grid-rows-2 gap-8">
-                        {matchState.currentOpponent.defenders.map(player => (
-                          <div key={player.name} className="flex justify-center items-center">
-                            <div className="relative">
-                              <div className="w-24 h-32 bg-gradient-to-br from-gray-800 to-gray-900 rounded-lg shadow-lg flex flex-col items-center justify-center text-gray-400 relative overflow-hidden">
-                                <div className="absolute top-0 left-0 w-full bg-gradient-to-r from-blue-600 to-blue-800 py-1">
-                                  <span className="text-white text-xs font-bold">{player.number}</span>
-                                </div>
-                                <div className="text-5xl font-bold mb-2">?</div>
-                                <div className="absolute top-2 right-2 w-6 h-6 rounded-full bg-gradient-to-br from-yellow-400 to-yellow-600 flex items-center justify-center">
-                                  <span className="text-black text-xs font-bold">{player.level}</span>
-                                </div>
-                                <div className="absolute bottom-0 left-0 w-full bg-gradient-to-r from-gray-900 to-gray-800 p-1">
-                                  <p className="text-[8px] text-center text-gray-300 font-bold leading-tight">
-                                    {player.name}
-                                  </p>
-                                </div>
-                              </div>
-                              {/* Góly a asistence pro obránce Lopat */}
-                              <div className="absolute -bottom-6 left-0 right-0 flex justify-center gap-2">
-                                {/* Góly - opraveno na event.player */}
-                                {matchState.events.filter(event => 
-                                  event.type === 'goal' && event.player === player.name
-                                ).length > 0 && Array.from({ length: matchState.events.filter(event => 
-                                  event.type === 'goal' && event.player === player.name
-                                ).length }).map((_, i) => (
-                                  <img key={i} src="/Images/puck.png" alt="Gól" className="w-4 h-4" />
-                                ))}
-                                {/* Asistence */}
-                                {matchState.events.filter(event => 
-                                  event.type === 'goal' && event.assist === player.name
-                                ).length > 0 && (
-                                  <span className="bg-yellow-500/80 text-black font-bold text-sm px-2 rounded-lg">
-                                    A: {matchState.events.filter(event => 
-                                      event.type === 'goal' && event.assist === player.name
-                                    ).length}
-                                  </span>
-                                )}
-                              </div>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                      {/* Brankář */}
-                      <div className="flex justify-center items-center">
-                        <div className="relative">
-                          <div className="w-24 h-32 bg-gradient-to-br from-gray-800 to-gray-900 rounded-lg shadow-lg flex flex-col items-center justify-center text-gray-400 transform hover:scale-110 transition-transform relative overflow-hidden">
-                            <div className="absolute top-0 left-0 w-full bg-gradient-to-r from-yellow-600 to-yellow-800 py-1">
-                              <span className="text-white text-xs font-bold">{matchState.currentOpponent.goalkeeper.number}</span>
-                            </div>
-                            <div className="text-5xl font-bold mb-2">?</div>
-                            <div className="absolute top-2 right-2 w-6 h-6 rounded-full bg-gradient-to-br from-yellow-400 to-yellow-600 flex items-center justify-center">
-                              <span className="text-black text-xs font-bold">{matchState.currentOpponent.goalkeeper.level}</span>
-                            </div>
-                            <div className="absolute bottom-0 left-0 w-full bg-gradient-to-r from-gray-900 to-gray-800 p-1">
-                              <p className="text-[8px] text-center text-gray-300 font-bold leading-tight">
-                                {matchState.currentOpponent.goalkeeper.name}
-                              </p>
-                            </div>
-                          </div>
-                          {/* Statistiky brankáře Lopat */}
-                          {matchState.playerStats.saves[matchState.currentOpponent.goalkeeper.id] > 0 && (
-                            <div className="absolute -bottom-6 left-0 right-0 text-center">
-                              <div className="bg-blue-900/80 text-white text-sm px-2 py-1 rounded-lg">
-                                {matchState.playerStats.saves[matchState.currentOpponent.goalkeeper.id]} zákroků
-                                <br />
-                                Úspěšnost: {matchState.playerStats.shots[matchState.currentOpponent.goalkeeper.id] > 0 
-                                  ? Math.round((matchState.playerStats.saves[matchState.currentOpponent.goalkeeper.id] / matchState.playerStats.shots[matchState.currentOpponent.goalkeeper.id]) * 100)
-                                  : 100}%
-                              </div>
-                            </div>
-                          )}
                         </div>
                       </div>
-                    </div>
+                    )}
                   </div>
                 </div>
 
