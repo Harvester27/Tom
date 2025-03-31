@@ -1316,14 +1316,8 @@ const CardGame = () => {
               };
             } else {
               clearInterval(gameTimer);
-              // Zobrazíme odměny pouze pokud nejsme v turnaji
-              if (!tournamentState.phase) {
-                const result = newScore.home > newScore.away ? 'victory' : 'defeat';
-                setShowRewards(true);
-              } else {
-                // Nastavíme příznak čekání na potvrzení
-                setMatchCompleteAwaitingConfirmation(true);
-              }
+              // Po skončení zápasu VŽDY nastavíme čekání na potvrzení
+              setMatchCompleteAwaitingConfirmation(true);
               return {
                 ...prev,
                 isPlaying: false,
