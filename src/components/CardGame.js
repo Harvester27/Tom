@@ -1082,39 +1082,46 @@ const CardGame = () => {
   };
 
   const startMatch = () => {
-    console.log("Spouštím přátelský zápas");
-    
-    // Explicitně resetujeme tournamentState.phase na null pro přátelský zápas
-    setTournamentState(prev => ({
-      ...prev,
-      phase: null
-    }));
-    
+    // Zjistíme, zda se jedná o turnajový zápas
+    const isTournamentMatch = tournamentState.phase !== null;
+    console.log(`Spouštím zápas (Turnaj: ${isTournamentMatch})`);
+
     // Provedeme zbývající inicializaci zápasu
     setShowMatch(true);
     setShowTeamSelection(false);
     
     let opponent;
-    let isHomeTeam = true;  // Vždy budeme domácí tým
+    let isHomeTeam = true;  // Výchozí hodnota pro přátelský zápas
     
-    // Určení soupeře podle typu zápasu
-    if (tournamentState.phase === 'playoff') {
-      const currentMatch = tournamentState.matches.playoff.find(match => !match.score);
+    // Určení soupeře a zda jsme domácí POUZE pro turnajové zápasy
+    if (isTournamentMatch) {
+      let currentMatch;
+      if (tournamentState.phase === 'playoff') {
+        currentMatch = tournamentState.matches.playoff.find(match => !match.score && (match.home === selectedTeam.name || match.away === selectedTeam.name));
+        // Pokud nenajdeme náš zápas v playoff (např. simulace), nenastavujeme soupeře
+        if (!currentMatch) {
+          console.error("Nenalezen aktuální playoff zápas pro hráče.");
+          // Můžeme zde vrátit nebo nastavit výchozí chování
+          // Prozatím necháme opponent = null, což by mělo použít výchozího soupeře
+        }
+      } else if (tournamentState.phase === 'groups') {
+        currentMatch = tournamentState.matches.groups[tournamentState.currentMatchIndex];
+      }
+
       if (currentMatch) {
-        isHomeTeam = currentMatch.home === selectedTeam.name;  // Tady byl problém
+        // Určíme, zda jsme domácí tým
+        isHomeTeam = currentMatch.home === selectedTeam.name;
         const opponentName = isHomeTeam ? currentMatch.away : currentMatch.home;
         opponent = getTeamByName(opponentName);
+        console.log(`Turnajový zápas: ${selectedTeam.name} (${isHomeTeam ? 'Domácí' : 'Hosté'}) vs ${opponentName}`);
+      } else {
+        console.log("Nebylo možné určit turnajového soupeře, použije se výchozí.");
       }
-    } else if (tournamentState.phase === 'groups') {
-      const currentMatch = tournamentState.matches.groups[tournamentState.currentMatchIndex];
-      if (currentMatch) {
-        isHomeTeam = currentMatch.home === selectedTeam.name;  // A tady taky
-        const opponentName = isHomeTeam ? currentMatch.away : currentMatch.home;
-        opponent = getTeamByName(opponentName);
-      }
+    } else {
+      console.log(`Přátelský zápas: ${selectedTeam.name} (Domácí) vs HC Lopaty Praha`);
     }
-    
-    // Pokud není turnajový soupeř, použijeme výchozího
+
+    // Pokud není turnajový soupeř určen, použijeme výchozího (pro přátelský zápas nebo jako fallback)
     if (!opponent) {
       opponent = opponentTeam;
     }
@@ -1141,7 +1148,7 @@ const CardGame = () => {
       scheduledEvents: generateEventsForAllPeriods(),
       currentOpponent: opponent,
       shotTimes: shotTimes,
-      isHomeTeam: true  // Vždy budeme domácí tým
+      isHomeTeam: isHomeTeam // Nastavíme podle skutečnosti
     }));
   };
 
