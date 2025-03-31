@@ -1135,31 +1135,14 @@ const CardGame = () => {
         assists: {},
         saves: {},
         saveAccuracy: {},
-      // Generování časů střel pro oba týmy
-      const shotTimes = generateShotTimes(selectedTeam, opponent);
-      
-      // Inicializace stavu zápasu
-      setMatchState(prev => ({
-        ...prev,
-        period: 1,
-        time: 1200,
-        isPlaying: true,
-        score: { home: 0, away: 0 },
-        events: [],
-        playerStats: {
-          goals: {},
-          assists: {},
-          saves: {},
-          saveAccuracy: {},
-          shots: {}
-        },
-        penalties: [],
-        scheduledEvents: generateEventsForAllPeriods(),
-        currentOpponent: opponent,
-        shotTimes: shotTimes,
-        isHomeTeam: true  // Vždy budeme domácí tým
-      }));
-    }
+        shots: {}
+      },
+      penalties: [],
+      scheduledEvents: generateEventsForAllPeriods(),
+      currentOpponent: opponent,
+      shotTimes: shotTimes,
+      isHomeTeam: true  // Vždy budeme domácí tým
+    }));
   };
 
   // Funkce pro generování časů střel
@@ -3586,7 +3569,8 @@ const CardGame = () => {
                                 className="px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600"
                                 onClick={confirmMatchExit}
                               >
-                                Odejít ze zápasu
+                                {/* Změna textu tlačítka podle typu zápasu */}
+                                {!tournamentState.phase ? 'Opustit zápas' : 'Odejít ze zápasu'}
                               </button>
                             )}
                           </div>
