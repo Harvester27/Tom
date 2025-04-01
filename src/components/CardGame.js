@@ -342,7 +342,7 @@ const CardGame = () => {
   const [showTournament, setShowTournament] = useState(false);
   const [showTournamentSummary, setShowTournamentSummary] = useState(false);
   const [tournamentState, setTournamentState] = useState({
-    phase: 'groups',
+    phase: null,  // Změněno z 'groups' na null
     groups: {
       A: [
         { team: teamKafacBilina, points: 0, score: { for: 0, against: 0 }, played: 0, wins: 0, draws: 0, losses: 0 },
