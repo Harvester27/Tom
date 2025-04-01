@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import PlayerCareer from './PlayerCareer';
 
   // Definice týmů pro turnaj
   const teamGinTonic = {
@@ -2689,12 +2690,27 @@ const CardGame = () => {
     return matchResult ? matchResult.xpReward : 0;
   };
 
+  const [showCareer, setShowCareer] = useState(false);
+
   return (
     <div className="relative min-h-screen bg-gradient-to-br from-gray-900 to-black font-hokej p-4">
       {/* Version number */}
       <div className="fixed top-4 left-4 bg-black/50 px-3 py-1 rounded-lg text-sm text-yellow-400">
         v1.0.7
       </div>
+
+      {/* Komponenta PlayerCareer */}
+      {showCareer && (
+        <PlayerCareer
+          onBack={() => setShowCareer(false)}
+          money={money}
+          xp={xp}
+          level={getLevelFromXp(xp)}
+          getXpToNextLevel={getXpToNextLevel}
+          getLevelProgress={getLevelProgress}
+        />
+      )}
+
       <style jsx global>{`
         @keyframes confetti-fall {
           0% {
