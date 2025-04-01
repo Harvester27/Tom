@@ -2782,6 +2782,14 @@ const CardGame = () => {
                 >
                   Hrát turnaj {!canPlayMatch() && '(Neúplná sestava)'}
                 </button>
+                <button
+                  onClick={() => setShowCareer(true)}
+                  className="bg-gradient-to-r from-indigo-500 to-indigo-600 hover:from-indigo-600 hover:to-indigo-700
+                    text-white font-bold py-3 px-8 rounded-xl shadow-lg transform transition-all duration-300
+                    hover:scale-105 active:scale-95 border-2 border-white/20"
+                >
+                  Kariéra hráče
+                </button>
               </div>
             )}
           </div>
