@@ -1082,8 +1082,15 @@ const CardGame = () => {
   };
 
   const startMatch = () => {
+    // === DEBUG LOG START ===
+    console.log('[startMatch] Začátek funkce, aktuální tournamentState.phase:', tournamentState.phase);
+    // === DEBUG LOG END ===
+
     // Zjistíme, zda se jedná o turnajový zápas
     const isTournamentMatch = tournamentState.phase !== null;
+    // === DEBUG LOG START ===
+    console.log(`[startMatch] Hodnota isTournamentMatch: ${isTournamentMatch} (protože phase je ${tournamentState.phase === null ? 'null' : 'není null'})`);
+    // === DEBUG LOG END ===
     console.log(`Spouštím zápas (Turnaj: ${isTournamentMatch})`);
 
     // Provedeme zbývající inicializaci zápasu
@@ -1119,6 +1126,13 @@ const CardGame = () => {
       }
     } else {
       console.log(`Přátelský zápas: ${selectedTeam.name} (Domácí) vs HC Lopaty Praha`);
+      // === DEBUG LOG START - Explicitní nastavení pro přátelský zápas ===
+      // ZDE BY MOHLO BÝT POTŘEBA NASTAVIT phase NA null, POKUD JEŠTĚ NENÍ
+      // Např.: if (tournamentState.phase !== null) {
+      //   console.log('[startMatch] Explicitně nastavuji tournamentState.phase na null pro přátelský zápas.');
+      //   setTournamentState(prev => ({ ...prev, phase: null }));
+      // }
+      // === DEBUG LOG END ===
     }
 
     // Pokud není turnajový soupeř určen, použijeme výchozího (pro přátelský zápas nebo jako fallback)
@@ -1496,10 +1510,17 @@ const CardGame = () => {
 
   // Funkce pro potvrzení odchodu ze zápasu
   const confirmMatchExit = () => {
+    // === DEBUG LOG START ===
+    console.log('[confirmMatchExit] Začátek funkce, aktuální tournamentState.phase:', tournamentState.phase);
+    // === DEBUG LOG END ===
+
     // Zjistíme, zda jde o přátelský zápas s Lopaty Praha
     // OPRAVA: Používáme matchState.currentOpponent místo matchState.awayTeam
     // Hra rozlišuje přátelský zápas od turnaje pomocí tournamentState.phase
     const isFriendlyMatch = !tournamentState.phase;
+    // === DEBUG LOG START ===
+    console.log(`[confirmMatchExit] Hodnota isFriendlyMatch: ${isFriendlyMatch} (protože phase je ${tournamentState.phase === null ? 'null' : 'není null'})`);
+    // === DEBUG LOG END ===
     console.log("Ukončení zápasu - přátelský zápas:", isFriendlyMatch);
     console.log("Je turnaj:", !!tournamentState.phase);
     
@@ -1567,6 +1588,9 @@ const CardGame = () => {
         ...prev,
         phase: null
       }));
+      // === DEBUG LOG START ===
+      console.log('[confirmMatchExit] Přátelský zápas: Nastavuji phase na null a zobrazuji odměny.');
+      // === DEBUG LOG END ===
       
       // Skryjeme obrazovku zápasu a zobrazíme obrazovku odměn
       setMatchCompleteAwaitingConfirmation(false);
@@ -1580,6 +1604,9 @@ const CardGame = () => {
     
     // Kód níže se spustí JEN pro turnajové zápasy
     console.log("Přepínám na turnajovou obrazovku");
+    // === DEBUG LOG START ===
+    console.log('[confirmMatchExit] Turnajový zápas: Zpracovávám statistiky a vracím se do turnaje.');
+    // === DEBUG LOG END ===
     
     // Pokud jsme v turnaji, přeneseme statistiky brankářů do turnajové tabulky
     if (tournamentState.phase && matchState.completed) {
