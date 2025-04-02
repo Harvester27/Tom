@@ -7,6 +7,7 @@ const PlayerCareer = ({ onBack, money, xp, level, getXpToNextLevel, getLevelProg
   const [showLocationInfo, setShowLocationInfo] = useState(false);
   const [weather, setWeather] = useState('clear');
   const [temperature, setTemperature] = useState(22);
+  const [currentHour, setCurrentHour] = useState(8);
   const [hoveredLocation, setHoveredLocation] = useState(null);
   const [currentDate, setCurrentDate] = useState(new Date());
   const [playerName, setPlayerName] = useState('Nový hráč');
@@ -23,22 +24,24 @@ const PlayerCareer = ({ onBack, money, xp, level, getXpToNextLevel, getLevelProg
     return `${days[date.getDay()]} ${date.getDate()}. ${months[date.getMonth()]}`;
   };
 
-  // Funkce pro generování realistického počasí podle měsíce
-  const generateWeather = (date) => {
+  // Funkce pro generování realistického počasí podle měsíce a hodiny
+  const generateWeather = (date, hour = 8) => {
     const month = date.getMonth(); // 0-11
     let possibleWeathers = [];
     let baseTemp = 0;
     let tempVariation = 0;
 
-    // Nastavení možného počasí a teplot podle měsíce
+    // Základní nastavení podle měsíce
     switch(month) {
       case 11: // Prosinec
       case 0:  // Leden
       case 1:  // Únor
         possibleWeathers = [
-          { type: 'clear', weight: 30, tempMod: 0 },
-          { type: 'cloudy', weight: 40, tempMod: -2 },
-          { type: 'snow', weight: 30, tempMod: -4 }
+          { type: 'clear', weight: 25, tempMod: 0 },
+          { type: 'partlyCloudy', weight: 30, tempMod: -1 },
+          { type: 'cloudy', weight: 25, tempMod: -2 },
+          { type: 'snow', weight: 15, tempMod: -4 },
+          { type: 'snowRain', weight: 5, tempMod: -1 }
         ];
         baseTemp = 0;
         tempVariation = 5;
@@ -47,9 +50,11 @@ const PlayerCareer = ({ onBack, money, xp, level, getXpToNextLevel, getLevelProg
       case 3:  // Duben
       case 4:  // Květen
         possibleWeathers = [
-          { type: 'clear', weight: 40, tempMod: 2 },
-          { type: 'cloudy', weight: 35, tempMod: 0 },
-          { type: 'rain', weight: 25, tempMod: -2 }
+          { type: 'clear', weight: 30, tempMod: 2 },
+          { type: 'partlyCloudy', weight: 25, tempMod: 1 },
+          { type: 'cloudy', weight: 20, tempMod: 0 },
+          { type: 'rain', weight: 15, tempMod: -2 },
+          { type: 'thunderstorm', weight: 10, tempMod: -3 }
         ];
         baseTemp = 15;
         tempVariation = 7;
@@ -58,9 +63,11 @@ const PlayerCareer = ({ onBack, money, xp, level, getXpToNextLevel, getLevelProg
       case 6:  // Červenec
       case 7:  // Srpen
         possibleWeathers = [
-          { type: 'clear', weight: 50, tempMod: 3 },
-          { type: 'cloudy', weight: 30, tempMod: 0 },
-          { type: 'rain', weight: 20, tempMod: -3 }
+          { type: 'clear', weight: 35, tempMod: 3 },
+          { type: 'partlyCloudy', weight: 25, tempMod: 1 },
+          { type: 'cloudy', weight: 15, tempMod: 0 },
+          { type: 'rain', weight: 15, tempMod: -3 },
+          { type: 'thunderstorm', weight: 10, tempMod: -4 }
         ];
         baseTemp = 24;
         tempVariation = 6;
@@ -69,14 +76,20 @@ const PlayerCareer = ({ onBack, money, xp, level, getXpToNextLevel, getLevelProg
       case 9:  // Říjen
       case 10: // Listopad
         possibleWeathers = [
-          { type: 'clear', weight: 35, tempMod: 2 },
-          { type: 'cloudy', weight: 40, tempMod: 0 },
-          { type: 'rain', weight: 25, tempMod: -3 }
+          { type: 'clear', weight: 25, tempMod: 2 },
+          { type: 'partlyCloudy', weight: 30, tempMod: 1 },
+          { type: 'cloudy', weight: 25, tempMod: 0 },
+          { type: 'rain', weight: 15, tempMod: -3 },
+          { type: 'fog', weight: 5, tempMod: -1 }
         ];
         baseTemp = 12;
         tempVariation = 8;
         break;
     }
+
+    // Úprava teploty podle denní doby
+    const hourModifier = getHourlyTempModifier(hour);
+    baseTemp += hourModifier;
 
     // Vážený výběr počasí
     const totalWeight = possibleWeathers.reduce((sum, w) => sum + w.weight, 0);
@@ -91,7 +104,7 @@ const PlayerCareer = ({ onBack, money, xp, level, getXpToNextLevel, getLevelProg
       }
     }
 
-    // Generování teploty
+    // Generování teploty s denním cyklem
     const randomTemp = baseTemp + (Math.random() * 2 - 1) * tempVariation + selectedWeather.tempMod;
     
     return {
@@ -100,15 +113,62 @@ const PlayerCareer = ({ onBack, money, xp, level, getXpToNextLevel, getLevelProg
     };
   };
 
-  // Funkce pro posun na další den - aktualizuje i počasí
+  // Funkce pro získání modifikátoru teploty podle hodiny
+  const getHourlyTempModifier = (hour) => {
+    // Denní cyklus teploty:
+    // 5-8: postupný nárůst z nočního minima
+    // 9-14: postupný nárůst k dennímu maximu
+    // 15-19: postupný pokles
+    // 20-4: postupný pokles k nočnímu minimu
+    
+    if (hour >= 5 && hour <= 8) {
+      return -2 + (hour - 5);
+    } else if (hour >= 9 && hour <= 14) {
+      return 1 + (hour - 9);
+    } else if (hour >= 15 && hour <= 19) {
+      return 6 - (hour - 15);
+    } else {
+      return -3;
+    }
+  };
+
+  // Funkce pro aktualizaci počasí podle hodiny
+  const updateHourlyWeather = () => {
+    const currentWeather = generateWeather(currentDate, currentHour);
+    setWeather(currentWeather.type);
+    setTemperature(currentWeather.temperature);
+  };
+
+  // Efekt pro aktualizaci času a počasí
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setCurrentHour(prev => {
+        const newHour = prev + 1;
+        if (newHour >= 24) {
+          goToNextDay();
+          return 8; // Nový den začíná v 8:00
+        }
+        // Aktualizace počasí při změně hodiny
+        const currentWeather = generateWeather(currentDate, newHour);
+        setWeather(currentWeather.type);
+        setTemperature(currentWeather.temperature);
+        return newHour;
+      });
+    }, 30000); // Každých 30 sekund = 1 herní hodina
+
+    return () => clearInterval(interval);
+  }, [currentDate]);
+
+  // Funkce pro posun na další den
   const goToNextDay = () => {
     const nextDay = new Date(currentDate);
     nextDay.setDate(nextDay.getDate() + 1);
     nextDay.setHours(8, 0, 0, 0);
     setCurrentDate(nextDay);
+    setCurrentHour(8);
     
     // Generování nového počasí pro další den
-    const newWeather = generateWeather(nextDay);
+    const newWeather = generateWeather(nextDay, 8);
     setWeather(newWeather.type);
     setTemperature(newWeather.temperature);
     
@@ -141,9 +201,13 @@ const PlayerCareer = ({ onBack, money, xp, level, getXpToNextLevel, getLevelProg
   const getWeatherEmoji = () => {
     switch(weather) {
       case 'clear': return '☀️';
+      case 'partlyCloudy': return '⛅';
       case 'cloudy': return '☁️';
       case 'rain': return '🌧️';
+      case 'thunderstorm': return '⛈️';
       case 'snow': return '❄️';
+      case 'snowRain': return '🌨️';
+      case 'fog': return '🌫️';
       default: return '☀️';
     }
   };
@@ -152,9 +216,13 @@ const PlayerCareer = ({ onBack, money, xp, level, getXpToNextLevel, getLevelProg
   const getWeatherDescription = () => {
     switch(weather) {
       case 'clear': return 'Jasno';
+      case 'partlyCloudy': return 'Polojasno';
       case 'cloudy': return 'Zataženo';
       case 'rain': return 'Déšť';
+      case 'thunderstorm': return 'Bouřky';
       case 'snow': return 'Sněžení';
+      case 'snowRain': return 'Déšť se sněhem';
+      case 'fog': return 'Mlha';
       default: return 'Jasno';
     }
   };
@@ -280,7 +348,7 @@ const PlayerCareer = ({ onBack, money, xp, level, getXpToNextLevel, getLevelProg
           <p className="text-indigo-100 text-xl">
             <span className="font-bold text-indigo-400">{formatDate(currentDate)}</span>
             <span className="mx-2">•</span>
-            <span className="font-bold text-indigo-400">8:00</span>
+            <span className="font-bold text-indigo-400">{currentHour.toString().padStart(2, '0')}:00</span>
           </p>
         </div>
         <div className="bg-black/60 backdrop-blur-sm px-6 py-3 rounded-xl border border-indigo-500/20 shadow-lg shadow-indigo-500/20">
@@ -352,24 +420,34 @@ const PlayerCareer = ({ onBack, money, xp, level, getXpToNextLevel, getLevelProg
             </h2>
             <div className="text-indigo-300 mt-2">
               {weather === 'clear' ? '☀️ Jasno' :
+                weather === 'partlyCloudy' ? '⛅ Polojasno' :
                 weather === 'cloudy' ? '☁️ Zataženo' :
                 weather === 'rain' ? '🌧️ Déšť' :
-                '❄️ Sněžení'}
+                weather === 'thunderstorm' ? '⛈️ Bouřky' :
+                weather === 'snow' ? '❄️ Sněžení' :
+                '🌨️ Déšť se sněhem'}
             </div>
           </div>
 
           {/* Mapa */}
           <div className={`relative w-full h-[600px] rounded-xl overflow-hidden transition-all duration-1000
             ${weather === 'clear' ? 'bg-gradient-to-br from-blue-800/20 to-blue-600/20' :
+              weather === 'partlyCloudy' ? 'bg-gradient-to-br from-blue-800/20 to-gray-600/20' :
               weather === 'cloudy' ? 'bg-gradient-to-br from-gray-800/20 to-gray-600/20' :
               weather === 'rain' ? 'bg-gradient-to-br from-blue-900/20 to-blue-700/20' :
-              'bg-gradient-to-br from-gray-900/20 to-blue-800/20'}`}>
+              weather === 'thunderstorm' ? 'bg-gradient-to-br from-gray-900/20 to-purple-800/20' :
+              weather === 'snow' ? 'bg-gradient-to-br from-gray-900/20 to-blue-800/20' :
+              weather === 'snowRain' ? 'bg-gradient-to-br from-blue-900/20 to-gray-800/20' :
+              'bg-gradient-to-br from-gray-800/20 to-gray-700/20'}`}>
             
             {/* Efekty počasí */}
-            {weather !== 'clear' && weather !== 'cloudy' && (
+            {weather !== 'clear' && weather !== 'partlyCloudy' && weather !== 'cloudy' && (
               <div className={`absolute inset-0 pointer-events-none
                 ${weather === 'rain' ? 'animate-rain bg-gradient-to-b from-transparent to-blue-500/10' :
-                  weather === 'snow' ? 'animate-snow bg-gradient-to-b from-transparent to-white/10' : ''}`}
+                  weather === 'thunderstorm' ? 'animate-storm bg-gradient-to-b from-transparent to-purple-500/20' :
+                  weather === 'snow' ? 'animate-snow bg-gradient-to-b from-transparent to-white/10' :
+                  weather === 'snowRain' ? 'animate-mixed-precipitation bg-gradient-to-b from-transparent to-blue-500/10' :
+                  weather === 'fog' ? 'animate-fog bg-gradient-to-b from-gray-400/20 to-gray-400/10' : ''}`}
               />
             )}
 
@@ -524,6 +602,22 @@ const PlayerCareer = ({ onBack, money, xp, level, getXpToNextLevel, getLevelProg
           100% { background-position: 10% 100%; }
         }
 
+        @keyframes storm {
+          0%, 100% { opacity: 0.3; }
+          50% { opacity: 0.8; }
+        }
+
+        @keyframes mixed-precipitation {
+          0% { background-position: 0% 0%; }
+          100% { background-position: 15% 100%; }
+        }
+
+        @keyframes fog {
+          0% { opacity: 0.3; }
+          50% { opacity: 0.6; }
+          100% { opacity: 0.3; }
+        }
+
         .animate-slideUp {
           animation: slideUp 0.3s ease-out forwards;
         }
@@ -547,6 +641,25 @@ const PlayerCareer = ({ onBack, money, xp, level, getXpToNextLevel, getLevelProg
             white 0.1em,
             transparent 0.2em
           );
+        }
+
+        .animate-storm {
+          animation: storm 0.8s linear infinite;
+        }
+
+        .animate-mixed-precipitation {
+          animation: mixed-precipitation 0.8s linear infinite;
+          background-size: 100px 100px;
+          background-image: repeating-linear-gradient(
+            transparent 0px,
+            transparent 5px,
+            rgba(255, 255, 255, 0.1) 5px,
+            rgba(255, 255, 255, 0.1) 10px
+          );
+        }
+
+        .animate-fog {
+          animation: fog 0.8s linear infinite;
         }
 
         .shadow-glow {
