@@ -71,6 +71,12 @@ const PlayerCareer = ({ onBack, money, xp, level, getXpToNextLevel, getLevelProg
   // Blikající LED efekt
   const [ledBlink, setLedBlink] = useState(false);
 
+  // Přidání stavu pro hokejový trénink
+  const [hockeyPractice, setHockeyPractice] = useState(() => {
+    const savedPractice = localStorage.getItem('hockeyPractice');
+    return savedPractice ? JSON.parse(savedPractice) : null;
+  });
+
   // Funkce pro formátování data
   const formatDate = (date) => {
     const days = ['Neděle', 'Pondělí', 'Úterý', 'Středa', 'Čtvrtek', 'Pátek', 'Sobota'];
@@ -330,7 +336,29 @@ const PlayerCareer = ({ onBack, money, xp, level, getXpToNextLevel, getLevelProg
       y: 60,
       icon: '🏟️',
       color: '#87CEEB',
-      actions: ['Trénink týmu', 'Zápas', 'Prohlídka stadionu']
+      actions: [
+        {
+          name: hockeyPractice && 
+               currentDate.getDate() === 2 && 
+               currentDate.getMonth() === 5 && 
+               currentHour < 19 ? 
+               '🏒 Jít na hokej s Oldovou partou (17:00)' : 
+               'Trénink týmu',
+          onClick: () => {
+            if (hockeyPractice && 
+                currentDate.getDate() === 2 && 
+                currentDate.getMonth() === 5 && 
+                currentHour < 19) {
+              // TODO: Implementovat hokejový zápas s partou
+              alert('Přišel jsi na hokej s partou! (Tato funkce bude brzy implementována)');
+            } else {
+              console.log('Trénink týmu');
+            }
+          }
+        },
+        'Zápas',
+        'Prohlídka stadionu'
+      ]
     },
     {
       id: 'shop',
@@ -620,6 +648,30 @@ const PlayerCareer = ({ onBack, money, xp, level, getXpToNextLevel, getLevelProg
     }
   };
 
+  // Kontrola, jestli se hráč domluvil na hokeji
+  useEffect(() => {
+    const savedMessages = localStorage.getItem('oldaChatMessages');
+    if (savedMessages) {
+      const messages = JSON.parse(savedMessages);
+      const isConfirmed = messages.some(msg => 
+        msg.sender === 'Player' && 
+        (msg.text.includes('Díky moc! Tak v 16:15 na zimáku.') || 
+         msg.text.includes('Díky, výstroj mám. Tak v 16:30 na zimáku!') ||
+         msg.text.includes('Super, budu tam!'))
+      );
+
+      if (isConfirmed) {
+        const practice = {
+          date: new Date(2024, 5, 2), // 2. června 2024
+          time: '17:00',
+          confirmed: true
+        };
+        setHockeyPractice(practice);
+        localStorage.setItem('hockeyPractice', JSON.stringify(practice));
+      }
+    }
+  }, []);
+
   return (
     <div className="fixed inset-0 bg-black/90 flex flex-col items-center justify-center z-50 p-8 overflow-y-auto">
       {/* Stats v levém horním rohu */}
@@ -706,6 +758,19 @@ const PlayerCareer = ({ onBack, money, xp, level, getXpToNextLevel, getLevelProg
               </div>
             </div>
           </div>
+        </div>
+      )}
+
+      {/* Přidání notifikace o hokeji */}
+      {hockeyPractice && 
+       currentDate.getDate() === 2 && 
+       currentDate.getMonth() === 5 && 
+       currentHour < 19 && (
+        <div className="fixed top-32 right-4 bg-indigo-600/90 backdrop-blur-sm px-6 py-3 rounded-xl border border-indigo-500/20 shadow-lg shadow-indigo-500/20 animate-bounce">
+          <p className="text-white text-lg flex items-center gap-2">
+            <span className="text-2xl">🏒</span>
+            Dnes v {hockeyPractice.time} hokej s partou!
+          </p>
         </div>
       )}
 
