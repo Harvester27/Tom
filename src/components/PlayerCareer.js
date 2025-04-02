@@ -3,6 +3,24 @@
 import React, { useState, useEffect } from 'react';
 import OldaChat from './OldaChat';
 
+// Pomocné funkce pro kontrolu data a času
+const isHockeyPracticeDay = (currentDate, hockeyPractice) => {
+  if (!hockeyPractice || !hockeyPractice.date) return false;
+  
+  const practiceDate = new Date(hockeyPractice.date);
+  
+  return currentDate.getDate() === practiceDate.getDate() &&
+         currentDate.getMonth() === practiceDate.getMonth() &&
+         currentDate.getFullYear() === practiceDate.getFullYear();
+};
+
+const isBeforePractice = (currentHour, hockeyPractice) => {
+  if (!hockeyPractice || !hockeyPractice.time) return false;
+  
+  const practiceHour = parseInt(hockeyPractice.time.split(':')[0]);
+  return currentHour < practiceHour;
+};
+
 const PlayerCareer = ({ onBack, money, xp, level, getXpToNextLevel, getLevelProgress }) => {
   const [selectedLocation, setSelectedLocation] = useState(null);
   const [showLocationInfo, setShowLocationInfo] = useState(false);
@@ -640,25 +658,6 @@ const PlayerCareer = ({ onBack, money, xp, level, getXpToNextLevel, getLevelProg
           </>
         );
     }
-  };
-
-  // Funkce pro kontrolu, zda je dnes hokejový trénink
-  const isHockeyPracticeDay = (currentDate, hockeyPractice) => {
-    if (!hockeyPractice || !hockeyPractice.date) return false;
-    
-    const practiceDate = new Date(hockeyPractice.date);
-    
-    return currentDate.getDate() === practiceDate.getDate() &&
-           currentDate.getMonth() === practiceDate.getMonth() &&
-           currentDate.getFullYear() === practiceDate.getFullYear();
-  };
-
-  // Funkce pro kontrolu, zda je čas před tréninkem
-  const isBeforePractice = (currentHour, hockeyPractice) => {
-    if (!hockeyPractice || !hockeyPractice.time) return false;
-    
-    const practiceHour = parseInt(hockeyPractice.time.split(':')[0]);
-    return currentHour < practiceHour;
   };
 
   // Kontrola, jestli se hráč domluvil na hokeji
