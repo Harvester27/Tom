@@ -9,6 +9,10 @@ const PlayerCareer = ({ onBack, money, xp, level, getXpToNextLevel, getLevelProg
   const [weather, setWeather] = useState('clear'); // clear, rain, snow
   const [hoveredLocation, setHoveredLocation] = useState(null);
   const [currentDate, setCurrentDate] = useState(new Date());
+  const [playerName, setPlayerName] = useState('Nový hráč');
+  const [showNameModal, setShowNameModal] = useState(false);
+  const [tempFirstName, setTempFirstName] = useState('');
+  const [tempLastName, setTempLastName] = useState('');
 
   // Funkce pro formátování data
   const formatDate = (date) => {
@@ -27,6 +31,16 @@ const PlayerCareer = ({ onBack, money, xp, level, getXpToNextLevel, getLevelProg
     setCurrentDate(nextDay);
     setTimeOfDay('day');
     setShowLocationInfo(false);
+  };
+
+  // Funkce pro uložení jména hráče
+  const savePlayerName = () => {
+    if (tempFirstName && tempLastName) {
+      setPlayerName(`${tempFirstName} ${tempLastName}`);
+      setShowNameModal(false);
+      setTempFirstName('');
+      setTempLastName('');
+    }
   };
 
   // Nastavení počátečního data při prvním načtení
@@ -49,6 +63,10 @@ const PlayerCareer = ({ onBack, money, xp, level, getXpToNextLevel, getLevelProg
         {
           name: 'Jít spát (další den)',
           onClick: goToNextDay
+        },
+        {
+          name: 'Nastavit jméno hráče',
+          onClick: () => setShowNameModal(true)
         },
         {
           name: 'Rozdělení atributů',
@@ -163,6 +181,8 @@ const PlayerCareer = ({ onBack, money, xp, level, getXpToNextLevel, getLevelProg
         </div>
         <div className="bg-black/60 backdrop-blur-sm px-6 py-3 rounded-xl border border-indigo-500/20 relative overflow-hidden shadow-lg shadow-indigo-500/20">
           <p className="text-indigo-100 text-xl relative z-10">
+            <span className="font-bold text-indigo-400">{playerName}</span>
+            <span className="mx-2">•</span>
             Level: <span className="font-bold text-indigo-400">{level}</span>
             <span className="ml-1 text-sm text-indigo-200">({xp} XP)</span>
           </p>
@@ -180,6 +200,56 @@ const PlayerCareer = ({ onBack, money, xp, level, getXpToNextLevel, getLevelProg
           </p>
         </div>
       </div>
+
+      {/* Modal pro nastavení jména */}
+      {showNameModal && (
+        <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-[60]">
+          <div className="bg-gradient-to-br from-indigo-900/90 to-indigo-800/90 p-8 rounded-xl border border-indigo-500/30 shadow-xl backdrop-blur-sm max-w-md w-full mx-4">
+            <h3 className="text-2xl font-bold text-indigo-400 mb-6">Nastavení jména hráče</h3>
+            <div className="space-y-4">
+              <div>
+                <label className="block text-indigo-300 mb-2">Jméno</label>
+                <input
+                  type="text"
+                  value={tempFirstName}
+                  onChange={(e) => setTempFirstName(e.target.value)}
+                  className="w-full bg-black/50 border border-indigo-500/30 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-indigo-500"
+                  placeholder="Zadejte jméno"
+                />
+              </div>
+              <div>
+                <label className="block text-indigo-300 mb-2">Příjmení</label>
+                <input
+                  type="text"
+                  value={tempLastName}
+                  onChange={(e) => setTempLastName(e.target.value)}
+                  className="w-full bg-black/50 border border-indigo-500/30 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-indigo-500"
+                  placeholder="Zadejte příjmení"
+                />
+              </div>
+              <div className="flex gap-4 mt-6">
+                <button
+                  onClick={() => setShowNameModal(false)}
+                  className="flex-1 bg-gray-500/50 hover:bg-gray-500/70 text-white font-bold py-2 px-4 rounded-lg transition-colors"
+                >
+                  Zrušit
+                </button>
+                <button
+                  onClick={savePlayerName}
+                  disabled={!tempFirstName || !tempLastName}
+                  className={`flex-1 ${
+                    tempFirstName && tempLastName
+                      ? 'bg-indigo-500 hover:bg-indigo-600'
+                      : 'bg-indigo-500/50 cursor-not-allowed'
+                  } text-white font-bold py-2 px-4 rounded-lg transition-colors`}
+                >
+                  Uložit
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       <div className="max-w-7xl w-full mx-auto">
         <div className="bg-gradient-to-br from-indigo-900/50 to-indigo-800/20 rounded-xl p-8 border border-indigo-500/20 shadow-xl backdrop-blur-sm">
