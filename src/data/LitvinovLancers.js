@@ -542,7 +542,8 @@ const litvinovLancers = {
         normalizedId: normalizedPlayerId,
         foundPlayer: player
       });
-      return null;
+      // Použijeme dočasně logo týmu jako placeholder
+      return '/Images/Litvinov_Lancers.png';
     }
     
     // Použijeme stejnou cestu jako v CardGame.js
@@ -557,7 +558,8 @@ const litvinovLancers = {
       url: photoUrl
     });
     
-    return photoUrl;
+    // Dočasně vrátíme logo týmu místo fotky hráče
+    return '/Images/Litvinov_Lancers.png';
   }
 };
 
