@@ -1,53 +1,111 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 
 const PlayerCareer = ({ onBack, money, xp, level, getXpToNextLevel, getLevelProgress }) => {
   const [selectedLocation, setSelectedLocation] = useState(null);
   const [showLocationInfo, setShowLocationInfo] = useState(false);
+  const [timeOfDay, setTimeOfDay] = useState('day'); // day, sunset, night
+  const [weather, setWeather] = useState('clear'); // clear, rain, snow
+  const [hoveredLocation, setHoveredLocation] = useState(null);
 
   const locations = [
     {
       id: 'home',
-      name: 'Domov',
-      description: 'Tvůj domov, kde si můžeš odpočinout a prohlédnout své trofeje',
+      name: 'Tvůj dům',
+      description: 'Luxusní sídlo s výhledem na město. Zde si můžeš odpočinout, prohlédnout trofeje a naplánovat další kroky své kariéry.',
       x: 30,
       y: 20,
-      icon: '🏠'
+      icon: '🏠',
+      color: '#FFD700',
+      actions: ['Odpočinek (+10 energie)', 'Prohlídka trofejí', 'Správa financí']
     },
     {
       id: 'stadium',
       name: 'Zimní stadion',
-      description: 'Zde probíhají všechny zápasy a tréninky',
+      description: 'Moderní hokejová aréna s kapacitou 15 000 diváků. Domov tvého týmu a místo, kde se píše historie.',
       x: 70,
       y: 60,
-      icon: '🏟️'
+      icon: '🏟️',
+      color: '#87CEEB',
+      actions: ['Trénink týmu', 'Zápas', 'Prohlídka stadionu']
     },
     {
       id: 'shop',
-      name: 'Hokejový obchod',
-      description: 'Nakup si nové vybavení a vylepši své karty',
+      name: 'Hokejové centrum',
+      description: 'Specializovaný obchod s nejnovějším hokejovým vybavením a možností vylepšení karet hráčů.',
       x: 20,
       y: 70,
-      icon: '🏪'
+      icon: '🏪',
+      color: '#98FB98',
+      actions: ['Nákup vybavení', 'Vylepšení karet', 'Prodej věcí']
     },
     {
       id: 'gym',
-      name: 'Posilovna',
-      description: 'Zvyš své statistiky tréninkem',
+      name: 'Sportovní centrum',
+      description: 'Špičkově vybavené fitness centrum s osobními trenéry a rehabilitačním oddělením.',
       x: 80,
       y: 30,
-      icon: '💪'
+      icon: '💪',
+      color: '#FF6B6B',
+      actions: ['Silový trénink', 'Rehabilitace', 'Konzultace s trenérem']
     },
     {
       id: 'school',
       name: 'Hokejová akademie',
-      description: 'Nauč se nové taktiky a triky',
+      description: 'Vzdělávací centrum pro hokejisty. Zde se můžeš naučit nové taktiky a strategii.',
       x: 50,
       y: 40,
-      icon: '🎓'
+      icon: '🎓',
+      color: '#DDA0DD',
+      actions: ['Studium taktiky', 'Mentoring', 'Analýza zápasů']
+    },
+    {
+      id: 'restaurant',
+      name: 'Sportovní restaurace',
+      description: 'Restaurace specializovaná na výživu sportovců. Perfektní místo pro týmové porady.',
+      x: 40,
+      y: 65,
+      icon: '🍽️',
+      color: '#FFA07A',
+      actions: ['Týmová večeře', 'Konzultace s nutričním specialistou', 'Společenská akce']
+    },
+    {
+      id: 'medical',
+      name: 'Sportovní klinika',
+      description: 'Zdravotnické zařízení specializované na sportovní medicínu a rehabilitaci.',
+      x: 60,
+      y: 25,
+      icon: '🏥',
+      color: '#F08080',
+      actions: ['Zdravotní prohlídka', 'Rehabilitace', 'Konzultace']
     }
   ];
+
+  // Efekt pro změnu denní doby
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setTimeOfDay(current => {
+        switch(current) {
+          case 'day': return 'sunset';
+          case 'sunset': return 'night';
+          case 'night': return 'day';
+          default: return 'day';
+        }
+      });
+    }, 30000);
+    return () => clearInterval(interval);
+  }, []);
+
+  // Efekt pro změnu počasí
+  useEffect(() => {
+    const interval = setInterval(() => {
+      const weathers = ['clear', 'rain', 'snow'];
+      const randomWeather = weathers[Math.floor(Math.random() * weathers.length)];
+      setWeather(randomWeather);
+    }, 45000);
+    return () => clearInterval(interval);
+  }, []);
 
   const handleLocationClick = (location) => {
     setSelectedLocation(location);
@@ -58,12 +116,12 @@ const PlayerCareer = ({ onBack, money, xp, level, getXpToNextLevel, getLevelProg
     <div className="fixed inset-0 bg-black/90 flex flex-col items-center justify-center z-50 p-8 overflow-y-auto">
       {/* Stats v levém horním rohu */}
       <div className="fixed top-4 left-4 flex gap-4">
-        <div className="bg-black/40 px-6 py-3 rounded-xl border border-indigo-500/20">
+        <div className="bg-black/60 backdrop-blur-sm px-6 py-3 rounded-xl border border-indigo-500/20 shadow-lg shadow-indigo-500/20">
           <p className="text-indigo-100 text-xl">
-            Peníze: <span className="font-bold text-indigo-400">{money} Kč</span>
+            Peníze: <span className="font-bold text-indigo-400">{money.toLocaleString()} Kč</span>
           </p>
         </div>
-        <div className="bg-black/40 px-6 py-3 rounded-xl border border-indigo-500/20 relative overflow-hidden">
+        <div className="bg-black/60 backdrop-blur-sm px-6 py-3 rounded-xl border border-indigo-500/20 relative overflow-hidden shadow-lg shadow-indigo-500/20">
           <p className="text-indigo-100 text-xl relative z-10">
             Level: <span className="font-bold text-indigo-400">{level}</span>
             <span className="ml-1 text-sm text-indigo-200">({xp} XP)</span>
@@ -77,36 +135,77 @@ const PlayerCareer = ({ onBack, money, xp, level, getXpToNextLevel, getLevelProg
       </div>
 
       <div className="max-w-7xl w-full mx-auto">
-        <div className="bg-gradient-to-br from-indigo-900/50 to-indigo-800/20 rounded-xl p-8 border border-indigo-500/20">
+        <div className="bg-gradient-to-br from-indigo-900/50 to-indigo-800/20 rounded-xl p-8 border border-indigo-500/20 shadow-xl backdrop-blur-sm">
           {/* Hlavička */}
           <div className="text-center mb-8">
             <h2 className="text-4xl font-bold bg-gradient-to-r from-indigo-400 to-indigo-600 bg-clip-text text-transparent">
               Mapa města
             </h2>
+            <div className="text-indigo-300 mt-2">
+              {timeOfDay === 'day' && '☀️ Denní čas'}
+              {timeOfDay === 'sunset' && '🌅 Západ slunce'}
+              {timeOfDay === 'night' && '🌙 Noc'}
+              <span className="mx-2">•</span>
+              {weather === 'clear' && '☀️ Jasno'}
+              {weather === 'rain' && '🌧️ Déšť'}
+              {weather === 'snow' && '❄️ Sněžení'}
+            </div>
           </div>
 
           {/* Mapa */}
-          <div className="relative w-full h-[600px] bg-gradient-to-br from-emerald-800/20 to-emerald-600/20 rounded-xl overflow-hidden">
+          <div className={`relative w-full h-[600px] rounded-xl overflow-hidden transition-all duration-1000
+            ${timeOfDay === 'day' ? 'bg-gradient-to-br from-emerald-800/20 to-emerald-600/20' :
+              timeOfDay === 'sunset' ? 'bg-gradient-to-br from-orange-800/20 to-purple-600/20' :
+              'bg-gradient-to-br from-blue-900/20 to-indigo-800/20'}`}>
+            
+            {/* Efekty počasí */}
+            {weather !== 'clear' && (
+              <div className={`absolute inset-0 pointer-events-none
+                ${weather === 'rain' ? 'animate-rain bg-gradient-to-b from-transparent to-blue-500/10' :
+                  weather === 'snow' ? 'animate-snow bg-gradient-to-b from-transparent to-white/10' : ''}`}
+              />
+            )}
+
             {/* Cesty */}
             <svg className="absolute inset-0 w-full h-full" viewBox="0 0 100 100">
               {/* Hlavní cesty */}
               <path 
-                d="M 20,20 L 80,20 L 80,80 L 20,80 L 20,20" 
-                className="stroke-slate-400/50 stroke-2 fill-none"
+                d="M 20,20 C 40,20 60,20 80,20 C 80,40 80,60 80,80 C 60,80 40,80 20,80 C 20,60 20,40 20,20" 
+                className={`stroke-2 fill-none transition-all duration-1000
+                  ${timeOfDay === 'day' ? 'stroke-slate-400/50' :
+                    timeOfDay === 'sunset' ? 'stroke-orange-400/50' :
+                    'stroke-blue-400/30'}`}
                 strokeDasharray="4 2"
               />
+              
               {/* Vedlejší cesty */}
               <path 
-                d="M 50,20 L 50,80 M 20,50 L 80,50" 
-                className="stroke-slate-400/30 stroke-2 fill-none"
+                d="M 50,20 Q 50,50 50,80 M 20,50 Q 50,50 80,50" 
+                className={`stroke-2 fill-none transition-all duration-1000
+                  ${timeOfDay === 'day' ? 'stroke-slate-400/30' :
+                    timeOfDay === 'sunset' ? 'stroke-orange-400/30' :
+                    'stroke-blue-400/20'}`}
                 strokeDasharray="4 2"
               />
+              
               {/* Řeka */}
               <path 
                 d="M 10,40 Q 30,45 40,35 Q 50,25 60,45 Q 70,65 90,60" 
-                className="stroke-blue-500/30 stroke-[3] fill-none"
+                className={`stroke-[3] fill-none transition-all duration-1000
+                  ${timeOfDay === 'day' ? 'stroke-blue-500/30' :
+                    timeOfDay === 'sunset' ? 'stroke-purple-500/30' :
+                    'stroke-blue-700/30'}`}
                 strokeLinecap="round"
-              />
+              >
+                <animate
+                  attributeName="d"
+                  dur="5s"
+                  repeatCount="indefinite"
+                  values="M 10,40 Q 30,45 40,35 Q 50,25 60,45 Q 70,65 90,60;
+                         M 10,42 Q 30,47 40,37 Q 50,27 60,47 Q 70,67 90,62;
+                         M 10,40 Q 30,45 40,35 Q 50,25 60,45 Q 70,65 90,60"
+                />
+              </path>
             </svg>
 
             {/* Lokace */}
@@ -117,32 +216,68 @@ const PlayerCareer = ({ onBack, money, xp, level, getXpToNextLevel, getLevelProg
                   w-16 h-16 rounded-full flex items-center justify-center
                   transition-all duration-300 hover:scale-110 
                   ${selectedLocation?.id === location.id 
-                    ? 'bg-indigo-600/80 ring-4 ring-indigo-400/50' 
-                    : 'bg-indigo-500/50 hover:bg-indigo-500/70'}`}
-                style={{ left: `${location.x}%`, top: `${location.y}%` }}
+                    ? 'ring-4 ring-opacity-50 z-20' 
+                    : 'hover:z-10'}
+                  ${timeOfDay === 'night' ? 'shadow-glow' : 'shadow-lg'}`}
+                style={{ 
+                  left: `${location.x}%`, 
+                  top: `${location.y}%`,
+                  backgroundColor: `${location.color}40`,
+                  boxShadow: hoveredLocation?.id === location.id 
+                    ? `0 0 20px ${location.color}80` 
+                    : `0 0 10px ${location.color}40`,
+                  borderColor: location.color
+                }}
                 onClick={() => handleLocationClick(location)}
+                onMouseEnter={() => setHoveredLocation(location)}
+                onMouseLeave={() => setHoveredLocation(null)}
               >
-                <span className="text-3xl filter drop-shadow-lg">{location.icon}</span>
+                <span className="text-3xl filter drop-shadow-lg transform transition-transform duration-300 hover:scale-110">
+                  {location.icon}
+                </span>
+                {hoveredLocation?.id === location.id && (
+                  <div className="absolute -bottom-8 left-1/2 transform -translate-x-1/2 
+                               whitespace-nowrap bg-black/80 text-white text-sm px-2 py-1 
+                               rounded-lg pointer-events-none">
+                    {location.name}
+                  </div>
+                )}
               </button>
             ))}
 
             {/* Info panel o lokaci */}
             {showLocationInfo && selectedLocation && (
               <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 
-                           w-96 bg-black/80 backdrop-blur-sm rounded-xl p-4 
-                           border border-indigo-500/30 text-white">
-                <h3 className="text-xl font-bold text-indigo-400 mb-2">
+                           w-96 bg-black/80 backdrop-blur-sm rounded-xl p-6
+                           border border-indigo-500/30 text-white
+                           animate-slideUp shadow-xl">
+                <h3 className="text-2xl font-bold text-indigo-400 mb-2 flex items-center gap-2">
+                  <span>{selectedLocation.icon}</span>
                   {selectedLocation.name}
                 </h3>
-                <p className="text-indigo-100">
+                <p className="text-indigo-100 mb-4">
                   {selectedLocation.description}
                 </p>
+                <div className="space-y-2">
+                  {selectedLocation.actions.map((action, index) => (
+                    <button
+                      key={index}
+                      className="w-full text-left px-4 py-2 rounded-lg
+                               bg-indigo-500/20 hover:bg-indigo-500/30
+                               transition-colors duration-200
+                               text-indigo-200 hover:text-indigo-100"
+                    >
+                      {action}
+                    </button>
+                  ))}
+                </div>
                 <button
                   className="mt-4 bg-indigo-500/50 hover:bg-indigo-500/70 
-                           px-4 py-2 rounded-lg text-sm transition-colors"
+                           px-4 py-2 rounded-lg text-sm transition-colors
+                           absolute top-4 right-4"
                   onClick={() => setShowLocationInfo(false)}
                 >
-                  Zavřít
+                  ✕
                 </button>
               </div>
             )}
@@ -161,6 +296,52 @@ const PlayerCareer = ({ onBack, money, xp, level, getXpToNextLevel, getLevelProg
           </div>
         </div>
       </div>
+
+      <style jsx>{`
+        @keyframes slideUp {
+          from { transform: translate(-50%, 100%); opacity: 0; }
+          to { transform: translate(-50%, 0); opacity: 1; }
+        }
+        
+        @keyframes rain {
+          0% { background-position: 0% 0%; }
+          100% { background-position: 20% 100%; }
+        }
+        
+        @keyframes snow {
+          0% { background-position: 0% 0%; }
+          100% { background-position: 10% 100%; }
+        }
+
+        .animate-slideUp {
+          animation: slideUp 0.3s ease-out forwards;
+        }
+
+        .animate-rain {
+          animation: rain 0.8s linear infinite;
+          background-size: 100px 100px;
+          background-image: repeating-linear-gradient(
+            transparent 0px,
+            transparent 5px,
+            rgba(255, 255, 255, 0.1) 5px,
+            rgba(255, 255, 255, 0.1) 10px
+          );
+        }
+
+        .animate-snow {
+          animation: snow 3s linear infinite;
+          background-size: 100px 100px;
+          background-image: radial-gradient(
+            circle at 50% 50%,
+            white 0.1em,
+            transparent 0.2em
+          );
+        }
+
+        .shadow-glow {
+          box-shadow: 0 0 15px rgba(255, 255, 255, 0.2);
+        }
+      `}</style>
     </div>
   );
 };
