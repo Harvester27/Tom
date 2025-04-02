@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import Image from 'next/image';
 import { litvinovLancers } from '../data/LitvinovLancers';
 
-const OldaChat = () => {
+const OldaChat = ({ onNewMessage }) => {
   // Definice dialogových sekvencí
   const dialogSequences = {
     start: {
@@ -224,13 +224,20 @@ const OldaChat = () => {
     // Simulace psaní Oldy
     setTimeout(() => {
       setIsTyping(false);
-      setMessages(prev => [...prev, {
+      const newMessage = {
         id: Date.now() + 1,
         sender: 'Olda',
         text: dialogSequences[option.next].message,
         time: new Date().toLocaleTimeString('cs-CZ', { hour: '2-digit', minute: '2-digit' }),
         read: false
-      }]);
+      };
+      
+      setMessages(prev => [...prev, newMessage]);
+      
+      // Propagace nové zprávy do nadřazené komponenty
+      if (onNewMessage) {
+        onNewMessage(newMessage);
+      }
       
       if (option.next !== 'end') {
         setCurrentSequence(option.next);
@@ -258,8 +265,6 @@ const OldaChat = () => {
                   className="w-full h-full object-cover"
                   onError={(e) => {
                     console.error('❌ Error loading image:', e.target.src);
-                    e.target.style.display = 'none';
-                    e.target.parentElement.innerHTML = '👨‍🦳';
                   }}
                 />
               </div>

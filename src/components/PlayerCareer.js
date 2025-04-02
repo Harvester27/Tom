@@ -668,7 +668,7 @@ const PlayerCareer = ({ onBack, money, xp, level, getXpToNextLevel, getLevelProg
               </div>
             </div>
 
-            <OldaChat />
+            <OldaChat onNewMessage={(message) => handleNewMessage(message, 'olda')} />
           </div>
         );
 
