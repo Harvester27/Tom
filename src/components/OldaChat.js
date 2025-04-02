@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import Image from 'next/image';
 import { litvinovLancers } from '../data/LitvinovLancers';
 
 const OldaChat = () => {
@@ -250,15 +251,15 @@ const OldaChat = () => {
             className={`flex ${message.sender === 'Player' ? 'justify-end' : 'justify-start'} items-end gap-2`}
           >
             {message.sender === 'Olda' && (
-              <div className="w-8 h-8 rounded-full bg-indigo-500 flex-shrink-0 overflow-hidden">
-                <img 
+              <div className="w-8 h-8 rounded-full bg-indigo-500 flex-shrink-0 overflow-hidden relative">
+                <Image 
                   src={litvinovLancers.getPlayerPhotoUrl('Oldřich Štěpanovský')}
-                  alt="Olda" 
-                  className="w-full h-full object-cover"
-                  onLoad={() => console.log('🖼️ Olda avatar loaded in chat message:', litvinovLancers.getPlayerPhotoUrl('Oldřich Štěpanovský'))}
+                  alt="Olda"
+                  width={32}
+                  height={32}
+                  className="object-cover"
                   onError={(e) => {
                     console.error('❌ Error loading image in chat message:', e.target.src);
-                    e.target.onerror = null;
                     e.target.style.display = 'none';
                     e.target.parentElement.innerHTML = '👨‍🦳';
                   }}

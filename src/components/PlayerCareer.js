@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import Image from 'next/image';
 import OldaChat from './OldaChat';
 import { litvinovLancers } from '../data/LitvinovLancers';
 
@@ -602,16 +603,16 @@ const PlayerCareer = ({ onBack, money, xp, level, getXpToNextLevel, getLevelProg
                   onClick={() => openChat(conv)}
                 >
                   <div className="flex items-center gap-3">
-                    <div className="w-12 h-12 rounded-full bg-indigo-500 flex items-center justify-center text-2xl overflow-hidden">
+                    <div className="w-12 h-12 rounded-full bg-indigo-500 flex items-center justify-center text-2xl overflow-hidden relative">
                       {conv.avatar.startsWith('/') ? (
-                        <img 
+                        <Image 
                           src={conv.avatar} 
-                          alt={conv.name} 
-                          className="w-full h-full object-cover"
-                          onLoad={() => console.log('🖼️ Olda avatar loaded in message list:', conv.avatar)}
+                          alt={conv.name}
+                          width={48}
+                          height={48}
+                          className="object-cover"
                           onError={(e) => {
                             console.error('❌ Error loading image in message list:', e.target.src);
-                            e.target.onerror = null;
                             e.target.style.display = 'none';
                             e.target.parentElement.innerHTML = '👨‍🦳';
                           }}
@@ -650,16 +651,16 @@ const PlayerCareer = ({ onBack, money, xp, level, getXpToNextLevel, getLevelProg
                 ←
               </button>
               <div className="flex items-center gap-3 flex-1">
-                <div className="w-10 h-10 rounded-full bg-indigo-500 flex items-center justify-center text-xl overflow-hidden">
+                <div className="w-10 h-10 rounded-full bg-indigo-500 flex items-center justify-center text-xl overflow-hidden relative">
                   {activeChat?.avatar.startsWith('/') ? (
-                    <img 
+                    <Image 
                       src={activeChat.avatar} 
-                      alt={activeChat.name} 
-                      className="w-full h-full object-cover"
-                      onLoad={() => console.log('🖼️ Olda avatar loaded in chat header:', activeChat.avatar)}
+                      alt={activeChat.name}
+                      width={40}
+                      height={40}
+                      className="object-cover"
                       onError={(e) => {
                         console.error('❌ Error loading image in chat header:', e.target.src);
-                        e.target.onerror = null;
                         e.target.style.display = 'none';
                         e.target.parentElement.innerHTML = '👨‍🦳';
                       }}
@@ -716,16 +717,16 @@ const PlayerCareer = ({ onBack, money, xp, level, getXpToNextLevel, getLevelProg
                     onClick={() => openChat(conv)}
                   >
                     <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-full bg-indigo-500 flex items-center justify-center text-xl overflow-hidden">
+                      <div className="w-10 h-10 rounded-full bg-indigo-500 flex items-center justify-center text-xl overflow-hidden relative">
                         {conv.avatar.startsWith('/') ? (
-                          <img 
+                          <Image 
                             src={conv.avatar} 
-                            alt={conv.name} 
-                            className="w-full h-full object-cover"
-                            onLoad={() => console.log('🖼️ Olda avatar loaded in home screen:', conv.avatar)}
+                            alt={conv.name}
+                            width={40}
+                            height={40}
+                            className="object-cover"
                             onError={(e) => {
                               console.error('❌ Error loading image in home screen:', e.target.src);
-                              e.target.onerror = null;
                               e.target.style.display = 'none';
                               e.target.parentElement.innerHTML = '👨‍🦳';
                             }}
