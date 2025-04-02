@@ -442,9 +442,9 @@ const PlayerCareer = ({ onBack, money, xp, level, getXpToNextLevel, getLevelProg
           </div>
 
           {/* Hlavní kontejner pro telefon a mapu */}
-          <div className="flex gap-8 pl-4">
-            {/* Mobilní telefon */}
-            <div className="w-[300px] h-[600px] bg-black rounded-[40px] p-3 relative shadow-2xl border-4 border-gray-800">
+          <div className="flex gap-8">
+            {/* Mobilní telefon - odstraněn pl-4 a přidán margin-left: -8px pro zarovnání s okrajem */}
+            <div className="w-[300px] h-[600px] bg-black rounded-[40px] p-3 relative shadow-2xl border-4 border-gray-800" style={{ marginLeft: '-8px' }}>
               {/* Výřez pro kameru a senzory */}
               <div className="absolute top-0 left-1/2 transform -translate-x-1/2 w-[150px] h-[30px] bg-black rounded-b-3xl z-20 flex items-center justify-center gap-3">
                 <div className="w-2 h-2 rounded-full bg-gray-800"></div>
@@ -503,17 +503,8 @@ const PlayerCareer = ({ onBack, money, xp, level, getXpToNextLevel, getLevelProg
               </div>
             </div>
 
-            {/* Mapa */}
-            <div className={`flex-1 h-[600px] rounded-xl overflow-hidden transition-all duration-1000
-              ${weather === 'clear' ? 'bg-gradient-to-br from-blue-800/20 to-blue-600/20' :
-                weather === 'partlyCloudy' ? 'bg-gradient-to-br from-blue-800/20 to-gray-600/20' :
-                weather === 'cloudy' ? 'bg-gradient-to-br from-gray-800/20 to-gray-600/20' :
-                weather === 'rain' ? 'bg-gradient-to-br from-blue-900/20 to-blue-700/20' :
-                weather === 'thunderstorm' ? 'bg-gradient-to-br from-gray-900/20 to-purple-800/20' :
-                weather === 'snow' ? 'bg-gradient-to-br from-gray-900/20 to-blue-800/20' :
-                weather === 'snowRain' ? 'bg-gradient-to-br from-blue-900/20 to-gray-800/20' :
-                'bg-gradient-to-br from-gray-800/20 to-gray-700/20'}`}>
-              
+            {/* Mapa - přidán margin-left pro kompenzaci mezery */}
+            <div className="flex-1 h-[600px] rounded-xl overflow-hidden transition-all duration-1000 ml-4">
               {/* Efekty počasí */}
               {weather !== 'clear' && weather !== 'partlyCloudy' && weather !== 'cloudy' && (
                 <div className={`absolute inset-0 pointer-events-none
