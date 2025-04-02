@@ -23,8 +23,45 @@ const PlayerCareer = ({ onBack, money, xp, level, getXpToNextLevel, getLevelProg
     stormComing: false
   });
   const [hasNewMessage, setHasNewMessage] = useState(true);
-  const [showChat, setShowChat] = useState(false);
+  const [phoneScreen, setPhoneScreen] = useState('home'); // 'home', 'messages', 'chat'
   const [unreadMessages, setUnreadMessages] = useState(1);
+  const [activeChat, setActiveChat] = useState(null);
+  const [conversations, setConversations] = useState([
+    {
+      id: 'olda',
+      name: 'Olda Trenér',
+      avatar: '👨‍🦳',
+      unread: 1,
+      lastMessage: 'Ahoj! Jak to jde s tréninkem?',
+      time: '08:30',
+      messages: [
+        {
+          id: 1,
+          sender: 'Olda',
+          text: 'Ahoj! Jak to jde s tréninkem?',
+          time: '08:30',
+          read: false
+        }
+      ]
+    },
+    {
+      id: 'doktor',
+      name: 'Doktor Novák',
+      avatar: '👨‍⚕️',
+      unread: 0,
+      lastMessage: 'Výsledky vypadají dobře',
+      time: 'včera',
+      messages: [
+        {
+          id: 1,
+          sender: 'Doktor',
+          text: 'Výsledky vypadají dobře',
+          time: 'včera',
+          read: true
+        }
+      ]
+    }
+  ]);
 
   // Blikající LED efekt
   const [ledBlink, setLedBlink] = useState(false);
@@ -358,9 +395,268 @@ const PlayerCareer = ({ onBack, money, xp, level, getXpToNextLevel, getLevelProg
     }
   }, [hasNewMessage]);
 
-  const handleNewMessage = (message) => {
+  const handleNewMessage = (message, conversationId) => {
     setHasNewMessage(true);
     setUnreadMessages(prev => prev + 1);
+    setConversations(prev => prev.map(conv => 
+      conv.id === conversationId ? {
+        ...conv,
+        unread: conv.unread + 1,
+        lastMessage: message.text,
+        time: message.time,
+        messages: [...conv.messages, message]
+      } : conv
+    ));
+  };
+
+  const handleSendMessage = (text, conversationId) => {
+    if (!text.trim()) return;
+
+    const newMessage = {
+      id: Date.now(),
+      sender: 'Player',
+      text: text,
+      time: new Date().toLocaleTimeString('cs-CZ', { hour: '2-digit', minute: '2-digit' }),
+      read: true
+    };
+
+    setConversations(prev => prev.map(conv => 
+      conv.id === conversationId ? {
+        ...conv,
+        lastMessage: text,
+        time: newMessage.time,
+        messages: [...conv.messages, newMessage]
+      } : conv
+    ));
+
+    // Simulate response for Olda
+    if (conversationId === 'olda') {
+      simulateOldaResponse(text, conversationId);
+    }
+  };
+
+  const simulateOldaResponse = (playerMessage, conversationId) => {
+    const oldaResponses = {
+      default: [
+        'To zní dobře!',
+        'Jasně, chápu.',
+        'Tak to je super!',
+        'Musíme to někdy probrat osobně.',
+        'Na tréninku si o tom popovídáme.'
+      ],
+      training: [
+        'Hlavně nezapomeň na rozcvičku!',
+        'Dneska to bude náročný trénink.',
+        'Včera jsi hrál výborně!',
+        'Nezapomeň si vzít novou hokejku.'
+      ],
+      match: [
+        'Ten zápas včera byl super!',
+        'Příště jim to ukážeme!',
+        'Musíme potrénovat přesilovky.',
+        'V šatně jsem ti nechal nové chrániče.'
+      ]
+    };
+
+    let responseCategory = 'default';
+    if (playerMessage.toLowerCase().includes('trénink')) responseCategory = 'training';
+    if (playerMessage.toLowerCase().includes('zápas')) responseCategory = 'match';
+
+    const responses = oldaResponses[responseCategory];
+    const response = responses[Math.floor(Math.random() * responses.length)];
+
+    setTimeout(() => {
+      const newMessage = {
+        id: Date.now(),
+        sender: 'Olda',
+        text: response,
+        time: new Date().toLocaleTimeString('cs-CZ', { hour: '2-digit', minute: '2-digit' }),
+        read: false
+      };
+      handleNewMessage(newMessage, conversationId);
+    }, 1500);
+  };
+
+  const renderPhoneContent = () => {
+    switch (phoneScreen) {
+      case 'messages':
+        return (
+          <div className="h-full">
+            <div className="p-4 bg-indigo-950/50 flex items-center justify-between">
+              <button 
+                onClick={() => setPhoneScreen('home')}
+                className="w-8 h-8 rounded-lg bg-indigo-800/50 hover:bg-indigo-700/50 flex items-center justify-center text-white"
+              >
+                ←
+              </button>
+              <h2 className="text-white font-bold">Zprávy</h2>
+              <div className="w-8"></div>
+            </div>
+            <div className="p-4 space-y-3">
+              {conversations.map(conv => (
+                <div 
+                  key={conv.id}
+                  className="bg-white/5 p-4 rounded-xl border border-white/10 cursor-pointer hover:bg-white/10 transition-colors"
+                  onClick={() => {
+                    setActiveChat(conv);
+                    setPhoneScreen('chat');
+                  }}
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="w-12 h-12 rounded-full bg-indigo-500 flex items-center justify-center text-2xl">
+                      {conv.avatar}
+                    </div>
+                    <div className="flex-1">
+                      <div className="flex items-center justify-between">
+                        <span className="text-white font-medium">{conv.name}</span>
+                        <span className="text-white/50 text-xs">{conv.time}</span>
+                      </div>
+                      <div className="text-white/70 text-sm truncate">{conv.lastMessage}</div>
+                    </div>
+                    {conv.unread > 0 && (
+                      <div className="w-6 h-6 rounded-full bg-blue-500 flex items-center justify-center text-white text-xs font-bold">
+                        {conv.unread}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        );
+
+      case 'chat':
+        return (
+          <div className="h-full flex flex-col">
+            <div className="p-4 bg-indigo-950/50 flex items-center gap-4">
+              <button 
+                onClick={() => setPhoneScreen('messages')}
+                className="w-8 h-8 rounded-lg bg-indigo-800/50 hover:bg-indigo-700/50 flex items-center justify-center text-white"
+              >
+                ←
+              </button>
+              <div className="flex items-center gap-3 flex-1">
+                <div className="w-10 h-10 rounded-full bg-indigo-500 flex items-center justify-center text-xl">
+                  {activeChat?.avatar}
+                </div>
+                <div>
+                  <div className="text-white font-bold">{activeChat?.name}</div>
+                  <div className="text-indigo-300 text-sm">online</div>
+                </div>
+              </div>
+            </div>
+
+            <div className="flex-1 overflow-y-auto p-4 space-y-4">
+              {activeChat?.messages.map(message => (
+                <div 
+                  key={message.id}
+                  className={`flex ${message.sender === 'Player' ? 'justify-end' : 'justify-start'}`}
+                >
+                  <div className={`max-w-[80%] ${
+                    message.sender === 'Player' 
+                      ? 'bg-indigo-600 text-white rounded-t-2xl rounded-l-2xl' 
+                      : 'bg-white/10 text-white rounded-t-2xl rounded-r-2xl'
+                  } p-3 shadow-lg`}>
+                    <div className="text-sm">{message.text}</div>
+                    <div className="text-xs mt-1 opacity-70">{message.time}</div>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            <div className="p-4 bg-indigo-950/50">
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  placeholder="Napište zprávu..."
+                  className="flex-1 bg-white/10 text-white placeholder-white/50 rounded-xl px-4 py-2 focus:outline-none focus:bg-white/20"
+                  onKeyPress={(e) => {
+                    if (e.key === 'Enter' && e.target.value.trim()) {
+                      handleSendMessage(e.target.value, activeChat.id);
+                      e.target.value = '';
+                    }
+                  }}
+                />
+                <button
+                  onClick={(e) => {
+                    const input = e.target.previousSibling;
+                    if (input.value.trim()) {
+                      handleSendMessage(input.value, activeChat.id);
+                      input.value = '';
+                    }
+                  }}
+                  className="w-10 h-10 rounded-xl bg-indigo-600 hover:bg-indigo-700 flex items-center justify-center text-white"
+                >
+                  ➤
+                </button>
+              </div>
+            </div>
+          </div>
+        );
+
+      default: // 'home'
+        return (
+          <>
+            <div className="p-4 pt-12">
+              {/* Záložky s ikonkami */}
+              <div className="flex justify-around mb-6">
+                <button 
+                  className="w-14 h-14 bg-white/10 hover:bg-white/20 rounded-xl flex flex-col items-center justify-center gap-1 transition-colors group relative"
+                  onClick={() => setPhoneScreen('messages')}
+                >
+                  <span className="text-xl">💬</span>
+                  <span className="text-[10px] text-white/70 group-hover:text-white">Zprávy</span>
+                  {unreadMessages > 0 && (
+                    <div className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 rounded-full flex items-center justify-center text-white text-xs font-bold">
+                      {unreadMessages}
+                    </div>
+                  )}
+                </button>
+                <button className="w-14 h-14 bg-white/10 hover:bg-white/20 rounded-xl flex flex-col items-center justify-center gap-1 transition-colors group">
+                  <span className="text-xl">👥</span>
+                  <span className="text-[10px] text-white/70 group-hover:text-white">Kontakty</span>
+                </button>
+                <button className="w-14 h-14 bg-white/10 hover:bg-white/20 rounded-xl flex flex-col items-center justify-center gap-1 transition-colors group">
+                  <span className="text-xl">📅</span>
+                  <span className="text-[10px] text-white/70 group-hover:text-white">Kalendář</span>
+                </button>
+              </div>
+
+              {/* Seznam posledních zpráv */}
+              <div className="space-y-3">
+                {conversations.filter(conv => conv.unread > 0).map(conv => (
+                  <div 
+                    key={conv.id}
+                    className={`bg-white/5 p-4 rounded-xl border ${hasNewMessage ? 'border-blue-500/50 animate-pulse' : 'border-white/10'} cursor-pointer`}
+                    onClick={() => {
+                      setActiveChat(conv);
+                      setPhoneScreen('chat');
+                      setHasNewMessage(false);
+                      setUnreadMessages(prev => prev - conv.unread);
+                      setConversations(prev => prev.map(c => 
+                        c.id === conv.id ? { ...c, unread: 0 } : c
+                      ));
+                    }}
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-full bg-indigo-500 flex items-center justify-center text-xl">
+                        {conv.avatar}
+                      </div>
+                      <div>
+                        <div className="text-white text-sm font-medium flex items-center gap-2">
+                          {conv.name}
+                          {conv.unread > 0 && <span className="w-2 h-2 rounded-full bg-blue-500"></span>}
+                        </div>
+                        <div className="text-white/50 text-xs">{conv.lastMessage}</div>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </>
+        );
+    }
   };
 
   return (
@@ -487,70 +783,8 @@ const PlayerCareer = ({ onBack, money, xp, level, getXpToNextLevel, getLevelProg
                   </div>
                 </div>
 
-                {/* Hlavní obsah telefonu */}
-                <div className="p-4 pt-12">
-                  {/* Záložky s ikonkami */}
-                  <div className="flex justify-around mb-6">
-                    <button 
-                      className="w-14 h-14 bg-white/10 hover:bg-white/20 rounded-xl flex flex-col items-center justify-center gap-1 transition-colors group relative"
-                      onClick={() => setShowChat(true)}
-                    >
-                      <span className="text-xl">💬</span>
-                      <span className="text-[10px] text-white/70 group-hover:text-white">Zprávy</span>
-                      {unreadMessages > 0 && (
-                        <div className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 rounded-full flex items-center justify-center text-white text-xs font-bold">
-                          {unreadMessages}
-                        </div>
-                      )}
-                    </button>
-                    <button className="w-14 h-14 bg-white/10 hover:bg-white/20 rounded-xl flex flex-col items-center justify-center gap-1 transition-colors group">
-                      <span className="text-xl">👥</span>
-                      <span className="text-[10px] text-white/70 group-hover:text-white">Kontakty</span>
-                    </button>
-                    <button className="w-14 h-14 bg-white/10 hover:bg-white/20 rounded-xl flex flex-col items-center justify-center gap-1 transition-colors group">
-                      <span className="text-xl">📅</span>
-                      <span className="text-[10px] text-white/70 group-hover:text-white">Kalendář</span>
-                    </button>
-                  </div>
-
-                  {/* Seznam zpráv */}
-                  <div className="space-y-3">
-                    <div 
-                      className={`bg-white/5 p-4 rounded-xl border ${hasNewMessage ? 'border-blue-500/50 animate-pulse' : 'border-white/10'} cursor-pointer`}
-                      onClick={() => {
-                        setShowChat(true);
-                        setHasNewMessage(false);
-                        setUnreadMessages(0);
-                      }}
-                    >
-                      <div className="flex items-center gap-3 mb-2">
-                        <div className="w-10 h-10 rounded-full bg-indigo-500 flex items-center justify-center text-xl">
-                          👨‍🦳
-                        </div>
-                        <div>
-                          <div className="text-white text-sm font-medium flex items-center gap-2">
-                            Olda Trenér
-                            {hasNewMessage && <span className="w-2 h-2 rounded-full bg-blue-500"></span>}
-                          </div>
-                          <div className="text-white/50 text-xs">Klikněte pro zobrazení zprávy</div>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Navigační lišta */}
-                <div className="absolute bottom-0 left-0 right-0 h-16 bg-black/30 backdrop-blur-sm flex items-center justify-around px-6">
-                  <button className="w-12 h-12 rounded-xl bg-white/10 hover:bg-white/20 flex items-center justify-center text-white transition-colors">
-                    🏠
-                  </button>
-                  <button className="w-12 h-12 rounded-xl bg-white/10 hover:bg-white/20 flex items-center justify-center text-white transition-colors">
-                    📞
-                  </button>
-                  <button className="w-12 h-12 rounded-xl bg-white/10 hover:bg-white/20 flex items-center justify-center text-white transition-colors">
-                    ⚙️
-                  </button>
-                </div>
+                {/* Dynamický obsah telefonu */}
+                {renderPhoneContent()}
               </div>
             </div>
 
@@ -690,13 +924,6 @@ const PlayerCareer = ({ onBack, money, xp, level, getXpToNextLevel, getLevelProg
           </div>
         </div>
       </div>
-
-      {/* Chat okno */}
-      <OldaChat 
-        isOpen={showChat} 
-        onClose={() => setShowChat(false)}
-        onNewMessage={handleNewMessage}
-      />
 
       {/* Tlačítko pro návrat */}
       <div className="flex justify-center mt-8">
