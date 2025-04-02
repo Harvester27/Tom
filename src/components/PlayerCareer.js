@@ -603,23 +603,18 @@ const PlayerCareer = ({ onBack, money, xp, level, getXpToNextLevel, getLevelProg
                   onClick={() => openChat(conv)}
                 >
                   <div className="flex items-center gap-3">
-                    <div className="w-12 h-12 rounded-full bg-indigo-500 flex items-center justify-center text-2xl overflow-hidden relative">
+                    <div className="w-12 h-12 rounded-full bg-indigo-500 flex items-center justify-center text-2xl overflow-hidden">
                       {conv.avatar.startsWith('/') ? (
-                        <div className="w-full h-full relative">
-                          <Image 
-                            src={conv.avatar} 
-                            alt={conv.name}
-                            fill
-                            className="object-cover"
-                            onError={() => {
-                              const container = document.getElementById(`avatar-${conv.id}-list`);
-                              if (container) {
-                                container.innerHTML = '👨‍🦳';
-                              }
-                            }}
-                          />
-                          <div id={`avatar-${conv.id}-list`} className="absolute inset-0 flex items-center justify-center" />
-                        </div>
+                        <img 
+                          src={conv.avatar} 
+                          alt={conv.name}
+                          className="w-full h-full object-cover"
+                          onError={(e) => {
+                            console.error('❌ Error loading image:', e.target.src);
+                            e.target.style.display = 'none';
+                            e.target.parentElement.innerHTML = '👨‍🦳';
+                          }}
+                        />
                       ) : (
                         conv.avatar
                       )}
@@ -654,23 +649,18 @@ const PlayerCareer = ({ onBack, money, xp, level, getXpToNextLevel, getLevelProg
                 ←
               </button>
               <div className="flex items-center gap-3 flex-1">
-                <div className="w-10 h-10 rounded-full bg-indigo-500 flex items-center justify-center text-xl overflow-hidden relative">
+                <div className="w-10 h-10 rounded-full bg-indigo-500 flex items-center justify-center text-xl overflow-hidden">
                   {activeChat?.avatar.startsWith('/') ? (
-                    <div className="w-full h-full relative">
-                      <Image 
-                        src={activeChat.avatar} 
-                        alt={activeChat.name}
-                        fill
-                        className="object-cover"
-                        onError={() => {
-                          const container = document.getElementById(`avatar-${activeChat.id}-header`);
-                          if (container) {
-                            container.innerHTML = '👨‍🦳';
-                          }
-                        }}
-                      />
-                      <div id={`avatar-${activeChat.id}-header`} className="absolute inset-0 flex items-center justify-center" />
-                    </div>
+                    <img 
+                      src={activeChat.avatar} 
+                      alt={activeChat.name}
+                      className="w-full h-full object-cover"
+                      onError={(e) => {
+                        console.error('❌ Error loading image:', e.target.src);
+                        e.target.style.display = 'none';
+                        e.target.parentElement.innerHTML = '👨‍🦳';
+                      }}
+                    />
                   ) : (
                     activeChat?.avatar
                   )}
@@ -723,23 +713,18 @@ const PlayerCareer = ({ onBack, money, xp, level, getXpToNextLevel, getLevelProg
                     onClick={() => openChat(conv)}
                   >
                     <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-full bg-indigo-500 flex items-center justify-center text-xl overflow-hidden relative">
+                      <div className="w-10 h-10 rounded-full bg-indigo-500 flex items-center justify-center text-xl overflow-hidden">
                         {conv.avatar.startsWith('/') ? (
-                          <div className="w-full h-full relative">
-                            <Image 
-                              src={conv.avatar} 
-                              alt={conv.name}
-                              fill
-                              className="object-cover"
-                              onError={() => {
-                                const container = document.getElementById(`avatar-${conv.id}-home`);
-                                if (container) {
-                                  container.innerHTML = '👨‍🦳';
-                                }
-                              }}
-                            />
-                            <div id={`avatar-${conv.id}-home`} className="absolute inset-0 flex items-center justify-center" />
-                          </div>
+                          <img 
+                            src={conv.avatar} 
+                            alt={conv.name}
+                            className="w-full h-full object-cover"
+                            onError={(e) => {
+                              console.error('❌ Error loading image:', e.target.src);
+                              e.target.style.display = 'none';
+                              e.target.parentElement.innerHTML = '👨‍🦳';
+                            }}
+                          />
                         ) : (
                           conv.avatar
                         )}

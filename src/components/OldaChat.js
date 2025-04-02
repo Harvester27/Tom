@@ -251,22 +251,17 @@ const OldaChat = () => {
             className={`flex ${message.sender === 'Player' ? 'justify-end' : 'justify-start'} items-end gap-2`}
           >
             {message.sender === 'Olda' && (
-              <div className="w-8 h-8 rounded-full bg-indigo-500 flex-shrink-0 overflow-hidden relative">
-                <div className="w-full h-full relative">
-                  <Image 
-                    src={litvinovLancers.getPlayerPhotoUrl('Oldřich Štěpanovský')}
-                    alt="Olda"
-                    fill
-                    className="object-cover"
-                    onError={() => {
-                      const container = document.getElementById(`avatar-olda-message-${message.id}`);
-                      if (container) {
-                        container.innerHTML = '👨‍🦳';
-                      }
-                    }}
-                  />
-                  <div id={`avatar-olda-message-${message.id}`} className="absolute inset-0 flex items-center justify-center" />
-                </div>
+              <div className="w-8 h-8 rounded-full bg-indigo-500 flex-shrink-0 overflow-hidden">
+                <img 
+                  src={litvinovLancers.getPlayerPhotoUrl('Oldřich Štěpanovský')}
+                  alt="Olda"
+                  className="w-full h-full object-cover"
+                  onError={(e) => {
+                    console.error('❌ Error loading image:', e.target.src);
+                    e.target.style.display = 'none';
+                    e.target.parentElement.innerHTML = '👨‍🦳';
+                  }}
+                />
               </div>
             )}
             <div className={`max-w-[80%] ${
