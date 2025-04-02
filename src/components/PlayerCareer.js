@@ -12,17 +12,18 @@ const isHockeyPracticeDay = (currentDate, hockeyPractice) => {
   
   const practiceDate = new Date(hockeyPractice.date);
   
-  const result = currentDate.getDate() === practiceDate.getDate() &&
-         currentDate.getMonth() === practiceDate.getMonth() &&
-         currentDate.getFullYear() === practiceDate.getFullYear();
+  // Porovnání bez časové zóny
+  const isSameDay = currentDate.getDate() === practiceDate.getDate() &&
+                   currentDate.getMonth() === practiceDate.getMonth() &&
+                   currentDate.getFullYear() === practiceDate.getFullYear();
 
   console.log('🏒 isHockeyPracticeDay - porovnání:', {
-    currentDate: currentDate.toISOString(),
-    practiceDate: practiceDate.toISOString(),
-    result
+    currentDate: `${currentDate.getDate()}.${currentDate.getMonth() + 1}.${currentDate.getFullYear()}`,
+    practiceDate: `${practiceDate.getDate()}.${practiceDate.getMonth() + 1}.${practiceDate.getFullYear()}`,
+    isSameDay
   });
   
-  return result;
+  return isSameDay;
 };
 
 const isBeforePractice = (currentHour, hockeyPractice) => {
@@ -690,16 +691,23 @@ const PlayerCareer = ({ onBack, money, xp, level, getXpToNextLevel, getLevelProg
     
     if (savedMessages) {
       const messages = JSON.parse(savedMessages);
-      const isConfirmed = messages.some(msg => 
-        msg.sender === 'Player' && 
-        (msg.text.includes('Díky moc! Tak v 16:15 na zimáku.') || 
-         msg.text.includes('Díky, výstroj mám. Tak v 16:30 na zimáku!') ||
-         msg.text.includes('Super, budu tam!') ||
-         msg.text.includes('Jasně, budu tam! Díky za info.'))
+      const playerMessages = messages.filter(msg => msg.sender === 'Player');
+      
+      // Kontrola posledních zpráv pro potvrzení
+      const confirmationMessages = [
+        'Díky moc! Tak v 16:15 na zimáku.',
+        'Díky, výstroj mám. Tak v 16:30 na zimáku!',
+        'Super, budu tam!',
+        'Jasně, budu tam! Díky za info.'
+      ];
+      
+      const isConfirmed = playerMessages.some(msg => 
+        confirmationMessages.some(confirm => msg.text.includes(confirm))
       );
 
       console.log('🏒 Kontrola potvrzení účasti:', {
-        messages: messages.filter(msg => msg.sender === 'Player').map(msg => msg.text),
+        playerMessages: playerMessages.map(msg => msg.text),
+        confirmationMessages,
         isConfirmed
       });
 
@@ -710,7 +718,8 @@ const PlayerCareer = ({ onBack, money, xp, level, getXpToNextLevel, getLevelProg
         const practice = {
           date: practiceDate.toISOString(),
           time: '17:00',
-          confirmed: true
+          confirmed: true,
+          needsEquipment: playerMessages.some(msg => msg.text.includes('16:15')) // přijde dřív kvůli vybavení
         };
         
         console.log('🏒 Nastavení nového tréninku:', practice);
@@ -719,13 +728,15 @@ const PlayerCareer = ({ onBack, money, xp, level, getXpToNextLevel, getLevelProg
         localStorage.setItem('hockeyPractice', JSON.stringify(practice));
       }
     }
-  }, []);  // Odstraníme závislost na currentDate, protože datum tréninku je fixní
+  }, []);
 
   // Přidání logu pro aktuální datum a čas
   useEffect(() => {
+    const practiceDate = hockeyPractice ? new Date(hockeyPractice.date) : null;
     console.log('🏒 Aktuální stav:', {
       currentDate: currentDate.toISOString(),
       currentHour,
+      practiceDate: practiceDate?.toISOString(),
       hockeyPractice
     });
   }, [currentDate, currentHour, hockeyPractice]);
