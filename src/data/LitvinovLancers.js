@@ -229,7 +229,7 @@ const litvinovLancers = {
       reliability: 85,
       personality: "soutezivi",
       relationship: 45,
-      photo: getPhotoFilename("Pavel", "Schubada St.")
+      photo: getPhotoFilename("Pavel", "Schubada st.")
     },
 
     // Útočníci
@@ -242,7 +242,7 @@ const litvinovLancers = {
       reliability: 92,
       personality: "profesional",
       relationship: 50,
-      photo: getPhotoFilename("Vaclav", "Matejovice")
+      photo: getPhotoFilename("Vaclav", "Matejovic")
     },
     {
       name: "Stanislav",
@@ -524,7 +524,7 @@ const litvinovLancers = {
   getPlayerPhotoUrl: function(playerId) {
     const player = this.players.find(p => p.name + p.surname === playerId);
     if (!player || !player.photo) return null;
-    return `/images/players/${player.photo}`;
+    return `/Images/players/${player.photo}`;
   }
 };
 
