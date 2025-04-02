@@ -6,8 +6,8 @@ const getPhotoFilename = (name, surname) => {
   };
 
   // Převod jména a příjmení na formát pro soubor
-  const cleanName = removeDiacritics(name);
-  const cleanSurname = removeDiacritics(surname);
+  const cleanName = removeDiacritics(name).toLowerCase();
+  const cleanSurname = removeDiacritics(surname).toLowerCase();
   
   return `${cleanName}_${cleanSurname}.png`;
 };
