@@ -5,20 +5,42 @@ import OldaChat from './OldaChat';
 
 // Pomocné funkce pro kontrolu data a času
 const isHockeyPracticeDay = (currentDate, hockeyPractice) => {
-  if (!hockeyPractice || !hockeyPractice.date) return false;
+  if (!hockeyPractice || !hockeyPractice.date) {
+    console.log('🏒 isHockeyPracticeDay - chybí data:', { hockeyPractice });
+    return false;
+  }
   
   const practiceDate = new Date(hockeyPractice.date);
   
-  return currentDate.getDate() === practiceDate.getDate() &&
+  const result = currentDate.getDate() === practiceDate.getDate() &&
          currentDate.getMonth() === practiceDate.getMonth() &&
          currentDate.getFullYear() === practiceDate.getFullYear();
+
+  console.log('🏒 isHockeyPracticeDay - porovnání:', {
+    currentDate: currentDate.toISOString(),
+    practiceDate: practiceDate.toISOString(),
+    result
+  });
+  
+  return result;
 };
 
 const isBeforePractice = (currentHour, hockeyPractice) => {
-  if (!hockeyPractice || !hockeyPractice.time) return false;
+  if (!hockeyPractice || !hockeyPractice.time) {
+    console.log('🏒 isBeforePractice - chybí data:', { hockeyPractice });
+    return false;
+  }
   
   const practiceHour = parseInt(hockeyPractice.time.split(':')[0]);
-  return currentHour < practiceHour;
+  const result = currentHour < practiceHour;
+
+  console.log('🏒 isBeforePractice - porovnání:', {
+    currentHour,
+    practiceHour,
+    result
+  });
+  
+  return result;
 };
 
 const PlayerCareer = ({ onBack, money, xp, level, getXpToNextLevel, getLevelProgress }) => {
@@ -60,7 +82,7 @@ const PlayerCareer = ({ onBack, money, xp, level, getXpToNextLevel, getLevelProg
           {
             id: 1,
             sender: 'Olda',
-            text: 'Ahoj! Zítra máme s partou led v Chomutově od 17:00. Nechceš se přidat? ��',
+            text: 'Ahoj! Zítra máme s partou led v Chomutově od 17:00. Nechceš se přidat? 🏒',
             time: '08:00',
             read: false
           }
@@ -92,6 +114,7 @@ const PlayerCareer = ({ onBack, money, xp, level, getXpToNextLevel, getLevelProg
   // Přidání stavu pro hokejový trénink
   const [hockeyPractice, setHockeyPractice] = useState(() => {
     const savedPractice = localStorage.getItem('hockeyPractice');
+    console.log('🏒 Načtení hokejového tréninku z localStorage:', savedPractice);
     return savedPractice ? JSON.parse(savedPractice) : null;
   });
 
@@ -663,6 +686,8 @@ const PlayerCareer = ({ onBack, money, xp, level, getXpToNextLevel, getLevelProg
   // Kontrola, jestli se hráč domluvil na hokeji
   useEffect(() => {
     const savedMessages = localStorage.getItem('oldaChatMessages');
+    console.log('🏒 Načtení zpráv z localStorage:', savedMessages);
+    
     if (savedMessages) {
       const messages = JSON.parse(savedMessages);
       const isConfirmed = messages.some(msg => 
@@ -672,6 +697,11 @@ const PlayerCareer = ({ onBack, money, xp, level, getXpToNextLevel, getLevelProg
          msg.text.includes('Super, budu tam!') ||
          msg.text.includes('Jasně, budu tam! Díky za info.'))
       );
+
+      console.log('🏒 Kontrola potvrzení účasti:', {
+        messages: messages.filter(msg => msg.sender === 'Player').map(msg => msg.text),
+        isConfirmed
+      });
 
       if (isConfirmed) {
         // Nastavení data na zítřek (2. června)
@@ -684,11 +714,23 @@ const PlayerCareer = ({ onBack, money, xp, level, getXpToNextLevel, getLevelProg
           time: '17:00',
           confirmed: true
         };
+        
+        console.log('🏒 Nastavení nového tréninku:', practice);
+        
         setHockeyPractice(practice);
         localStorage.setItem('hockeyPractice', JSON.stringify(practice));
       }
     }
   }, [currentDate]);
+
+  // Přidání logu pro aktuální datum a čas
+  useEffect(() => {
+    console.log('🏒 Aktuální stav:', {
+      currentDate: currentDate.toISOString(),
+      currentHour,
+      hockeyPractice
+    });
+  }, [currentDate, currentHour, hockeyPractice]);
 
   return (
     <div className="fixed inset-0 bg-black/90 flex flex-col items-center justify-center z-50 p-8 overflow-y-auto">
