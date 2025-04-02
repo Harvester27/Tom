@@ -542,11 +542,11 @@ const litvinovLancers = {
         normalizedId: normalizedPlayerId,
         foundPlayer: player
       });
-      // Použijeme dočasně logo týmu jako placeholder
+      // Použijeme logo týmu jako fallback
       return '/Images/Litvinov_Lancers.png';
     }
     
-    // Použijeme stejnou cestu jako v CardGame.js
+    // Vrátíme cestu k fotce hráče
     const photoUrl = `/Images/players/${player.photo}`;
     
     console.log('🖼️ Getting photo URL for player:', {
@@ -558,8 +558,7 @@ const litvinovLancers = {
       url: photoUrl
     });
     
-    // Dočasně vrátíme logo týmu místo fotky hráče
-    return '/Images/Litvinov_Lancers.png';
+    return photoUrl;
   }
 };
 
