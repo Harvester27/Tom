@@ -9,8 +9,8 @@ const nextConfig = {
   async rewrites() {
     return [
       {
-        source: '/images/:path*',
-        destination: '/images/:path*',
+        source: '/Images/:path*',
+        destination: '/Images/:path*',
       },
     ];
   },
@@ -18,7 +18,7 @@ const nextConfig = {
   async headers() {
     return [
       {
-        source: '/images/:path*',
+        source: '/Images/:path*',
         headers: [
           {
             key: 'Cache-Control',
