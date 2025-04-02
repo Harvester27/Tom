@@ -601,9 +601,17 @@ const PlayerCareer = ({ onBack, money, xp, level, getXpToNextLevel, getLevelProg
                   onClick={() => openChat(conv)}
                 >
                   <div className="flex items-center gap-3">
-                    <div className="w-12 h-12 rounded-full bg-indigo-500 flex items-center justify-center text-2xl">
+                    <div className="w-12 h-12 rounded-full bg-indigo-500 flex items-center justify-center text-2xl overflow-hidden">
                       {conv.avatar.startsWith('/') ? (
-                        <img src={conv.avatar} alt={conv.name} className="w-12 h-12 rounded-full object-cover" />
+                        <img 
+                          src={conv.avatar} 
+                          alt={conv.name} 
+                          className="w-full h-full object-cover"
+                          onError={(e) => {
+                            console.error('Error loading image:', e.target.src);
+                            e.target.src = '👨‍🦳'; // Fallback na emoji při chybě
+                          }}
+                        />
                       ) : (
                         conv.avatar
                       )}
@@ -638,9 +646,17 @@ const PlayerCareer = ({ onBack, money, xp, level, getXpToNextLevel, getLevelProg
                 ←
               </button>
               <div className="flex items-center gap-3 flex-1">
-                <div className="w-10 h-10 rounded-full bg-indigo-500 flex items-center justify-center text-xl">
+                <div className="w-10 h-10 rounded-full bg-indigo-500 flex items-center justify-center text-xl overflow-hidden">
                   {activeChat?.avatar.startsWith('/') ? (
-                    <img src={activeChat.avatar} alt={activeChat.name} className="w-10 h-10 rounded-full object-cover" />
+                    <img 
+                      src={activeChat.avatar} 
+                      alt={activeChat.name} 
+                      className="w-full h-full object-cover"
+                      onError={(e) => {
+                        console.error('Error loading image:', e.target.src);
+                        e.target.src = '👨‍🦳';
+                      }}
+                    />
                   ) : (
                     activeChat?.avatar
                   )}
@@ -693,9 +709,17 @@ const PlayerCareer = ({ onBack, money, xp, level, getXpToNextLevel, getLevelProg
                     onClick={() => openChat(conv)}
                   >
                     <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-full bg-indigo-500 flex items-center justify-center text-xl">
+                      <div className="w-10 h-10 rounded-full bg-indigo-500 flex items-center justify-center text-xl overflow-hidden">
                         {conv.avatar.startsWith('/') ? (
-                          <img src={conv.avatar} alt={conv.name} className="w-10 h-10 rounded-full object-cover" />
+                          <img 
+                            src={conv.avatar} 
+                            alt={conv.name} 
+                            className="w-full h-full object-cover"
+                            onError={(e) => {
+                              console.error('Error loading image:', e.target.src);
+                              e.target.src = '👨‍🦳';
+                            }}
+                          />
                         ) : (
                           conv.avatar
                         )}

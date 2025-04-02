@@ -246,8 +246,17 @@ const OldaChat = () => {
         {messages.map(message => (
           <div 
             key={message.id}
-            className={`flex ${message.sender === 'Player' ? 'justify-end' : 'justify-start'}`}
+            className={`flex ${message.sender === 'Player' ? 'justify-end' : 'justify-start'} items-end gap-2`}
           >
+            {message.sender === 'Olda' && (
+              <div className="w-8 h-8 rounded-full bg-indigo-500 flex-shrink-0 overflow-hidden">
+                <img 
+                  src="/Images/players/Oldrich_Stepanovsky.png" 
+                  alt="Olda" 
+                  className="w-full h-full object-cover"
+                />
+              </div>
+            )}
             <div className={`max-w-[80%] ${
               message.sender === 'Player' 
                 ? 'bg-indigo-600 text-white rounded-t-2xl rounded-l-2xl' 
