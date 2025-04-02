@@ -75,8 +75,8 @@ const PlayerCareer = ({ onBack, money, xp, level, getXpToNextLevel, getLevelProg
       {
         id: 'olda',
         name: 'Olda Trenér',
-        avatar: '👨‍🦳',
-        unread: 0,
+        avatar: '/images/players/Oldrich_Stepanovsky.png',
+        unread: lastMessage && !lastMessage.read ? 1 : 0,
         lastMessage: lastMessage ? lastMessage.text : 'Ahoj! Zítra máme s partou led v Chomutově od 17:00. Nechceš se přidat? 🏒',
         time: lastMessage ? lastMessage.time : '08:00',
         messages: savedMessages ? JSON.parse(savedMessages) : [
@@ -465,15 +465,16 @@ const PlayerCareer = ({ onBack, money, xp, level, getXpToNextLevel, getLevelProg
   }, [hasNewMessage]);
 
   const handleNewMessage = (message, conversationId) => {
-    setHasNewMessage(true);
-    setUnreadMessages(prev => prev + 1);
     setConversations(prev => prev.map(conv => 
       conv.id === conversationId ? {
         ...conv,
-        unread: conv.unread + 1,
+        unread: phoneScreen === 'chat' && activeChat?.id === conversationId ? conv.unread : conv.unread + 1,
         lastMessage: message.text,
         time: message.time,
-        messages: [...conv.messages, message]
+        messages: [...conv.messages, {
+          ...message,
+          read: phoneScreen === 'chat' && activeChat?.id === conversationId
+        }]
       } : conv
     ));
   };
@@ -546,6 +547,37 @@ const PlayerCareer = ({ onBack, money, xp, level, getXpToNextLevel, getLevelProg
     }, 1500);
   };
 
+  // Přidání efektu pro kontrolu nepřečtených zpráv
+  useEffect(() => {
+    const totalUnread = conversations.reduce((sum, conv) => sum + conv.unread, 0);
+    setUnreadMessages(totalUnread);
+    setHasNewMessage(totalUnread > 0);
+  }, [conversations]);
+
+  // Aktualizace funkce pro označení zpráv jako přečtené
+  const markConversationAsRead = (conversationId) => {
+    setConversations(prev => prev.map(conv => {
+      if (conv.id === conversationId) {
+        return {
+          ...conv,
+          unread: 0,
+          messages: conv.messages.map(msg => ({
+            ...msg,
+            read: true
+          }))
+        };
+      }
+      return conv;
+    }));
+  };
+
+  // Aktualizace funkce pro otevření chatu
+  const openChat = (conv) => {
+    setActiveChat(conv);
+    setPhoneScreen('chat');
+    markConversationAsRead(conv.id);
+  };
+
   const renderPhoneContent = () => {
     switch (phoneScreen) {
       case 'messages':
@@ -566,14 +598,15 @@ const PlayerCareer = ({ onBack, money, xp, level, getXpToNextLevel, getLevelProg
                 <div 
                   key={conv.id}
                   className="bg-white/5 p-4 rounded-xl border border-white/10 cursor-pointer hover:bg-white/10 transition-colors"
-                  onClick={() => {
-                    setActiveChat(conv);
-                    setPhoneScreen('chat');
-                  }}
+                  onClick={() => openChat(conv)}
                 >
                   <div className="flex items-center gap-3">
                     <div className="w-12 h-12 rounded-full bg-indigo-500 flex items-center justify-center text-2xl">
-                      {conv.avatar}
+                      {conv.avatar.startsWith('/') ? (
+                        <img src={conv.avatar} alt={conv.name} className="w-12 h-12 rounded-full object-cover" />
+                      ) : (
+                        conv.avatar
+                      )}
                     </div>
                     <div className="flex-1">
                       <div className="flex items-center justify-between">
@@ -606,7 +639,11 @@ const PlayerCareer = ({ onBack, money, xp, level, getXpToNextLevel, getLevelProg
               </button>
               <div className="flex items-center gap-3 flex-1">
                 <div className="w-10 h-10 rounded-full bg-indigo-500 flex items-center justify-center text-xl">
-                  {activeChat?.avatar}
+                  {activeChat?.avatar.startsWith('/') ? (
+                    <img src={activeChat.avatar} alt={activeChat.name} className="w-10 h-10 rounded-full object-cover" />
+                  ) : (
+                    activeChat?.avatar
+                  )}
                 </div>
                 <div>
                   <div className="text-white font-bold">{activeChat?.name}</div>
@@ -652,20 +689,16 @@ const PlayerCareer = ({ onBack, money, xp, level, getXpToNextLevel, getLevelProg
                 {conversations.filter(conv => conv.unread > 0).map(conv => (
                   <div 
                     key={conv.id}
-                    className={`bg-white/5 p-4 rounded-xl border ${hasNewMessage ? 'border-blue-500/50 animate-pulse' : 'border-white/10'} cursor-pointer`}
-                    onClick={() => {
-                      setActiveChat(conv);
-                      setPhoneScreen('chat');
-                      setHasNewMessage(false);
-                      setUnreadMessages(prev => prev - conv.unread);
-                      setConversations(prev => prev.map(c => 
-                        c.id === conv.id ? { ...c, unread: 0 } : c
-                      ));
-                    }}
+                    className={`bg-white/5 p-4 rounded-xl border ${conv.unread > 0 ? 'border-blue-500/50 animate-pulse' : 'border-white/10'} cursor-pointer`}
+                    onClick={() => openChat(conv)}
                   >
                     <div className="flex items-center gap-3">
                       <div className="w-10 h-10 rounded-full bg-indigo-500 flex items-center justify-center text-xl">
-                        {conv.avatar}
+                        {conv.avatar.startsWith('/') ? (
+                          <img src={conv.avatar} alt={conv.name} className="w-10 h-10 rounded-full object-cover" />
+                        ) : (
+                          conv.avatar
+                        )}
                       </div>
                       <div>
                         <div className="text-white text-sm font-medium flex items-center gap-2">
