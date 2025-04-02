@@ -77,7 +77,7 @@ const PlayerCareer = ({ onBack, money, xp, level, getXpToNextLevel, getLevelProg
       {
         id: 'olda',
         name: 'Olda Trenér',
-        avatar: litvinovLancers.getPlayerPhotoUrl('Oldřich Štěpanovský'),
+        avatar: '/Images/players/Oldrich_Stepanovsky.png',
         unread: lastMessage && !lastMessage.read ? 1 : 0,
         lastMessage: lastMessage ? lastMessage.text : 'Ahoj! Zítra máme s partou led v Chomutově od 17:00. Nechceš se přidat? 🏒',
         time: lastMessage ? lastMessage.time : '08:00',
