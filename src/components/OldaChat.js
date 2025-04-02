@@ -252,10 +252,10 @@ const OldaChat = () => {
             {message.sender === 'Olda' && (
               <div className="w-8 h-8 rounded-full bg-indigo-500 flex-shrink-0 overflow-hidden">
                 <img 
-                  src={litvinovLancers.getPlayerPhotoUrl('OldřichŠtěpanovský')}
+                  src={litvinovLancers.getPlayerPhotoUrl('Oldřich Štěpanovský')}
                   alt="Olda" 
                   className="w-full h-full object-cover"
-                  onLoad={() => console.log('🖼️ Olda avatar loaded in chat message:', litvinovLancers.getPlayerPhotoUrl('OldřichŠtěpanovský'))}
+                  onLoad={() => console.log('🖼️ Olda avatar loaded in chat message:', litvinovLancers.getPlayerPhotoUrl('Oldřich Štěpanovský'))}
                   onError={(e) => {
                     console.error('❌ Error loading image in chat message:', e.target.src);
                     e.target.onerror = null;

@@ -522,22 +522,34 @@ const litvinovLancers = {
 
   // Nová funkce pro získání URL fotky hráče
   getPlayerPhotoUrl: function(playerId) {
-    // Najdeme hráče podle jména a příjmení (spojené nebo oddělené mezerou)
+    // Odstranění diakritiky a normalizace jména
+    const normalizeString = (str) => {
+      return str.normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .replace(/\s+/g, '');
+    };
+
+    // Najdeme hráče podle jména
+    const normalizedPlayerId = normalizeString(playerId);
     const player = this.players.find(p => {
-      const fullName = `${p.name}${p.surname}`;
-      const fullNameWithSpace = `${p.name} ${p.surname}`;
-      return playerId === fullName || playerId === fullNameWithSpace;
+      const normalizedName = normalizeString(`${p.name}${p.surname}`);
+      return normalizedName === normalizedPlayerId;
     });
     
     if (!player || !player.photo) {
-      console.error('❌ Player not found or no photo:', playerId);
+      console.error('❌ Player not found or no photo:', {
+        searchedId: playerId,
+        normalizedId: normalizedPlayerId,
+        foundPlayer: player
+      });
       return null;
     }
     
-    // Použijeme správnou cestu pro Vercel
     const photoUrl = `/images/players/${player.photo}`;
     
     console.log('🖼️ Getting photo URL for player:', {
+      searchedId: playerId,
+      normalizedId: normalizedPlayerId,
       name: player.name,
       surname: player.surname,
       photo: player.photo,
