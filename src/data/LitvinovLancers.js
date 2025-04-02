@@ -1,3 +1,17 @@
+// Pomocná funkce pro převod jména na název souboru
+const getPhotoFilename = (name, surname) => {
+  // Odstranění diakritiky
+  const removeDiacritics = (str) => {
+    return str.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+  };
+
+  // Převod jména a příjmení na formát pro soubor
+  const cleanName = removeDiacritics(name);
+  const cleanSurname = removeDiacritics(surname);
+  
+  return `${cleanName}_${cleanSurname}.png`;
+};
+
 const personalityTypes = {
   pratelsky: {
     name: "Přátelský",
@@ -84,318 +98,349 @@ const litvinovLancers = {
   players: [
     // Brankáři
     {
-      name: "Tomáš",
-      surname: "Novotný",
+      name: "Vlastimil",
+      surname: "Nistor",
       position: "brankář",
       level: 8,
       attendance: 90,
       reliability: 95,
       personality: "profesional",
-      relationship: 50
+      relationship: 50,
+      photo: getPhotoFilename("Vlastimil", "Nistor")
     },
     {
-      name: "Martin",
-      surname: "Svoboda",
+      name: "Michaela",
+      surname: "Nováková",
       position: "brankář",
       level: 6,
       attendance: 75,
       reliability: 85,
       personality: "vtipkar",
-      relationship: 65
+      relationship: 65,
+      photo: getPhotoFilename("Michaela", "Novakova")
     },
     {
       name: "Jakub",
-      surname: "Dvořák",
+      surname: "Seidler",
       position: "brankář",
       level: 4,
       attendance: 60,
       reliability: 90,
       personality: "samotarsky",
-      relationship: 30
+      relationship: 30,
+      photo: getPhotoFilename("Jakub", "Seidler")
     },
 
     // Obránci
     {
-      name: "Petr",
-      surname: "Černý",
+      name: "Jiří",
+      surname: "Belinger",
       position: "obránce",
       level: 7,
       attendance: 85,
       reliability: 90,
       personality: "mentor",
-      relationship: 70
+      relationship: 70,
+      photo: getPhotoFilename("Jiri", "Belinger")
     },
     {
-      name: "Jan",
-      surname: "Procházka",
+      name: "Roman",
+      surname: "Šimek",
       position: "obránce",
       level: 9,
       attendance: 95,
       reliability: 98,
       personality: "profesional",
-      relationship: 50
+      relationship: 50,
+      photo: getPhotoFilename("Roman", "Simek")
     },
     {
-      name: "Michal",
-      surname: "Kučera",
+      name: "Jindřich",
+      surname: "Belinger",
       position: "obránce",
       level: 5,
       attendance: 70,
       reliability: 75,
       personality: "soutezivi",
-      relationship: 45
+      relationship: 45,
+      photo: getPhotoFilename("Jindrich", "Belinger")
     },
     {
-      name: "David",
-      surname: "Veselý",
+      name: "Luboš",
+      surname: "Coufal",
       position: "obránce",
       level: 6,
       attendance: 80,
       reliability: 85,
       personality: "pratelsky",
-      relationship: 60
+      relationship: 60,
+      photo: getPhotoFilename("Luboš", "Coufal")
     },
     {
-      name: "Filip",
-      surname: "Horák",
+      name: "Tomáš",
+      surname: "Tureček",
       position: "obránce",
       level: 4,
       attendance: 65,
       reliability: 70,
       personality: "vtipkar",
-      relationship: 65
+      relationship: 65,
+      photo: getPhotoFilename("Tomas", "Turecek")
     },
     {
-      name: "Ondřej",
-      surname: "Marek",
+      name: "Oldřich",
+      surname: "Štěpanovský",
       position: "obránce",
       level: 7,
       attendance: 85,
       reliability: 88,
       personality: "mentor",
-      relationship: 70
+      relationship: 70,
+      photo: getPhotoFilename("Oldrich", "Stepanovsky")
     },
     {
-      name: "Lukáš",
-      surname: "Pokorný",
+      name: "Jan",
+      surname: "Hanuš",
       position: "obránce",
       level: 5,
       attendance: 75,
       reliability: 82,
       personality: "pratelsky",
-      relationship: 60
+      relationship: 60,
+      photo: getPhotoFilename("Jan", "Hanus")
     },
     {
-      name: "Vojtěch",
-      surname: "Král",
+      name: "Jiří",
+      surname: "Koláček",
       position: "obránce",
       level: 3,
       attendance: 55,
       reliability: 65,
       personality: "samotarsky",
-      relationship: 30
+      relationship: 30,
+      photo: getPhotoFilename("Jiri", "Kolacek")
     },
     {
-      name: "Adam",
-      surname: "Bartoš",
+      name: "Pavel",
+      surname: "Schubada St.",
       position: "obránce",
       level: 6,
       attendance: 78,
       reliability: 85,
       personality: "soutezivi",
-      relationship: 45
+      relationship: 45,
+      photo: getPhotoFilename("Pavel", "Schubada St.")
     },
 
     // Útočníci
     {
-      name: "Jiří",
-      surname: "Kovář",
+      name: "Václav",
+      surname: "Matějovič",
       position: "útočník",
       level: 8,
       attendance: 90,
       reliability: 92,
       personality: "profesional",
-      relationship: 50
+      relationship: 50,
+      photo: getPhotoFilename("Vaclav", "Matejovice")
     },
     {
-      name: "Pavel",
-      surname: "Říha",
+      name: "Stanislav",
+      surname: "Švarc",
       position: "útočník",
       level: 7,
       attendance: 85,
       reliability: 88,
       personality: "mentor",
-      relationship: 70
+      relationship: 70,
+      photo: getPhotoFilename("Stanislav", "Svarc")
     },
     {
-      name: "Daniel",
-      surname: "Urban",
+      name: "Vašek",
+      surname: "Materna",
       position: "útočník",
       level: 9,
       attendance: 95,
       reliability: 96,
       personality: "soutezivi",
-      relationship: 45
+      relationship: 45,
+      photo: getPhotoFilename("Vasek", "Materna")
     },
     {
-      name: "Marek",
-      surname: "Beneš",
+      name: "Ladislav",
+      surname: "Černý",
       position: "útočník",
       level: 5,
       attendance: 70,
       reliability: 75,
       personality: "vtipkar",
-      relationship: 65
+      relationship: 65,
+      photo: getPhotoFilename("Ladislav", "Cerny")
     },
     {
-      name: "Roman",
-      surname: "Šimek",
+      name: "Pavel",
+      surname: "Schubada ml.",
       position: "útočník",
       level: 6,
       attendance: 80,
       reliability: 85,
       personality: "pratelsky",
-      relationship: 60
+      relationship: 60,
+      photo: getPhotoFilename("Pavel", "Schubada ml.")
     },
     {
-      name: "Karel",
-      surname: "Doležal",
+      name: "Gustav",
+      surname: "Toman",
       position: "útočník",
       level: 4,
       attendance: 60,
       reliability: 70,
       personality: "samotarsky",
-      relationship: 30
+      relationship: 30,
+      photo: getPhotoFilename("Gustav", "Toman")
     },
     {
-      name: "Josef",
-      surname: "Malý",
+      name: "Adam",
+      surname: "Schubada",
       position: "útočník",
       level: 7,
       attendance: 85,
       reliability: 90,
       personality: "profesional",
-      relationship: 50
+      relationship: 50,
+      photo: getPhotoFilename("Adam", "Schubada")
     },
     {
-      name: "František",
-      surname: "Němec",
+      name: "Jan",
+      surname: "Švarc",
       position: "útočník",
       level: 5,
       attendance: 75,
       reliability: 80,
       personality: "vtipkar",
-      relationship: 65
+      relationship: 65,
+      photo: getPhotoFilename("Jan", "Svarc")
     },
     {
-      name: "Radek",
-      surname: "Sedláček",
+      name: "Petr",
+      surname: "Štěpanovský",
       position: "útočník",
       level: 8,
       attendance: 88,
       reliability: 92,
       personality: "mentor",
-      relationship: 70
+      relationship: 70,
+      photo: getPhotoFilename("Petr", "Stepanovsky")
     },
     {
-      name: "Milan",
-      surname: "Zeman",
+      name: "Jiří",
+      surname: "Šalanda",
       position: "útočník",
       level: 6,
       attendance: 78,
       reliability: 83,
       personality: "pratelsky",
-      relationship: 60
+      relationship: 60,
+      photo: getPhotoFilename("Jiri", "Salanda")
     },
     {
-      name: "Vladimír",
-      surname: "Kolář",
+      name: "Marian",
+      surname: "Dlugopolsky",
       position: "útočník",
       level: 3,
       attendance: 50,
       reliability: 60,
       personality: "samotarsky",
-      relationship: 30
+      relationship: 30,
+      photo: getPhotoFilename("Marian", "Dlugopolsky")
     },
     {
-      name: "Zdeněk",
-      surname: "Vlček",
+      name: "Jan",
+      surname: "Schubada",
       position: "útočník",
       level: 5,
       attendance: 72,
       reliability: 78,
       personality: "soutezivi",
-      relationship: 45
+      relationship: 45,
+      photo: getPhotoFilename("Jan", "Schubada")
     },
     {
-      name: "Patrik",
-      surname: "Šťastný",
+      name: "Aleš",
+      surname: "Kuřitka",
       position: "útočník",
       level: 7,
       attendance: 83,
       reliability: 87,
       personality: "profesional",
-      relationship: 50
+      relationship: 50,
+      photo: getPhotoFilename("Aleš", "Kuritka")
     },
     {
-      name: "Dominik",
-      surname: "Hrubý",
+      name: "Pavel",
+      surname: "Novák",
       position: "útočník",
       level: 4,
       attendance: 65,
       reliability: 72,
       personality: "vtipkar",
-      relationship: 65
+      relationship: 65,
+      photo: getPhotoFilename("Pavel", "Novak")
     },
     {
-      name: "Matěj",
-      surname: "Tichý",
+      name: "Ondřej",
+      surname: "Hrubý",
       position: "útočník",
       level: 6,
       attendance: 77,
       reliability: 82,
       personality: "pratelsky",
-      relationship: 60
+      relationship: 60,
+      photo: getPhotoFilename("Ondrej", "Hruby")
     },
     {
-      name: "Štěpán",
-      surname: "Holub",
+      name: "Roman",
+      surname: "Beneš",
       position: "útočník",
       level: 5,
       attendance: 73,
       reliability: 79,
       personality: "mentor",
-      relationship: 70
+      relationship: 70,
+      photo: getPhotoFilename("Roman", "Benes")
     },
     {
-      name: "Richard",
-      surname: "Havlík",
+      name: "Kateřina",
+      surname: "Schubadová",
       position: "útočník",
-      level: 4,
+      level: 1,
       attendance: 68,
       reliability: 75,
       personality: "samotarsky",
-      relationship: 30
+      relationship: 30,
+      photo: getPhotoFilename("Kateřina", "Schubadova")
     },
     {
-      name: "Viktor",
-      surname: "Sýkora",
+      name: "Petra",
+      surname: "Volmutová",
       position: "útočník",
-      level: 7,
+      level: 2,
       attendance: 82,
       reliability: 86,
       personality: "soutezivi",
-      relationship: 45
+      relationship: 45,
+      photo: getPhotoFilename("Petra", "Volmutova")
     },
     {
-      name: "Oldřich",
-      surname: "Kříž",
+      name: "Jaroslav",
+      surname: "Volmut",
       position: "útočník",
       level: 5,
       attendance: 71,
       reliability: 77,
       personality: "pratelsky",
-      relationship: 60
+      relationship: 60,
+      photo: getPhotoFilename("Jaroslav", "Volmut")
     }
   ],
 
@@ -473,7 +518,14 @@ const litvinovLancers = {
     stats.averageRelationship = (stats.averageRelationship / playerCount).toFixed(1);
 
     return stats;
+  },
+
+  // Nová funkce pro získání URL fotky hráče
+  getPlayerPhotoUrl: function(playerId) {
+    const player = this.players.find(p => p.name + p.surname === playerId);
+    if (!player || !player.photo) return null;
+    return `/images/players/${player.photo}`;
   }
 };
 
-export { litvinovLancers, personalityTypes }; 
+export { litvinovLancers, personalityTypes, getPhotoFilename }; 
