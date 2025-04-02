@@ -258,7 +258,7 @@ const OldaChat = ({ onNewMessage }) => {
             className={`flex ${message.sender === 'Player' ? 'justify-end' : 'justify-start'} items-end gap-2`}
           >
             {message.sender === 'Olda' && (
-              <div className="w-8 h-8 rounded-full bg-indigo-500 flex-shrink-0 overflow-hidden">
+              <div className="w-10 h-10 rounded-full bg-indigo-500 flex-shrink-0 overflow-hidden">
                 <img 
                   src={litvinovLancers.getPlayerPhotoUrl('Oldřich Štěpanovský')}
                   alt="Olda"
