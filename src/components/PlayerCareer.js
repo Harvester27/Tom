@@ -830,18 +830,6 @@ const PlayerCareer = ({ onBack, money, xp, level, getXpToNextLevel, getLevelProg
         </div>
       )}
 
-      {/* Přidání notifikace o hokeji */}
-      {hockeyPractice && 
-       isHockeyPracticeDay(currentDate, hockeyPractice) && 
-       isBeforePractice(currentHour, hockeyPractice) && (
-        <div className="fixed top-32 right-4 bg-indigo-600/90 backdrop-blur-sm px-6 py-3 rounded-xl border border-indigo-500/20 shadow-lg shadow-indigo-500/20 animate-bounce">
-          <p className="text-white text-lg flex items-center gap-2">
-            <span className="text-2xl">🏒</span>
-            Dnes v {hockeyPractice.time} hokej s partou!
-          </p>
-        </div>
-      )}
-
       <div className="max-w-7xl w-full mx-auto">
         <div className="bg-gradient-to-br from-indigo-900/50 to-indigo-800/20 rounded-xl p-8 border border-indigo-500/20 shadow-xl backdrop-blur-sm">
           {/* Hlavička */}
@@ -941,41 +929,57 @@ const PlayerCareer = ({ onBack, money, xp, level, getXpToNextLevel, getLevelProg
               </svg>
 
               {/* Lokace */}
-              {locations.map((location) => (
-                <button
-                  key={location.id}
-                  className={`absolute transform -translate-x-1/2 -translate-y-1/2 
-                    w-16 h-16 rounded-full flex items-center justify-center
-                    transition-all duration-300 hover:scale-110 
-                    ${selectedLocation?.id === location.id 
-                      ? 'ring-4 ring-opacity-50 z-20' 
-                      : 'hover:z-10'}
-                    ${weather === 'rain' ? 'shadow-glow' : 'shadow-lg'}`}
-                  style={{ 
-                    left: `${location.x}%`, 
-                    top: `${location.y}%`,
-                    backgroundColor: `${location.color}40`,
-                    boxShadow: hoveredLocation?.id === location.id 
-                      ? `0 0 20px ${location.color}80` 
-                      : `0 0 10px ${location.color}40`,
-                    borderColor: location.color
-                  }}
-                  onClick={() => handleLocationClick(location)}
-                  onMouseEnter={() => setHoveredLocation(location)}
-                  onMouseLeave={() => setHoveredLocation(null)}
-                >
-                  <span className="text-3xl filter drop-shadow-lg transform transition-transform duration-300 hover:scale-110">
-                    {location.icon}
-                  </span>
-                  {hoveredLocation?.id === location.id && (
-                    <div className="absolute -bottom-8 left-1/2 transform -translate-x-1/2 
-                                 whitespace-nowrap bg-black/80 text-white text-sm px-2 py-1 
-                                 rounded-lg pointer-events-none">
-                      {location.name}
-                    </div>
-                  )}
-                </button>
-              ))}
+              {locations.map((location) => {
+                const isHockeyDay = location.id === 'stadium' && 
+                                  hockeyPractice && 
+                                  isHockeyPracticeDay(currentDate, hockeyPractice) && 
+                                  isBeforePractice(currentHour, hockeyPractice);
+
+                return (
+                  <button
+                    key={location.id}
+                    className={`absolute transform -translate-x-1/2 -translate-y-1/2 
+                      w-16 h-16 rounded-full flex items-center justify-center
+                      transition-all duration-300 hover:scale-110 
+                      ${location.id === 'stadium' && isHockeyDay ? 'animate-pulse-strong' : 'hover:z-10'}
+                      ${weather === 'rain' ? 'shadow-glow' : 'shadow-lg'}`}
+                    style={{ 
+                      left: `${location.x}%`, 
+                      top: `${location.y}%`,
+                      backgroundColor: `${location.color}40`,
+                      boxShadow: hoveredLocation?.id === location.id 
+                        ? `0 0 20px ${location.color}80` 
+                        : isHockeyDay
+                        ? `0 0 30px rgba(255, 255, 255, 0.8)`
+                        : `0 0 10px ${location.color}40`,
+                      borderColor: location.color
+                    }}
+                    onClick={() => handleLocationClick(location)}
+                    onMouseEnter={() => setHoveredLocation(location)}
+                    onMouseLeave={() => setHoveredLocation(null)}
+                  >
+                    {isHockeyDay && (
+                      <div className="absolute -top-2 -right-2 w-4 h-4 bg-red-500 rounded-full animate-ping" />
+                    )}
+                    {isHockeyDay && (
+                      <div className="absolute -top-2 -right-2 w-4 h-4 bg-red-500 rounded-full" />
+                    )}
+                    <span className="text-3xl filter drop-shadow-lg transform transition-transform duration-300 hover:scale-110">
+                      {location.icon}
+                    </span>
+                    {hoveredLocation?.id === location.id && (
+                      <div className="absolute -bottom-8 left-1/2 transform -translate-x-1/2 
+                                   whitespace-nowrap bg-black/80 text-white text-sm px-2 py-1 
+                                   rounded-lg pointer-events-none">
+                        {location.name}
+                        {isHockeyDay && (
+                          <span className="ml-2 text-red-400">• Hokej v {hockeyPractice.time}</span>
+                        )}
+                      </div>
+                    )}
+                  </button>
+                );
+              })}
 
               {/* Info panel o lokaci */}
               {showLocationInfo && selectedLocation && (
@@ -1063,6 +1067,12 @@ const PlayerCareer = ({ onBack, money, xp, level, getXpToNextLevel, getLevelProg
           100% { opacity: 0.3; }
         }
 
+        @keyframes pulse-strong {
+          0% { transform: scale(1) translate(-50%, -50%); opacity: 1; }
+          50% { transform: scale(1.1) translate(-45%, -45%); opacity: 0.8; }
+          100% { transform: scale(1) translate(-50%, -50%); opacity: 1; }
+        }
+
         .animate-slideUp {
           animation: slideUp 0.3s ease-out forwards;
         }
@@ -1105,6 +1115,10 @@ const PlayerCareer = ({ onBack, money, xp, level, getXpToNextLevel, getLevelProg
 
         .animate-fog {
           animation: fog 0.8s linear infinite;
+        }
+
+        .animate-pulse-strong {
+          animation: pulse-strong 2s infinite;
         }
 
         .shadow-glow {
