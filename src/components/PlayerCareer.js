@@ -338,17 +338,11 @@ const PlayerCareer = ({ onBack, money, xp, level, getXpToNextLevel, getLevelProg
       color: '#87CEEB',
       actions: [
         {
-          name: hockeyPractice && 
-               currentDate.getDate() === 2 && 
-               currentDate.getMonth() === 5 && 
-               currentHour < 19 ? 
-               '🏒 Jít na hokej s Oldovou partou (17:00)' : 
-               'Trénink týmu',
+          name: hockeyPractice && isHockeyPracticeDay(currentDate, hockeyPractice) && isBeforePractice(currentHour, hockeyPractice)
+            ? '🏒 Jít na hokej s Oldovou partou (17:00)'
+            : 'Trénink týmu',
           onClick: () => {
-            if (hockeyPractice && 
-                currentDate.getDate() === 2 && 
-                currentDate.getMonth() === 5 && 
-                currentHour < 19) {
+            if (hockeyPractice && isHockeyPracticeDay(currentDate, hockeyPractice) && isBeforePractice(currentHour, hockeyPractice)) {
               // TODO: Implementovat hokejový zápas s partou
               alert('Přišel jsi na hokej s partou! (Tato funkce bude brzy implementována)');
             } else {
@@ -648,6 +642,25 @@ const PlayerCareer = ({ onBack, money, xp, level, getXpToNextLevel, getLevelProg
     }
   };
 
+  // Funkce pro kontrolu, zda je dnes hokejový trénink
+  const isHockeyPracticeDay = (currentDate, hockeyPractice) => {
+    if (!hockeyPractice || !hockeyPractice.date) return false;
+    
+    const practiceDate = new Date(hockeyPractice.date);
+    
+    return currentDate.getDate() === practiceDate.getDate() &&
+           currentDate.getMonth() === practiceDate.getMonth() &&
+           currentDate.getFullYear() === practiceDate.getFullYear();
+  };
+
+  // Funkce pro kontrolu, zda je čas před tréninkem
+  const isBeforePractice = (currentHour, hockeyPractice) => {
+    if (!hockeyPractice || !hockeyPractice.time) return false;
+    
+    const practiceHour = parseInt(hockeyPractice.time.split(':')[0]);
+    return currentHour < practiceHour;
+  };
+
   // Kontrola, jestli se hráč domluvil na hokeji
   useEffect(() => {
     const savedMessages = localStorage.getItem('oldaChatMessages');
@@ -657,12 +670,18 @@ const PlayerCareer = ({ onBack, money, xp, level, getXpToNextLevel, getLevelProg
         msg.sender === 'Player' && 
         (msg.text.includes('Díky moc! Tak v 16:15 na zimáku.') || 
          msg.text.includes('Díky, výstroj mám. Tak v 16:30 na zimáku!') ||
-         msg.text.includes('Super, budu tam!'))
+         msg.text.includes('Super, budu tam!') ||
+         msg.text.includes('Jasně, budu tam! Díky za info.'))
       );
 
       if (isConfirmed) {
+        // Nastavení data na zítřek (2. června)
+        const tomorrow = new Date(currentDate);
+        tomorrow.setDate(tomorrow.getDate() + 1);
+        tomorrow.setHours(17, 0, 0, 0);
+
         const practice = {
-          date: new Date(2024, 5, 2), // 2. června 2024
+          date: tomorrow.toISOString(),
           time: '17:00',
           confirmed: true
         };
@@ -670,7 +689,7 @@ const PlayerCareer = ({ onBack, money, xp, level, getXpToNextLevel, getLevelProg
         localStorage.setItem('hockeyPractice', JSON.stringify(practice));
       }
     }
-  }, []);
+  }, [currentDate]);
 
   return (
     <div className="fixed inset-0 bg-black/90 flex flex-col items-center justify-center z-50 p-8 overflow-y-auto">
@@ -763,9 +782,8 @@ const PlayerCareer = ({ onBack, money, xp, level, getXpToNextLevel, getLevelProg
 
       {/* Přidání notifikace o hokeji */}
       {hockeyPractice && 
-       currentDate.getDate() === 2 && 
-       currentDate.getMonth() === 5 && 
-       currentHour < 19 && (
+       isHockeyPracticeDay(currentDate, hockeyPractice) && 
+       isBeforePractice(currentHour, hockeyPractice) && (
         <div className="fixed top-32 right-4 bg-indigo-600/90 backdrop-blur-sm px-6 py-3 rounded-xl border border-indigo-500/20 shadow-lg shadow-indigo-500/20 animate-bounce">
           <p className="text-white text-lg flex items-center gap-2">
             <span className="text-2xl">🏒</span>
