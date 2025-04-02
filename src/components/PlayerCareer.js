@@ -429,147 +429,210 @@ const PlayerCareer = ({ onBack, money, xp, level, getXpToNextLevel, getLevelProg
             </div>
           </div>
 
-          {/* Mapa */}
-          <div className={`relative w-full h-[600px] rounded-xl overflow-hidden transition-all duration-1000
-            ${weather === 'clear' ? 'bg-gradient-to-br from-blue-800/20 to-blue-600/20' :
-              weather === 'partlyCloudy' ? 'bg-gradient-to-br from-blue-800/20 to-gray-600/20' :
-              weather === 'cloudy' ? 'bg-gradient-to-br from-gray-800/20 to-gray-600/20' :
-              weather === 'rain' ? 'bg-gradient-to-br from-blue-900/20 to-blue-700/20' :
-              weather === 'thunderstorm' ? 'bg-gradient-to-br from-gray-900/20 to-purple-800/20' :
-              weather === 'snow' ? 'bg-gradient-to-br from-gray-900/20 to-blue-800/20' :
-              weather === 'snowRain' ? 'bg-gradient-to-br from-blue-900/20 to-gray-800/20' :
-              'bg-gradient-to-br from-gray-800/20 to-gray-700/20'}`}>
-            
-            {/* Efekty počasí */}
-            {weather !== 'clear' && weather !== 'partlyCloudy' && weather !== 'cloudy' && (
-              <div className={`absolute inset-0 pointer-events-none
-                ${weather === 'rain' ? 'animate-rain bg-gradient-to-b from-transparent to-blue-500/10' :
-                  weather === 'thunderstorm' ? 'animate-storm bg-gradient-to-b from-transparent to-purple-500/20' :
-                  weather === 'snow' ? 'animate-snow bg-gradient-to-b from-transparent to-white/10' :
-                  weather === 'snowRain' ? 'animate-mixed-precipitation bg-gradient-to-b from-transparent to-blue-500/10' :
-                  weather === 'fog' ? 'animate-fog bg-gradient-to-b from-gray-400/20 to-gray-400/10' : ''}`}
-              />
-            )}
-
-            {/* Cesty */}
-            <svg className="absolute inset-0 w-full h-full" viewBox="0 0 100 100">
-              {/* Hlavní cesty */}
-              <path 
-                d="M 20,20 C 40,20 60,20 80,20 C 80,40 80,60 80,80 C 60,80 40,80 20,80 C 20,60 20,40 20,20" 
-                className={`stroke-2 fill-none transition-all duration-1000
-                  ${weather === 'clear' ? 'stroke-slate-400/50' :
-                    weather === 'cloudy' ? 'stroke-gray-400/50' :
-                    weather === 'rain' ? 'stroke-blue-400/30' :
-                    'stroke-gray-400/30'}`}
-                strokeDasharray="4 2"
-              />
-              
-              {/* Vedlejší cesty */}
-              <path 
-                d="M 50,20 Q 50,50 50,80 M 20,50 Q 50,50 80,50" 
-                className={`stroke-2 fill-none transition-all duration-1000
-                  ${weather === 'clear' ? 'stroke-slate-400/30' :
-                    weather === 'cloudy' ? 'stroke-gray-400/30' :
-                    weather === 'rain' ? 'stroke-blue-400/20' :
-                    'stroke-gray-400/20'}`}
-                strokeDasharray="4 2"
-              />
-              
-              {/* Řeka */}
-              <path 
-                d="M 10,40 Q 30,45 40,35 Q 50,25 60,45 Q 70,65 90,60" 
-                className={`stroke-[3] fill-none transition-all duration-1000
-                  ${weather === 'clear' ? 'stroke-blue-500/30' :
-                    weather === 'cloudy' ? 'stroke-gray-500/30' :
-                    weather === 'rain' ? 'stroke-blue-700/30' :
-                    'stroke-gray-700/30'}`}
-                strokeLinecap="round"
-              >
-                <animate
-                  attributeName="d"
-                  dur="5s"
-                  repeatCount="indefinite"
-                  values="M 10,40 Q 30,45 40,35 Q 50,25 60,45 Q 70,65 90,60;
-                         M 10,42 Q 30,47 40,37 Q 50,27 60,47 Q 70,67 90,62;
-                         M 10,40 Q 30,45 40,35 Q 50,25 60,45 Q 70,65 90,60"
-                />
-              </path>
-            </svg>
-
-            {/* Lokace */}
-            {locations.map((location) => (
-              <button
-                key={location.id}
-                className={`absolute transform -translate-x-1/2 -translate-y-1/2 
-                  w-16 h-16 rounded-full flex items-center justify-center
-                  transition-all duration-300 hover:scale-110 
-                  ${selectedLocation?.id === location.id 
-                    ? 'ring-4 ring-opacity-50 z-20' 
-                    : 'hover:z-10'}
-                  ${weather === 'rain' ? 'shadow-glow' : 'shadow-lg'}`}
-                style={{ 
-                  left: `${location.x}%`, 
-                  top: `${location.y}%`,
-                  backgroundColor: `${location.color}40`,
-                  boxShadow: hoveredLocation?.id === location.id 
-                    ? `0 0 20px ${location.color}80` 
-                    : `0 0 10px ${location.color}40`,
-                  borderColor: location.color
-                }}
-                onClick={() => handleLocationClick(location)}
-                onMouseEnter={() => setHoveredLocation(location)}
-                onMouseLeave={() => setHoveredLocation(null)}
-              >
-                <span className="text-3xl filter drop-shadow-lg transform transition-transform duration-300 hover:scale-110">
-                  {location.icon}
-                </span>
-                {hoveredLocation?.id === location.id && (
-                  <div className="absolute -bottom-8 left-1/2 transform -translate-x-1/2 
-                               whitespace-nowrap bg-black/80 text-white text-sm px-2 py-1 
-                               rounded-lg pointer-events-none">
-                    {location.name}
-                  </div>
-                )}
-              </button>
-            ))}
-
-            {/* Info panel o lokaci */}
-            {showLocationInfo && selectedLocation && (
-              <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 
-                           w-96 bg-black/80 backdrop-blur-sm rounded-xl p-6
-                           border border-indigo-500/30 text-white
-                           animate-slideUp shadow-xl">
-                <h3 className="text-2xl font-bold text-indigo-400 mb-2 flex items-center gap-2">
-                  <span>{selectedLocation.icon}</span>
-                  {selectedLocation.name}
-                </h3>
-                <p className="text-indigo-100 mb-4">
-                  {selectedLocation.description}
-                </p>
-                <div className="space-y-2">
-                  {selectedLocation.actions.map((action, index) => (
-                    <button
-                      key={index}
-                      onClick={action.onClick || (() => {})}
-                      className="w-full text-left px-4 py-2 rounded-lg
-                               bg-indigo-500/20 hover:bg-indigo-500/30
-                               transition-colors duration-200
-                               text-indigo-200 hover:text-indigo-100"
-                    >
-                      {action.name || action}
-                    </button>
-                  ))}
-                </div>
-                <button
-                  className="mt-4 bg-indigo-500/50 hover:bg-indigo-500/70 
-                           px-4 py-2 rounded-lg text-sm transition-colors
-                           absolute top-4 right-4"
-                  onClick={() => setShowLocationInfo(false)}
-                >
-                  ✕
-                </button>
+          {/* Hlavní kontejner pro telefon a mapu */}
+          <div className="flex gap-8">
+            {/* Mobilní telefon */}
+            <div className="w-[400px] h-[700px] bg-black rounded-[40px] p-3 relative shadow-2xl border-4 border-gray-800">
+              {/* Výřez pro kameru a senzory */}
+              <div className="absolute top-0 left-1/2 transform -translate-x-1/2 w-[150px] h-[30px] bg-black rounded-b-3xl z-20 flex items-center justify-center gap-3">
+                <div className="w-2 h-2 rounded-full bg-gray-800"></div>
+                <div className="w-4 h-4 rounded-full bg-gray-800"></div>
+                <div className="w-2 h-2 rounded-full bg-gray-800"></div>
               </div>
-            )}
+              
+              {/* Displej telefonu */}
+              <div className="w-full h-full bg-gradient-to-br from-indigo-900 to-indigo-800 rounded-[32px] overflow-hidden relative">
+                {/* Stavový řádek */}
+                <div className="absolute top-0 left-0 right-0 h-6 bg-black/30 flex items-center justify-between px-6 text-white text-sm">
+                  <span>{currentHour.toString().padStart(2, '0')}:{(Math.floor(Date.now() / 1000) % 60).toString().padStart(2, '0')}</span>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs">5G</span>
+                    <span>📶</span>
+                    <span>🔋 100%</span>
+                  </div>
+                </div>
+
+                {/* Hlavní obsah telefonu */}
+                <div className="p-8 pt-12">
+                  {/* Záložky */}
+                  <div className="flex gap-2 mb-6">
+                    <button className="flex-1 bg-white/10 hover:bg-white/20 text-white py-2 px-4 rounded-lg transition-colors">
+                      Zprávy
+                    </button>
+                    <button className="flex-1 bg-white/10 hover:bg-white/20 text-white py-2 px-4 rounded-lg transition-colors">
+                      Kontakty
+                    </button>
+                    <button className="flex-1 bg-white/10 hover:bg-white/20 text-white py-2 px-4 rounded-lg transition-colors">
+                      Kalendář
+                    </button>
+                  </div>
+
+                  {/* Seznam zpráv (prozatím prázdný) */}
+                  <div className="space-y-4">
+                    <div className="bg-white/5 p-4 rounded-lg">
+                      <div className="text-gray-400 text-sm mb-1">Žádné nové zprávy</div>
+                      <div className="text-white text-xs">Zde se budou zobrazovat vaše zprávy a oznámení</div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Navigační lišta */}
+                <div className="absolute bottom-0 left-0 right-0 h-16 bg-black/30 backdrop-blur-sm flex items-center justify-around px-6">
+                  <button className="w-12 h-12 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-white transition-colors">
+                    📱
+                  </button>
+                  <button className="w-12 h-12 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-white transition-colors">
+                    📞
+                  </button>
+                  <button className="w-12 h-12 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-white transition-colors">
+                    ⚙️
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            {/* Mapa */}
+            <div className={`flex-1 h-[600px] rounded-xl overflow-hidden transition-all duration-1000
+              ${weather === 'clear' ? 'bg-gradient-to-br from-blue-800/20 to-blue-600/20' :
+                weather === 'partlyCloudy' ? 'bg-gradient-to-br from-blue-800/20 to-gray-600/20' :
+                weather === 'cloudy' ? 'bg-gradient-to-br from-gray-800/20 to-gray-600/20' :
+                weather === 'rain' ? 'bg-gradient-to-br from-blue-900/20 to-blue-700/20' :
+                weather === 'thunderstorm' ? 'bg-gradient-to-br from-gray-900/20 to-purple-800/20' :
+                weather === 'snow' ? 'bg-gradient-to-br from-gray-900/20 to-blue-800/20' :
+                weather === 'snowRain' ? 'bg-gradient-to-br from-blue-900/20 to-gray-800/20' :
+                'bg-gradient-to-br from-gray-800/20 to-gray-700/20'}`}>
+              
+              {/* Efekty počasí */}
+              {weather !== 'clear' && weather !== 'partlyCloudy' && weather !== 'cloudy' && (
+                <div className={`absolute inset-0 pointer-events-none
+                  ${weather === 'rain' ? 'animate-rain bg-gradient-to-b from-transparent to-blue-500/10' :
+                    weather === 'thunderstorm' ? 'animate-storm bg-gradient-to-b from-transparent to-purple-500/20' :
+                    weather === 'snow' ? 'animate-snow bg-gradient-to-b from-transparent to-white/10' :
+                    weather === 'snowRain' ? 'animate-mixed-precipitation bg-gradient-to-b from-transparent to-blue-500/10' :
+                    weather === 'fog' ? 'animate-fog bg-gradient-to-b from-gray-400/20 to-gray-400/10' : ''}`}
+                />
+              )}
+
+              {/* Cesty */}
+              <svg className="absolute inset-0 w-full h-full" viewBox="0 0 100 100">
+                {/* Hlavní cesty */}
+                <path 
+                  d="M 20,20 C 40,20 60,20 80,20 C 80,40 80,60 80,80 C 60,80 40,80 20,80 C 20,60 20,40 20,20" 
+                  className={`stroke-2 fill-none transition-all duration-1000
+                    ${weather === 'clear' ? 'stroke-slate-400/50' :
+                      weather === 'cloudy' ? 'stroke-gray-400/50' :
+                      weather === 'rain' ? 'stroke-blue-400/30' :
+                      'stroke-gray-400/30'}`}
+                  strokeDasharray="4 2"
+                />
+                
+                {/* Vedlejší cesty */}
+                <path 
+                  d="M 50,20 Q 50,50 50,80 M 20,50 Q 50,50 80,50" 
+                  className={`stroke-2 fill-none transition-all duration-1000
+                    ${weather === 'clear' ? 'stroke-slate-400/30' :
+                      weather === 'cloudy' ? 'stroke-gray-400/30' :
+                      weather === 'rain' ? 'stroke-blue-400/20' :
+                      'stroke-gray-400/20'}`}
+                  strokeDasharray="4 2"
+                />
+                
+                {/* Řeka */}
+                <path 
+                  d="M 10,40 Q 30,45 40,35 Q 50,25 60,45 Q 70,65 90,60" 
+                  className={`stroke-[3] fill-none transition-all duration-1000
+                    ${weather === 'clear' ? 'stroke-blue-500/30' :
+                      weather === 'cloudy' ? 'stroke-gray-500/30' :
+                      weather === 'rain' ? 'stroke-blue-700/30' :
+                      'stroke-gray-700/30'}`}
+                  strokeLinecap="round"
+                >
+                  <animate
+                    attributeName="d"
+                    dur="5s"
+                    repeatCount="indefinite"
+                    values="M 10,40 Q 30,45 40,35 Q 50,25 60,45 Q 70,65 90,60;
+                           M 10,42 Q 30,47 40,37 Q 50,27 60,47 Q 70,67 90,62;
+                           M 10,40 Q 30,45 40,35 Q 50,25 60,45 Q 70,65 90,60"
+                  />
+                </path>
+              </svg>
+
+              {/* Lokace */}
+              {locations.map((location) => (
+                <button
+                  key={location.id}
+                  className={`absolute transform -translate-x-1/2 -translate-y-1/2 
+                    w-16 h-16 rounded-full flex items-center justify-center
+                    transition-all duration-300 hover:scale-110 
+                    ${selectedLocation?.id === location.id 
+                      ? 'ring-4 ring-opacity-50 z-20' 
+                      : 'hover:z-10'}
+                    ${weather === 'rain' ? 'shadow-glow' : 'shadow-lg'}`}
+                  style={{ 
+                    left: `${location.x}%`, 
+                    top: `${location.y}%`,
+                    backgroundColor: `${location.color}40`,
+                    boxShadow: hoveredLocation?.id === location.id 
+                      ? `0 0 20px ${location.color}80` 
+                      : `0 0 10px ${location.color}40`,
+                    borderColor: location.color
+                  }}
+                  onClick={() => handleLocationClick(location)}
+                  onMouseEnter={() => setHoveredLocation(location)}
+                  onMouseLeave={() => setHoveredLocation(null)}
+                >
+                  <span className="text-3xl filter drop-shadow-lg transform transition-transform duration-300 hover:scale-110">
+                    {location.icon}
+                  </span>
+                  {hoveredLocation?.id === location.id && (
+                    <div className="absolute -bottom-8 left-1/2 transform -translate-x-1/2 
+                                 whitespace-nowrap bg-black/80 text-white text-sm px-2 py-1 
+                                 rounded-lg pointer-events-none">
+                      {location.name}
+                    </div>
+                  )}
+                </button>
+              ))}
+
+              {/* Info panel o lokaci */}
+              {showLocationInfo && selectedLocation && (
+                <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 
+                             w-96 bg-black/80 backdrop-blur-sm rounded-xl p-6
+                             border border-indigo-500/30 text-white
+                             animate-slideUp shadow-xl">
+                  <h3 className="text-2xl font-bold text-indigo-400 mb-2 flex items-center gap-2">
+                    <span>{selectedLocation.icon}</span>
+                    {selectedLocation.name}
+                  </h3>
+                  <p className="text-indigo-100 mb-4">
+                    {selectedLocation.description}
+                  </p>
+                  <div className="space-y-2">
+                    {selectedLocation.actions.map((action, index) => (
+                      <button
+                        key={index}
+                        onClick={action.onClick || (() => {})}
+                        className="w-full text-left px-4 py-2 rounded-lg
+                                 bg-indigo-500/20 hover:bg-indigo-500/30
+                                 transition-colors duration-200
+                                 text-indigo-200 hover:text-indigo-100"
+                      >
+                        {action.name || action}
+                      </button>
+                    ))}
+                  </div>
+                  <button
+                    className="mt-4 bg-indigo-500/50 hover:bg-indigo-500/70 
+                             px-4 py-2 rounded-lg text-sm transition-colors
+                             absolute top-4 right-4"
+                    onClick={() => setShowLocationInfo(false)}
+                  >
+                    ✕
+                  </button>
+                </div>
+              )}
+            </div>
           </div>
 
           {/* Tlačítko pro návrat */}
