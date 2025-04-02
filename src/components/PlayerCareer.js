@@ -605,18 +605,21 @@ const PlayerCareer = ({ onBack, money, xp, level, getXpToNextLevel, getLevelProg
                   <div className="flex items-center gap-3">
                     <div className="w-12 h-12 rounded-full bg-indigo-500 flex items-center justify-center text-2xl overflow-hidden relative">
                       {conv.avatar.startsWith('/') ? (
-                        <Image 
-                          src={conv.avatar} 
-                          alt={conv.name}
-                          width={48}
-                          height={48}
-                          className="object-cover"
-                          onError={(e) => {
-                            console.error('❌ Error loading image in message list:', e.target.src);
-                            e.target.style.display = 'none';
-                            e.target.parentElement.innerHTML = '👨‍🦳';
-                          }}
-                        />
+                        <div className="w-full h-full relative">
+                          <Image 
+                            src={conv.avatar} 
+                            alt={conv.name}
+                            fill
+                            className="object-cover"
+                            onError={() => {
+                              const container = document.getElementById(`avatar-${conv.id}-list`);
+                              if (container) {
+                                container.innerHTML = '👨‍🦳';
+                              }
+                            }}
+                          />
+                          <div id={`avatar-${conv.id}-list`} className="absolute inset-0 flex items-center justify-center" />
+                        </div>
                       ) : (
                         conv.avatar
                       )}
@@ -653,18 +656,21 @@ const PlayerCareer = ({ onBack, money, xp, level, getXpToNextLevel, getLevelProg
               <div className="flex items-center gap-3 flex-1">
                 <div className="w-10 h-10 rounded-full bg-indigo-500 flex items-center justify-center text-xl overflow-hidden relative">
                   {activeChat?.avatar.startsWith('/') ? (
-                    <Image 
-                      src={activeChat.avatar} 
-                      alt={activeChat.name}
-                      width={40}
-                      height={40}
-                      className="object-cover"
-                      onError={(e) => {
-                        console.error('❌ Error loading image in chat header:', e.target.src);
-                        e.target.style.display = 'none';
-                        e.target.parentElement.innerHTML = '👨‍🦳';
-                      }}
-                    />
+                    <div className="w-full h-full relative">
+                      <Image 
+                        src={activeChat.avatar} 
+                        alt={activeChat.name}
+                        fill
+                        className="object-cover"
+                        onError={() => {
+                          const container = document.getElementById(`avatar-${activeChat.id}-header`);
+                          if (container) {
+                            container.innerHTML = '👨‍🦳';
+                          }
+                        }}
+                      />
+                      <div id={`avatar-${activeChat.id}-header`} className="absolute inset-0 flex items-center justify-center" />
+                    </div>
                   ) : (
                     activeChat?.avatar
                   )}
@@ -719,18 +725,21 @@ const PlayerCareer = ({ onBack, money, xp, level, getXpToNextLevel, getLevelProg
                     <div className="flex items-center gap-3">
                       <div className="w-10 h-10 rounded-full bg-indigo-500 flex items-center justify-center text-xl overflow-hidden relative">
                         {conv.avatar.startsWith('/') ? (
-                          <Image 
-                            src={conv.avatar} 
-                            alt={conv.name}
-                            width={40}
-                            height={40}
-                            className="object-cover"
-                            onError={(e) => {
-                              console.error('❌ Error loading image in home screen:', e.target.src);
-                              e.target.style.display = 'none';
-                              e.target.parentElement.innerHTML = '👨‍🦳';
-                            }}
-                          />
+                          <div className="w-full h-full relative">
+                            <Image 
+                              src={conv.avatar} 
+                              alt={conv.name}
+                              fill
+                              className="object-cover"
+                              onError={() => {
+                                const container = document.getElementById(`avatar-${conv.id}-home`);
+                                if (container) {
+                                  container.innerHTML = '👨‍🦳';
+                                }
+                              }}
+                            />
+                            <div id={`avatar-${conv.id}-home`} className="absolute inset-0 flex items-center justify-center" />
+                          </div>
                         ) : (
                           conv.avatar
                         )}
