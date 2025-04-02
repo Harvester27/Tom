@@ -14,6 +14,13 @@ const PlayerCareer = ({ onBack, money, xp, level, getXpToNextLevel, getLevelProg
   const [showNameModal, setShowNameModal] = useState(false);
   const [tempFirstName, setTempFirstName] = useState('');
   const [tempLastName, setTempLastName] = useState('');
+  const [weatherTrend, setWeatherTrend] = useState({
+    type: 'clear',
+    baseTemp: 22,
+    tempTrend: 0, // změna teploty za hodinu
+    duration: 24, // jak dlouho trend vydrží
+    stormComing: false
+  });
 
   // Funkce pro formátování data
   const formatDate = (date) => {
@@ -25,108 +32,119 @@ const PlayerCareer = ({ onBack, money, xp, level, getXpToNextLevel, getLevelProg
   };
 
   // Funkce pro generování realistického počasí podle měsíce a hodiny
-  const generateWeather = (date, hour = 8) => {
-    const month = date.getMonth(); // 0-11
-    let possibleWeathers = [];
-    let baseTemp = 0;
-    let tempVariation = 0;
+  const generateWeather = (date, hour = 8, forcedChange = false) => {
+    const month = date.getMonth();
+    const currentTemp = temperature;
+    let newWeather = { ...weatherTrend };
 
-    // Základní nastavení podle měsíce
+    // Pokud je potřeba vygenerovat nový trend počasí
+    if (forcedChange || weatherTrend.duration <= 0) {
+      // Základní nastavení podle měsíce
+      const seasonalSettings = getSeasonalSettings(month);
+      
+      // 80% šance zachovat současný typ počasí, pokud není vyžadována změna
+      if (!forcedChange && Math.random() > 0.2) {
+        newWeather.type = weatherTrend.type;
+      } else {
+        // Výběr nového typu počasí
+        const weatherRoll = Math.random();
+        if (weatherRoll < 0.6) {
+          newWeather.type = 'clear';
+        } else if (weatherRoll < 0.8) {
+          newWeather.type = 'partlyCloudy';
+        } else if (weatherRoll < 0.9) {
+          newWeather.type = 'cloudy';
+        } else {
+          // 10% šance na výraznější změnu počasí
+          const extremeWeather = Math.random();
+          if (extremeWeather < 0.4) {
+            newWeather.type = 'rain';
+            newWeather.stormComing = false;
+          } else if (extremeWeather < 0.7) {
+            newWeather.type = 'thunderstorm';
+            newWeather.stormComing = true;
+          } else if (month <= 1 || month === 11) {
+            newWeather.type = 'snow';
+            newWeather.stormComing = false;
+          } else {
+            newWeather.type = 'fog';
+            newWeather.stormComing = false;
+          }
+        }
+      }
+
+      // Nastavení základní teploty a trendu
+      const timeOfDay = getTimeOfDayModifier(hour);
+      newWeather.baseTemp = seasonalSettings.baseTemp + timeOfDay;
+      
+      // Nastavení trendu změny teploty
+      if (hour >= 6 && hour <= 14) {
+        // Dopoledne - teplota stoupá
+        newWeather.tempTrend = 0.5 + Math.random() * 0.5;
+      } else if (hour >= 15 && hour <= 20) {
+        // Odpoledne - teplota klesá
+        newWeather.tempTrend = -(0.3 + Math.random() * 0.4);
+      } else {
+        // Noc - teplota mírně klesá
+        newWeather.tempTrend = -(0.1 + Math.random() * 0.2);
+      }
+
+      // Bouřka způsobí rychlejší pokles teploty
+      if (newWeather.type === 'thunderstorm') {
+        newWeather.tempTrend = -2;
+      }
+
+      // Nastavení délky trendu (4-8 hodin)
+      newWeather.duration = 4 + Math.floor(Math.random() * 4);
+    } else {
+      // Pokračování současného trendu
+      newWeather.duration -= 1;
+    }
+
+    // Výpočet nové teploty
+    let newTemp = currentTemp + newWeather.tempTrend;
+    
+    // Omezení extrémních teplot podle ročního období
+    const seasonalSettings = getSeasonalSettings(month);
+    newTemp = Math.max(seasonalSettings.minTemp, Math.min(seasonalSettings.maxTemp, newTemp));
+
+    setWeatherTrend(newWeather);
+    return {
+      type: newWeather.type,
+      temperature: Math.round(newTemp)
+    };
+  };
+
+  // Funkce pro získání nastavení podle ročního období
+  const getSeasonalSettings = (month) => {
     switch(month) {
       case 11: // Prosinec
       case 0:  // Leden
       case 1:  // Únor
-        possibleWeathers = [
-          { type: 'clear', weight: 25, tempMod: 0 },
-          { type: 'partlyCloudy', weight: 30, tempMod: -1 },
-          { type: 'cloudy', weight: 25, tempMod: -2 },
-          { type: 'snow', weight: 15, tempMod: -4 },
-          { type: 'snowRain', weight: 5, tempMod: -1 }
-        ];
-        baseTemp = 0;
-        tempVariation = 5;
-        break;
+        return { baseTemp: 0, minTemp: -10, maxTemp: 8 };
       case 2:  // Březen
       case 3:  // Duben
       case 4:  // Květen
-        possibleWeathers = [
-          { type: 'clear', weight: 30, tempMod: 2 },
-          { type: 'partlyCloudy', weight: 25, tempMod: 1 },
-          { type: 'cloudy', weight: 20, tempMod: 0 },
-          { type: 'rain', weight: 15, tempMod: -2 },
-          { type: 'thunderstorm', weight: 10, tempMod: -3 }
-        ];
-        baseTemp = 15;
-        tempVariation = 7;
-        break;
+        return { baseTemp: 15, minTemp: 5, maxTemp: 25 };
       case 5:  // Červen
       case 6:  // Červenec
       case 7:  // Srpen
-        possibleWeathers = [
-          { type: 'clear', weight: 35, tempMod: 3 },
-          { type: 'partlyCloudy', weight: 25, tempMod: 1 },
-          { type: 'cloudy', weight: 15, tempMod: 0 },
-          { type: 'rain', weight: 15, tempMod: -3 },
-          { type: 'thunderstorm', weight: 10, tempMod: -4 }
-        ];
-        baseTemp = 24;
-        tempVariation = 6;
-        break;
+        return { baseTemp: 24, minTemp: 15, maxTemp: 35 };
       case 8:  // Září
       case 9:  // Říjen
       case 10: // Listopad
-        possibleWeathers = [
-          { type: 'clear', weight: 25, tempMod: 2 },
-          { type: 'partlyCloudy', weight: 30, tempMod: 1 },
-          { type: 'cloudy', weight: 25, tempMod: 0 },
-          { type: 'rain', weight: 15, tempMod: -3 },
-          { type: 'fog', weight: 5, tempMod: -1 }
-        ];
-        baseTemp = 12;
-        tempVariation = 8;
-        break;
+        return { baseTemp: 12, minTemp: 3, maxTemp: 20 };
     }
-
-    // Úprava teploty podle denní doby
-    const hourModifier = getHourlyTempModifier(hour);
-    baseTemp += hourModifier;
-
-    // Vážený výběr počasí
-    const totalWeight = possibleWeathers.reduce((sum, w) => sum + w.weight, 0);
-    let random = Math.random() * totalWeight;
-    let selectedWeather = possibleWeathers[0];
-    
-    for (const weather of possibleWeathers) {
-      random -= weather.weight;
-      if (random <= 0) {
-        selectedWeather = weather;
-        break;
-      }
-    }
-
-    // Generování teploty s denním cyklem
-    const randomTemp = baseTemp + (Math.random() * 2 - 1) * tempVariation + selectedWeather.tempMod;
-    
-    return {
-      type: selectedWeather.type,
-      temperature: Math.round(randomTemp)
-    };
   };
 
-  // Funkce pro získání modifikátoru teploty podle hodiny
-  const getHourlyTempModifier = (hour) => {
-    // Denní cyklus teploty:
-    // 5-8: postupný nárůst z nočního minima
-    // 9-14: postupný nárůst k dennímu maximu
-    // 15-19: postupný pokles
-    // 20-4: postupný pokles k nočnímu minimu
-    
+  // Funkce pro získání modifikátoru podle denní doby
+  const getTimeOfDayModifier = (hour) => {
     if (hour >= 5 && hour <= 8) {
       return -2 + (hour - 5);
     } else if (hour >= 9 && hour <= 14) {
-      return 1 + (hour - 9);
+      return 1 + (hour - 9) * 0.5;
     } else if (hour >= 15 && hour <= 19) {
-      return 6 - (hour - 15);
+      return 4 - (hour - 15) * 0.5;
     } else {
       return -3;
     }
@@ -419,20 +437,14 @@ const PlayerCareer = ({ onBack, money, xp, level, getXpToNextLevel, getLevelProg
               Mapa města
             </h2>
             <div className="text-indigo-300 mt-2">
-              {weather === 'clear' ? '☀️ Jasno' :
-                weather === 'partlyCloudy' ? '⛅ Polojasno' :
-                weather === 'cloudy' ? '☁️ Zataženo' :
-                weather === 'rain' ? '🌧️ Déšť' :
-                weather === 'thunderstorm' ? '⛈️ Bouřky' :
-                weather === 'snow' ? '❄️ Sněžení' :
-                '🌨️ Déšť se sněhem'}
+              {getWeatherDescription()}
             </div>
           </div>
 
           {/* Hlavní kontejner pro telefon a mapu */}
-          <div className="flex gap-8">
+          <div className="flex gap-8 pl-4">
             {/* Mobilní telefon */}
-            <div className="w-[400px] h-[700px] bg-black rounded-[40px] p-3 relative shadow-2xl border-4 border-gray-800">
+            <div className="w-[300px] h-[600px] bg-black rounded-[40px] p-3 relative shadow-2xl border-4 border-gray-800">
               {/* Výřez pro kameru a senzory */}
               <div className="absolute top-0 left-1/2 transform -translate-x-1/2 w-[150px] h-[30px] bg-black rounded-b-3xl z-20 flex items-center justify-center gap-3">
                 <div className="w-2 h-2 rounded-full bg-gray-800"></div>
