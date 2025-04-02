@@ -522,8 +522,25 @@ const litvinovLancers = {
 
   // Nová funkce pro získání URL fotky hráče
   getPlayerPhotoUrl: function(playerId) {
-    const player = this.players.find(p => p.name + p.surname === playerId);
-    if (!player || !player.photo) return null;
+    // Najdeme hráče podle jména a příjmení (spojené nebo oddělené mezerou)
+    const player = this.players.find(p => {
+      const fullName = `${p.name}${p.surname}`;
+      const fullNameWithSpace = `${p.name} ${p.surname}`;
+      return playerId === fullName || playerId === fullNameWithSpace;
+    });
+    
+    if (!player || !player.photo) {
+      console.error('❌ Player not found or no photo:', playerId);
+      return null;
+    }
+    
+    console.log('🖼️ Getting photo URL for player:', {
+      name: player.name,
+      surname: player.surname,
+      photo: player.photo,
+      url: `/Images/players/${player.photo}`
+    });
+    
     return `/Images/players/${player.photo}`;
   }
 };

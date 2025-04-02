@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import OldaChat from './OldaChat';
+import { litvinovLancers } from '../data/LitvinovLancers';
 
 // Pomocné funkce pro kontrolu data a času
 const isHockeyPracticeDay = (currentDate, hockeyPractice) => {
@@ -75,7 +76,7 @@ const PlayerCareer = ({ onBack, money, xp, level, getXpToNextLevel, getLevelProg
       {
         id: 'olda',
         name: 'Olda Trenér',
-        avatar: '/Images/players/Oldrich_Stepanovsky.png',
+        avatar: litvinovLancers.getPlayerPhotoUrl('OldřichŠtěpanovský'),
         unread: lastMessage && !lastMessage.read ? 1 : 0,
         lastMessage: lastMessage ? lastMessage.text : 'Ahoj! Zítra máme s partou led v Chomutově od 17:00. Nechceš se přidat? 🏒',
         time: lastMessage ? lastMessage.time : '08:00',

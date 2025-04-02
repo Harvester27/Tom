@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { litvinovLancers } from '../data/LitvinovLancers';
 
 const OldaChat = () => {
   // Definice dialogových sekvencí
@@ -251,10 +252,10 @@ const OldaChat = () => {
             {message.sender === 'Olda' && (
               <div className="w-8 h-8 rounded-full bg-indigo-500 flex-shrink-0 overflow-hidden">
                 <img 
-                  src="/Images/players/Oldrich_Stepanovsky.png" 
+                  src={litvinovLancers.getPlayerPhotoUrl('OldřichŠtěpanovský')}
                   alt="Olda" 
                   className="w-full h-full object-cover"
-                  onLoad={() => console.log('🖼️ Olda avatar loaded in chat message:', '/Images/players/Oldrich_Stepanovsky.png')}
+                  onLoad={() => console.log('🖼️ Olda avatar loaded in chat message:', litvinovLancers.getPlayerPhotoUrl('OldřichŠtěpanovský'))}
                   onError={(e) => {
                     console.error('❌ Error loading image in chat message:', e.target.src);
                     e.target.onerror = null;
