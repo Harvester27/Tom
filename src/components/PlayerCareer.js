@@ -429,82 +429,82 @@ const PlayerCareer = ({ onBack, money, xp, level, getXpToNextLevel, getLevelProg
         </div>
       )}
 
-      <div className="max-w-7xl w-full mx-auto flex gap-8">
-        {/* Mobilní telefon v černém prostoru */}
-        <div className="w-[300px] h-[600px] bg-black rounded-[40px] p-3 relative shadow-2xl border-4 border-gray-800">
-          {/* Výřez pro kameru a senzory */}
-          <div className="absolute top-0 left-1/2 transform -translate-x-1/2 w-[150px] h-[30px] bg-black rounded-b-3xl z-20 flex items-center justify-center gap-3">
-            <div className="w-2 h-2 rounded-full bg-gray-800"></div>
-            <div className="w-4 h-4 rounded-full bg-gray-800"></div>
-            <div className="w-2 h-2 rounded-full bg-gray-800"></div>
-          </div>
-          
-          {/* Displej telefonu */}
-          <div className="w-full h-full bg-gradient-to-br from-indigo-900 to-indigo-800 rounded-[32px] overflow-hidden relative">
-            {/* Stavový řádek */}
-            <div className="absolute top-0 left-0 right-0 h-6 bg-black/30 flex items-center justify-between px-6 text-white text-sm">
-              <span>{currentHour.toString().padStart(2, '0')}:{(Math.floor(Date.now() / 1000) % 60).toString().padStart(2, '0')}</span>
-              <div className="flex items-center gap-2">
-                <span className="text-xs">5G</span>
-                <span>📶</span>
-                <span>🔋 100%</span>
-              </div>
+      <div className="max-w-7xl w-full mx-auto">
+        <div className="bg-gradient-to-br from-indigo-900/50 to-indigo-800/20 rounded-xl p-8 border border-indigo-500/20 shadow-xl backdrop-blur-sm">
+          {/* Hlavička */}
+          <div className="text-center mb-8">
+            <h2 className="text-4xl font-bold bg-gradient-to-r from-indigo-400 to-indigo-600 bg-clip-text text-transparent">
+              Mapa města
+            </h2>
+            <div className="text-indigo-300 mt-2">
+              {getWeatherDescription()}
             </div>
+          </div>
 
-            {/* Hlavní obsah telefonu */}
-            <div className="p-8 pt-12">
-              {/* Záložky */}
-              <div className="flex gap-2 mb-6">
-                <button className="flex-1 bg-white/10 hover:bg-white/20 text-white py-2 px-4 rounded-lg transition-colors">
-                  Zprávy
-                </button>
-                <button className="flex-1 bg-white/10 hover:bg-white/20 text-white py-2 px-4 rounded-lg transition-colors">
-                  Kontakty
-                </button>
-                <button className="flex-1 bg-white/10 hover:bg-white/20 text-white py-2 px-4 rounded-lg transition-colors">
-                  Kalendář
-                </button>
+          {/* Hlavní kontejner pro telefon a mapu */}
+          <div className="flex gap-8">
+            {/* Mobilní telefon - zarovnaný úplně vlevo */}
+            <div className="w-[300px] h-[600px] bg-black rounded-[40px] p-3 relative shadow-2xl border-4 border-gray-800" style={{ marginLeft: '-8rem' }}>
+              {/* Výřez pro kameru a senzory */}
+              <div className="absolute top-0 left-1/2 transform -translate-x-1/2 w-[150px] h-[30px] bg-black rounded-b-3xl z-20 flex items-center justify-center gap-3">
+                <div className="w-2 h-2 rounded-full bg-gray-800"></div>
+                <div className="w-4 h-4 rounded-full bg-gray-800"></div>
+                <div className="w-2 h-2 rounded-full bg-gray-800"></div>
               </div>
+              
+              {/* Displej telefonu */}
+              <div className="w-full h-full bg-gradient-to-br from-indigo-900 to-indigo-800 rounded-[32px] overflow-hidden relative">
+                {/* Stavový řádek */}
+                <div className="absolute top-0 left-0 right-0 h-6 bg-black/30 flex items-center justify-between px-6 text-white text-sm">
+                  <span>{currentHour.toString().padStart(2, '0')}:{(Math.floor(Date.now() / 1000) % 60).toString().padStart(2, '0')}</span>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs">5G</span>
+                    <span>📶</span>
+                    <span>🔋 100%</span>
+                  </div>
+                </div>
 
-              {/* Seznam zpráv (prozatím prázdný) */}
-              <div className="space-y-4">
-                <div className="bg-white/5 p-4 rounded-lg">
-                  <div className="text-gray-400 text-sm mb-1">Žádné nové zprávy</div>
-                  <div className="text-white text-xs">Zde se budou zobrazovat vaše zprávy a oznámení</div>
+                {/* Hlavní obsah telefonu */}
+                <div className="p-8 pt-12">
+                  {/* Záložky */}
+                  <div className="flex gap-2 mb-6">
+                    <button className="flex-1 bg-white/10 hover:bg-white/20 text-white py-2 px-4 rounded-lg transition-colors">
+                      Zprávy
+                    </button>
+                    <button className="flex-1 bg-white/10 hover:bg-white/20 text-white py-2 px-4 rounded-lg transition-colors">
+                      Kontakty
+                    </button>
+                    <button className="flex-1 bg-white/10 hover:bg-white/20 text-white py-2 px-4 rounded-lg transition-colors">
+                      Kalendář
+                    </button>
+                  </div>
+
+                  {/* Seznam zpráv (prozatím prázdný) */}
+                  <div className="space-y-4">
+                    <div className="bg-white/5 p-4 rounded-lg">
+                      <div className="text-gray-400 text-sm mb-1">Žádné nové zprávy</div>
+                      <div className="text-white text-xs">Zde se budou zobrazovat vaše zprávy a oznámení</div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Navigační lišta */}
+                <div className="absolute bottom-0 left-0 right-0 h-16 bg-black/30 backdrop-blur-sm flex items-center justify-around px-6">
+                  <button className="w-12 h-12 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-white transition-colors">
+                    📱
+                  </button>
+                  <button className="w-12 h-12 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-white transition-colors">
+                    📞
+                  </button>
+                  <button className="w-12 h-12 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-white transition-colors">
+                    ⚙️
+                  </button>
                 </div>
               </div>
             </div>
 
-            {/* Navigační lišta */}
-            <div className="absolute bottom-0 left-0 right-0 h-16 bg-black/30 backdrop-blur-sm flex items-center justify-around px-6">
-              <button className="w-12 h-12 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-white transition-colors">
-                📱
-              </button>
-              <button className="w-12 h-12 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-white transition-colors">
-                📞
-              </button>
-              <button className="w-12 h-12 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-white transition-colors">
-                ⚙️
-              </button>
-            </div>
-          </div>
-        </div>
-
-        {/* Mapa v samostatném kontejneru */}
-        <div className="flex-1">
-          <div className="bg-gradient-to-br from-indigo-900/50 to-indigo-800/20 rounded-xl p-8 border border-indigo-500/20 shadow-xl backdrop-blur-sm">
-            {/* Hlavička */}
-            <div className="text-center mb-8">
-              <h2 className="text-4xl font-bold bg-gradient-to-r from-indigo-400 to-indigo-600 bg-clip-text text-transparent">
-                Mapa města
-              </h2>
-              <div className="text-indigo-300 mt-2">
-                {getWeatherDescription()}
-              </div>
-            </div>
-
-            {/* Mapa */}
-            <div className="h-[600px] rounded-xl overflow-hidden transition-all duration-1000 relative">
+            {/* Mapa - zůstává beze změny */}
+            <div className="flex-1 h-[600px] rounded-xl overflow-hidden transition-all duration-1000">
               {/* Efekty počasí */}
               {weather !== 'clear' && weather !== 'partlyCloudy' && weather !== 'cloudy' && (
                 <div className={`absolute inset-0 pointer-events-none
