@@ -648,7 +648,7 @@ const PlayerCareer = ({ onBack, money, xp, level, getXpToNextLevel, getLevelProg
               </button>
               <div className="flex items-center gap-3 flex-1">
                 <div className="w-10 h-10 rounded-full bg-indigo-500 flex items-center justify-center text-xl overflow-hidden">
-                  {activeChat?.avatar.startsWith('/') ? (
+                  {typeof activeChat?.avatar === 'string' && (activeChat.avatar.startsWith('/') || activeChat.avatar.startsWith('http')) ? (
                     <img 
                       src={activeChat.avatar} 
                       alt={activeChat.name}
