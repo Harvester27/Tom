@@ -444,7 +444,7 @@ const PlayerCareer = ({ onBack, money, xp, level, getXpToNextLevel, getLevelProg
           {/* Hlavní kontejner pro telefon a mapu */}
           <div className="flex gap-8">
             {/* Mobilní telefon - zarovnaný úplně vlevo */}
-            <div className="w-[300px] h-[600px] bg-black rounded-[40px] p-3 relative shadow-2xl border-4 border-gray-800" style={{ marginLeft: '-12rem' }}>
+            <div className="w-[300px] h-[600px] bg-black rounded-[40px] p-3 relative shadow-2xl border-4 border-gray-800" style={{ marginLeft: '0' }}>
               {/* Výřez pro kameru a senzory */}
               <div className="absolute top-0 left-1/2 transform -translate-x-1/2 w-[150px] h-[30px] bg-black rounded-b-3xl z-20 flex items-center justify-center gap-3">
                 <div className="w-2 h-2 rounded-full bg-gray-800"></div>
