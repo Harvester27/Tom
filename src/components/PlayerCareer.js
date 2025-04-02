@@ -610,7 +610,9 @@ const PlayerCareer = ({ onBack, money, xp, level, getXpToNextLevel, getLevelProg
                           onLoad={() => console.log('🖼️ Olda avatar loaded in message list:', conv.avatar)}
                           onError={(e) => {
                             console.error('❌ Error loading image in message list:', e.target.src);
-                            e.target.src = '👨‍🦳';
+                            e.target.onerror = null;
+                            e.target.style.display = 'none';
+                            e.target.parentElement.innerHTML = '👨‍🦳';
                           }}
                         />
                       ) : (
@@ -656,7 +658,9 @@ const PlayerCareer = ({ onBack, money, xp, level, getXpToNextLevel, getLevelProg
                       onLoad={() => console.log('🖼️ Olda avatar loaded in chat header:', activeChat.avatar)}
                       onError={(e) => {
                         console.error('❌ Error loading image in chat header:', e.target.src);
-                        e.target.src = '👨‍🦳';
+                        e.target.onerror = null;
+                        e.target.style.display = 'none';
+                        e.target.parentElement.innerHTML = '👨‍🦳';
                       }}
                     />
                   ) : (
@@ -720,7 +724,9 @@ const PlayerCareer = ({ onBack, money, xp, level, getXpToNextLevel, getLevelProg
                             onLoad={() => console.log('🖼️ Olda avatar loaded in home screen:', conv.avatar)}
                             onError={(e) => {
                               console.error('❌ Error loading image in home screen:', e.target.src);
-                              e.target.src = '👨‍🦳';
+                              e.target.onerror = null;
+                              e.target.style.display = 'none';
+                              e.target.parentElement.innerHTML = '👨‍🦳';
                             }}
                           />
                         ) : (
