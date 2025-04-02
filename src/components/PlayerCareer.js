@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import OldaChat from './OldaChat';
 
 const PlayerCareer = ({ onBack, money, xp, level, getXpToNextLevel, getLevelProgress }) => {
   const [selectedLocation, setSelectedLocation] = useState(null);
@@ -21,6 +22,12 @@ const PlayerCareer = ({ onBack, money, xp, level, getXpToNextLevel, getLevelProg
     duration: 24, // jak dlouho trend vydrží
     stormComing: false
   });
+  const [hasNewMessage, setHasNewMessage] = useState(true);
+  const [showChat, setShowChat] = useState(false);
+  const [unreadMessages, setUnreadMessages] = useState(1);
+
+  // Blikající LED efekt
+  const [ledBlink, setLedBlink] = useState(false);
 
   // Funkce pro formátování data
   const formatDate = (date) => {
@@ -340,6 +347,22 @@ const PlayerCareer = ({ onBack, money, xp, level, getXpToNextLevel, getLevelProg
     setShowLocationInfo(true);
   };
 
+  useEffect(() => {
+    if (hasNewMessage) {
+      const blinkInterval = setInterval(() => {
+        setLedBlink(prev => !prev);
+      }, 1000);
+      return () => clearInterval(blinkInterval);
+    } else {
+      setLedBlink(false);
+    }
+  }, [hasNewMessage]);
+
+  const handleNewMessage = (message) => {
+    setHasNewMessage(true);
+    setUnreadMessages(prev => prev + 1);
+  };
+
   return (
     <div className="fixed inset-0 bg-black/90 flex flex-col items-center justify-center z-50 p-8 overflow-y-auto">
       {/* Stats v levém horním rohu */}
@@ -448,7 +471,7 @@ const PlayerCareer = ({ onBack, money, xp, level, getXpToNextLevel, getLevelProg
               {/* Výřez pro kameru a senzory */}
               <div className="absolute top-0 left-1/2 transform -translate-x-1/2 w-[150px] h-[30px] bg-black rounded-b-3xl z-20 flex items-center justify-center gap-3">
                 <div className="w-2 h-2 rounded-full bg-gray-800"></div>
-                <div className="w-4 h-4 rounded-full bg-gray-800"></div>
+                <div className={`w-4 h-4 rounded-full transition-colors duration-300 ${ledBlink ? 'bg-blue-500' : 'bg-gray-800'}`}></div>
                 <div className="w-2 h-2 rounded-full bg-gray-800"></div>
               </div>
               
@@ -468,9 +491,17 @@ const PlayerCareer = ({ onBack, money, xp, level, getXpToNextLevel, getLevelProg
                 <div className="p-4 pt-12">
                   {/* Záložky s ikonkami */}
                   <div className="flex justify-around mb-6">
-                    <button className="w-14 h-14 bg-white/10 hover:bg-white/20 rounded-xl flex flex-col items-center justify-center gap-1 transition-colors group">
+                    <button 
+                      className="w-14 h-14 bg-white/10 hover:bg-white/20 rounded-xl flex flex-col items-center justify-center gap-1 transition-colors group relative"
+                      onClick={() => setShowChat(true)}
+                    >
                       <span className="text-xl">💬</span>
                       <span className="text-[10px] text-white/70 group-hover:text-white">Zprávy</span>
+                      {unreadMessages > 0 && (
+                        <div className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 rounded-full flex items-center justify-center text-white text-xs font-bold">
+                          {unreadMessages}
+                        </div>
+                      )}
                     </button>
                     <button className="w-14 h-14 bg-white/10 hover:bg-white/20 rounded-xl flex flex-col items-center justify-center gap-1 transition-colors group">
                       <span className="text-xl">👥</span>
@@ -482,27 +513,28 @@ const PlayerCareer = ({ onBack, money, xp, level, getXpToNextLevel, getLevelProg
                     </button>
                   </div>
 
-                  {/* Seznam zpráv (vylepšený) */}
+                  {/* Seznam zpráv */}
                   <div className="space-y-3">
-                    <div className="bg-white/5 p-4 rounded-xl border border-white/10">
+                    <div 
+                      className={`bg-white/5 p-4 rounded-xl border ${hasNewMessage ? 'border-blue-500/50 animate-pulse' : 'border-white/10'} cursor-pointer`}
+                      onClick={() => {
+                        setShowChat(true);
+                        setHasNewMessage(false);
+                        setUnreadMessages(0);
+                      }}
+                    >
                       <div className="flex items-center gap-3 mb-2">
-                        <span className="text-xl">📱</span>
+                        <div className="w-10 h-10 rounded-full bg-indigo-500 flex items-center justify-center text-xl">
+                          👨‍🦳
+                        </div>
                         <div>
-                          <div className="text-white text-sm font-medium">Systémové zprávy</div>
-                          <div className="text-white/50 text-xs">Dnes</div>
+                          <div className="text-white text-sm font-medium flex items-center gap-2">
+                            Olda Trenér
+                            {hasNewMessage && <span className="w-2 h-2 rounded-full bg-blue-500"></span>}
+                          </div>
+                          <div className="text-white/50 text-xs">Klikněte pro zobrazení zprávy</div>
                         </div>
                       </div>
-                      <p className="text-white/70 text-sm">Žádné nové zprávy</p>
-                    </div>
-                    <div className="bg-white/5 p-4 rounded-xl border border-white/10">
-                      <div className="flex items-center gap-3 mb-2">
-                        <span className="text-xl">🏆</span>
-                        <div>
-                          <div className="text-white text-sm font-medium">Úspěchy</div>
-                          <div className="text-white/50 text-xs">Tento týden</div>
-                        </div>
-                      </div>
-                      <p className="text-white/70 text-sm">Zatím žádné úspěchy</p>
                     </div>
                   </div>
                 </div>
@@ -658,6 +690,13 @@ const PlayerCareer = ({ onBack, money, xp, level, getXpToNextLevel, getLevelProg
           </div>
         </div>
       </div>
+
+      {/* Chat okno */}
+      <OldaChat 
+        isOpen={showChat} 
+        onClose={() => setShowChat(false)}
+        onNewMessage={handleNewMessage}
+      />
 
       {/* Tlačítko pro návrat */}
       <div className="flex justify-center mt-8">
