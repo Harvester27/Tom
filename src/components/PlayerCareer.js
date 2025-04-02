@@ -32,14 +32,14 @@ const PlayerCareer = ({ onBack, money, xp, level, getXpToNextLevel, getLevelProg
       name: 'Olda Trenér',
       avatar: '👨‍🦳',
       unread: 1,
-      lastMessage: 'Ahoj! Jak to jde s tréninkem?',
-      time: '08:30',
+      lastMessage: 'Ahoj! Zítra máme s partou led v Chomutově od 17:00. Nechceš se přidat? 🏒',
+      time: '08:00',
       messages: [
         {
           id: 1,
           sender: 'Olda',
-          text: 'Ahoj! Jak to jde s tréninkem?',
-          time: '08:30',
+          text: 'Ahoj! Zítra máme s partou led v Chomutově od 17:00. Nechceš se přidat? 🏒',
+          time: '08:00',
           read: false
         }
       ]
@@ -546,51 +546,7 @@ const PlayerCareer = ({ onBack, money, xp, level, getXpToNextLevel, getLevelProg
               </div>
             </div>
 
-            <div className="flex-1 overflow-y-auto p-4 space-y-4">
-              {activeChat?.messages.map(message => (
-                <div 
-                  key={message.id}
-                  className={`flex ${message.sender === 'Player' ? 'justify-end' : 'justify-start'}`}
-                >
-                  <div className={`max-w-[80%] ${
-                    message.sender === 'Player' 
-                      ? 'bg-indigo-600 text-white rounded-t-2xl rounded-l-2xl' 
-                      : 'bg-white/10 text-white rounded-t-2xl rounded-r-2xl'
-                  } p-3 shadow-lg`}>
-                    <div className="text-sm">{message.text}</div>
-                    <div className="text-xs mt-1 opacity-70">{message.time}</div>
-                  </div>
-                </div>
-              ))}
-            </div>
-
-            <div className="p-4 bg-indigo-950/50">
-              <div className="flex gap-2">
-                <input
-                  type="text"
-                  placeholder="Napište zprávu..."
-                  className="flex-1 bg-white/10 text-white placeholder-white/50 rounded-xl px-4 py-2 focus:outline-none focus:bg-white/20"
-                  onKeyPress={(e) => {
-                    if (e.key === 'Enter' && e.target.value.trim()) {
-                      handleSendMessage(e.target.value, activeChat.id);
-                      e.target.value = '';
-                    }
-                  }}
-                />
-                <button
-                  onClick={(e) => {
-                    const input = e.target.previousSibling;
-                    if (input.value.trim()) {
-                      handleSendMessage(input.value, activeChat.id);
-                      input.value = '';
-                    }
-                  }}
-                  className="w-10 h-10 rounded-xl bg-indigo-600 hover:bg-indigo-700 flex items-center justify-center text-white"
-                >
-                  ➤
-                </button>
-              </div>
-            </div>
+            <OldaChat />
           </div>
         );
 
