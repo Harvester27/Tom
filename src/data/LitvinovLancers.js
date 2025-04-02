@@ -534,14 +534,17 @@ const litvinovLancers = {
       return null;
     }
     
+    // Použijeme správnou cestu pro Vercel
+    const photoUrl = `/images/players/${player.photo}`;
+    
     console.log('🖼️ Getting photo URL for player:', {
       name: player.name,
       surname: player.surname,
       photo: player.photo,
-      url: `/Images/players/${player.photo}`
+      url: photoUrl
     });
     
-    return `/Images/players/${player.photo}`;
+    return photoUrl;
   }
 };
 
