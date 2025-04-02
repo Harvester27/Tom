@@ -8,6 +8,33 @@ const PlayerCareer = ({ onBack, money, xp, level, getXpToNextLevel, getLevelProg
   const [timeOfDay, setTimeOfDay] = useState('day'); // day, sunset, night
   const [weather, setWeather] = useState('clear'); // clear, rain, snow
   const [hoveredLocation, setHoveredLocation] = useState(null);
+  const [currentDate, setCurrentDate] = useState(new Date());
+
+  // Funkce pro formátování data
+  const formatDate = (date) => {
+    const days = ['Neděle', 'Pondělí', 'Úterý', 'Středa', 'Čtvrtek', 'Pátek', 'Sobota'];
+    const months = ['ledna', 'února', 'března', 'dubna', 'května', 'června', 
+                   'července', 'srpna', 'září', 'října', 'listopadu', 'prosince'];
+    
+    return `${days[date.getDay()]} ${date.getDate()}. ${months[date.getMonth()]}`;
+  };
+
+  // Funkce pro posun na další den
+  const goToNextDay = () => {
+    const nextDay = new Date(currentDate);
+    nextDay.setDate(nextDay.getDate() + 1);
+    nextDay.setHours(8, 0, 0, 0);
+    setCurrentDate(nextDay);
+    setTimeOfDay('day');
+    setShowLocationInfo(false);
+  };
+
+  // Nastavení počátečního data při prvním načtení
+  useEffect(() => {
+    const now = new Date();
+    now.setHours(8, 0, 0, 0);
+    setCurrentDate(now);
+  }, []);
 
   const locations = [
     {
@@ -18,7 +45,20 @@ const PlayerCareer = ({ onBack, money, xp, level, getXpToNextLevel, getLevelProg
       y: 20,
       icon: '🏠',
       color: '#FFD700',
-      actions: ['Odpočinek (+10 energie)', 'Prohlídka trofejí', 'Správa financí']
+      actions: [
+        {
+          name: 'Jít spát (další den)',
+          onClick: goToNextDay
+        },
+        {
+          name: 'Rozdělení atributů',
+          onClick: () => console.log('Rozdělení atributů')
+        },
+        {
+          name: 'Prohlídka trofejí',
+          onClick: () => console.log('Prohlídka trofejí')
+        }
+      ]
     },
     {
       id: 'stadium',
@@ -115,7 +155,7 @@ const PlayerCareer = ({ onBack, money, xp, level, getXpToNextLevel, getLevelProg
   return (
     <div className="fixed inset-0 bg-black/90 flex flex-col items-center justify-center z-50 p-8 overflow-y-auto">
       {/* Stats v levém horním rohu */}
-      <div className="fixed top-4 left-4 flex gap-4">
+      <div className="fixed top-4 left-4 flex gap-4 z-50">
         <div className="bg-black/60 backdrop-blur-sm px-6 py-3 rounded-xl border border-indigo-500/20 shadow-lg shadow-indigo-500/20">
           <p className="text-indigo-100 text-xl">
             Peníze: <span className="font-bold text-indigo-400">{money.toLocaleString()} Kč</span>
@@ -131,6 +171,13 @@ const PlayerCareer = ({ onBack, money, xp, level, getXpToNextLevel, getLevelProg
           <div className="absolute top-1 right-2 text-xs text-indigo-200">
             {getXpToNextLevel(xp)} XP do dalšího levelu
           </div>
+        </div>
+        <div className="bg-black/60 backdrop-blur-sm px-6 py-3 rounded-xl border border-indigo-500/20 shadow-lg shadow-indigo-500/20">
+          <p className="text-indigo-100 text-xl">
+            <span className="font-bold text-indigo-400">{formatDate(currentDate)}</span>
+            <span className="mx-2">•</span>
+            <span className="font-bold text-indigo-400">8:00</span>
+          </p>
         </div>
       </div>
 
@@ -262,12 +309,13 @@ const PlayerCareer = ({ onBack, money, xp, level, getXpToNextLevel, getLevelProg
                   {selectedLocation.actions.map((action, index) => (
                     <button
                       key={index}
+                      onClick={action.onClick || (() => {})}
                       className="w-full text-left px-4 py-2 rounded-lg
                                bg-indigo-500/20 hover:bg-indigo-500/30
                                transition-colors duration-200
                                text-indigo-200 hover:text-indigo-100"
                     >
-                      {action}
+                      {action.name || action}
                     </button>
                   ))}
                 </div>
