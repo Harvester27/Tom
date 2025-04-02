@@ -77,7 +77,7 @@ const PlayerCareer = ({ onBack, money, xp, level, getXpToNextLevel, getLevelProg
       {
         id: 'olda',
         name: 'Olda Trenér',
-        avatar: '/Images/players/Oldrich_Stepanovsky.png',
+        avatar: litvinovLancers.getPlayerPhotoUrl('Oldřich Štěpanovský'),
         unread: lastMessage && !lastMessage.read ? 1 : 0,
         lastMessage: lastMessage ? lastMessage.text : 'Ahoj! Zítra máme s partou led v Chomutově od 17:00. Nechceš se přidat? 🏒',
         time: lastMessage ? lastMessage.time : '08:00',
@@ -605,10 +605,13 @@ const PlayerCareer = ({ onBack, money, xp, level, getXpToNextLevel, getLevelProg
                   <div className="flex items-center gap-3">
                     <div className="w-12 h-12 rounded-full bg-indigo-500 flex items-center justify-center text-2xl overflow-hidden">
                       {typeof conv.avatar === 'string' && (conv.avatar.startsWith('/') || conv.avatar.startsWith('http')) ? (
-                        <img
+                        <Image
                           src={conv.avatar}
                           alt={conv.name}
+                          width={40}
+                          height={40}
                           className="w-full h-full object-cover"
+                          unoptimized={true}
                           onError={(e) => {
                             console.error('❌ Error loading image:', e.target.src);
                           }}
@@ -649,10 +652,13 @@ const PlayerCareer = ({ onBack, money, xp, level, getXpToNextLevel, getLevelProg
               <div className="flex items-center gap-3 flex-1">
                 <div className="w-10 h-10 rounded-full bg-indigo-500 flex items-center justify-center text-xl overflow-hidden">
                   {typeof activeChat?.avatar === 'string' && (activeChat.avatar.startsWith('/') || activeChat.avatar.startsWith('http')) ? (
-                    <img
+                    <Image
                       src={activeChat.avatar}
                       alt={activeChat.name}
+                      width={40}
+                      height={40}
                       className="w-full h-full object-cover"
+                      unoptimized={true}
                       onError={(e) => {
                         console.error('❌ Error loading image:', e.target.src);
                       }}
@@ -711,20 +717,18 @@ const PlayerCareer = ({ onBack, money, xp, level, getXpToNextLevel, getLevelProg
                     <div className="flex items-center gap-3">
                       <div className="w-10 h-10 rounded-full bg-indigo-500 flex items-center justify-center text-xl overflow-hidden">
                         {typeof conv.avatar === 'string' && (conv.avatar.startsWith('/') || conv.avatar.startsWith('http')) ? (
-                          () => {
-                            console.log('PlayerCareer.js - Avatar URL before img:', conv.avatar);
-                            return (
-                              <img
-                                src={conv.avatar}
-                                alt={conv.name}
-                                className="w-full h-full object-cover"
-                                onError={(e) => {
-                                  console.error('❌ Error loading image:', e.target.src);
-                                }}
-                              />
-                            );
-                          }
-                        )() : (
+                          <Image
+                            src={conv.avatar}
+                            alt={conv.name}
+                            width={40}
+                            height={40}
+                            className="w-full h-full object-cover"
+                            unoptimized={true}
+                            onError={(e) => {
+                              console.error('❌ Error loading image:', e.target.src);
+                            }}
+                          />
+                        ) : (
                           conv.avatar
                         )}
                       </div>

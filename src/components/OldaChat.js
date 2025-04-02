@@ -259,22 +259,23 @@ const OldaChat = ({ onNewMessage }) => {
           >
             {message.sender === 'Olda' && (
               <div className="w-10 h-10 rounded-full bg-indigo-500 flex-shrink-0 overflow-hidden">
-                {
-                  () => {
-                    const oldaPhotoUrl = litvinovLancers.getPlayerPhotoUrl('Oldřich Štěpanovský');
-                    console.log('OldaChat.js - Olda Photo URL before img:', oldaPhotoUrl); // Log the URL
-                    return (
-                      <img
-                        src={oldaPhotoUrl}
-                        alt="Olda"
-                        className="w-full h-full object-cover"
-                        onError={(e) => {
-                          console.error('❌ Error loading image:', e.target.src);
-                        }}
-                      />
-                    );
-                  }
-                }()
+                {(() => {
+                  const oldaPhotoUrl = litvinovLancers.getPlayerPhotoUrl('Oldřich Štěpanovský');
+                  console.log('OldaChat.js - Olda Photo URL before img:', oldaPhotoUrl);
+                  return (
+                    <Image
+                      src={oldaPhotoUrl}
+                      alt="Olda"
+                      width={40}
+                      height={40}
+                      className="w-full h-full object-cover"
+                      unoptimized={true}
+                      onError={(e) => {
+                        console.error('❌ Error loading image:', e.target.src);
+                      }}
+                    />
+                  );
+                })()}
               </div>
             )}
             <div className={`max-w-[80%] ${
