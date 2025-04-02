@@ -31,9 +31,9 @@ const PlayerCareer = ({ onBack, money, xp, level, getXpToNextLevel, getLevelProg
 
   // Nastavení počátečního data při prvním načtení
   useEffect(() => {
-    const now = new Date();
-    now.setHours(8, 0, 0, 0);
-    setCurrentDate(now);
+    const startDate = new Date(2024, 5, 1); // Měsíce jsou 0-based, takže 5 = červen
+    startDate.setHours(8, 0, 0, 0);
+    setCurrentDate(startDate);
   }, []);
 
   const locations = [
