@@ -607,9 +607,10 @@ const PlayerCareer = ({ onBack, money, xp, level, getXpToNextLevel, getLevelProg
                           src={conv.avatar} 
                           alt={conv.name} 
                           className="w-full h-full object-cover"
+                          onLoad={() => console.log('🖼️ Olda avatar loaded in message list:', conv.avatar)}
                           onError={(e) => {
-                            console.error('Error loading image:', e.target.src);
-                            e.target.src = '👨‍🦳'; // Fallback na emoji při chybě
+                            console.error('❌ Error loading image in message list:', e.target.src);
+                            e.target.src = '👨‍🦳';
                           }}
                         />
                       ) : (
@@ -652,8 +653,9 @@ const PlayerCareer = ({ onBack, money, xp, level, getXpToNextLevel, getLevelProg
                       src={activeChat.avatar} 
                       alt={activeChat.name} 
                       className="w-full h-full object-cover"
+                      onLoad={() => console.log('🖼️ Olda avatar loaded in chat header:', activeChat.avatar)}
                       onError={(e) => {
-                        console.error('Error loading image:', e.target.src);
+                        console.error('❌ Error loading image in chat header:', e.target.src);
                         e.target.src = '👨‍🦳';
                       }}
                     />
@@ -715,8 +717,9 @@ const PlayerCareer = ({ onBack, money, xp, level, getXpToNextLevel, getLevelProg
                             src={conv.avatar} 
                             alt={conv.name} 
                             className="w-full h-full object-cover"
+                            onLoad={() => console.log('🖼️ Olda avatar loaded in home screen:', conv.avatar)}
                             onError={(e) => {
-                              console.error('Error loading image:', e.target.src);
+                              console.error('❌ Error loading image in home screen:', e.target.src);
                               e.target.src = '👨‍🦳';
                             }}
                           />

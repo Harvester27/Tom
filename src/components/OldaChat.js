@@ -254,6 +254,11 @@ const OldaChat = () => {
                   src="/Images/players/Oldrich_Stepanovsky.png" 
                   alt="Olda" 
                   className="w-full h-full object-cover"
+                  onLoad={() => console.log('🖼️ Olda avatar loaded in chat message:', '/Images/players/Oldrich_Stepanovsky.png')}
+                  onError={(e) => {
+                    console.error('❌ Error loading image in chat message:', e.target.src);
+                    e.target.src = '👨‍🦳';
+                  }}
                 />
               </div>
             )}
