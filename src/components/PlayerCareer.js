@@ -444,7 +444,7 @@ const PlayerCareer = ({ onBack, money, xp, level, getXpToNextLevel, getLevelProg
           {/* Hlavní kontejner pro telefon a mapu */}
           <div className="flex gap-8">
             {/* Mobilní telefon - zarovnaný úplně vlevo */}
-            <div className="w-[300px] h-[600px] bg-black rounded-[40px] p-3 relative shadow-2xl border-4 border-gray-800" style={{ marginLeft: '-24rem' }}>
+            <div className="w-[300px] h-[600px] bg-black rounded-[40px] p-3 relative shadow-2xl border-4 border-gray-800" style={{ marginLeft: '-22rem' }}>
               {/* Výřez pro kameru a senzory */}
               <div className="absolute top-0 left-1/2 transform -translate-x-1/2 w-[150px] h-[30px] bg-black rounded-b-3xl z-20 flex items-center justify-center gap-3">
                 <div className="w-2 h-2 rounded-full bg-gray-800"></div>
@@ -465,38 +465,57 @@ const PlayerCareer = ({ onBack, money, xp, level, getXpToNextLevel, getLevelProg
                 </div>
 
                 {/* Hlavní obsah telefonu */}
-                <div className="p-8 pt-12">
-                  {/* Záložky */}
-                  <div className="flex gap-2 mb-6">
-                    <button className="flex-1 bg-white/10 hover:bg-white/20 text-white py-2 px-4 rounded-lg transition-colors">
-                      Zprávy
+                <div className="p-4 pt-12">
+                  {/* Záložky s ikonkami */}
+                  <div className="flex justify-around mb-6">
+                    <button className="w-14 h-14 bg-white/10 hover:bg-white/20 rounded-xl flex flex-col items-center justify-center gap-1 transition-colors group">
+                      <span className="text-xl">💬</span>
+                      <span className="text-[10px] text-white/70 group-hover:text-white">Zprávy</span>
                     </button>
-                    <button className="flex-1 bg-white/10 hover:bg-white/20 text-white py-2 px-4 rounded-lg transition-colors">
-                      Kontakty
+                    <button className="w-14 h-14 bg-white/10 hover:bg-white/20 rounded-xl flex flex-col items-center justify-center gap-1 transition-colors group">
+                      <span className="text-xl">👥</span>
+                      <span className="text-[10px] text-white/70 group-hover:text-white">Kontakty</span>
                     </button>
-                    <button className="flex-1 bg-white/10 hover:bg-white/20 text-white py-2 px-4 rounded-lg transition-colors">
-                      Kalendář
+                    <button className="w-14 h-14 bg-white/10 hover:bg-white/20 rounded-xl flex flex-col items-center justify-center gap-1 transition-colors group">
+                      <span className="text-xl">📅</span>
+                      <span className="text-[10px] text-white/70 group-hover:text-white">Kalendář</span>
                     </button>
                   </div>
 
-                  {/* Seznam zpráv (prozatím prázdný) */}
-                  <div className="space-y-4">
-                    <div className="bg-white/5 p-4 rounded-lg">
-                      <div className="text-gray-400 text-sm mb-1">Žádné nové zprávy</div>
-                      <div className="text-white text-xs">Zde se budou zobrazovat vaše zprávy a oznámení</div>
+                  {/* Seznam zpráv (vylepšený) */}
+                  <div className="space-y-3">
+                    <div className="bg-white/5 p-4 rounded-xl border border-white/10">
+                      <div className="flex items-center gap-3 mb-2">
+                        <span className="text-xl">📱</span>
+                        <div>
+                          <div className="text-white text-sm font-medium">Systémové zprávy</div>
+                          <div className="text-white/50 text-xs">Dnes</div>
+                        </div>
+                      </div>
+                      <p className="text-white/70 text-sm">Žádné nové zprávy</p>
+                    </div>
+                    <div className="bg-white/5 p-4 rounded-xl border border-white/10">
+                      <div className="flex items-center gap-3 mb-2">
+                        <span className="text-xl">🏆</span>
+                        <div>
+                          <div className="text-white text-sm font-medium">Úspěchy</div>
+                          <div className="text-white/50 text-xs">Tento týden</div>
+                        </div>
+                      </div>
+                      <p className="text-white/70 text-sm">Zatím žádné úspěchy</p>
                     </div>
                   </div>
                 </div>
 
                 {/* Navigační lišta */}
                 <div className="absolute bottom-0 left-0 right-0 h-16 bg-black/30 backdrop-blur-sm flex items-center justify-around px-6">
-                  <button className="w-12 h-12 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-white transition-colors">
-                    📱
+                  <button className="w-12 h-12 rounded-xl bg-white/10 hover:bg-white/20 flex items-center justify-center text-white transition-colors">
+                    🏠
                   </button>
-                  <button className="w-12 h-12 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-white transition-colors">
+                  <button className="w-12 h-12 rounded-xl bg-white/10 hover:bg-white/20 flex items-center justify-center text-white transition-colors">
                     📞
                   </button>
-                  <button className="w-12 h-12 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-white transition-colors">
+                  <button className="w-12 h-12 rounded-xl bg-white/10 hover:bg-white/20 flex items-center justify-center text-white transition-colors">
                     ⚙️
                   </button>
                 </div>
