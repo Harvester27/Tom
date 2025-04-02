@@ -26,42 +26,47 @@ const PlayerCareer = ({ onBack, money, xp, level, getXpToNextLevel, getLevelProg
   const [phoneScreen, setPhoneScreen] = useState('home'); // 'home', 'messages', 'chat'
   const [unreadMessages, setUnreadMessages] = useState(1);
   const [activeChat, setActiveChat] = useState(null);
-  const [conversations, setConversations] = useState([
-    {
-      id: 'olda',
-      name: 'Olda Trenér',
-      avatar: '👨‍🦳',
-      unread: 1,
-      lastMessage: 'Ahoj! Zítra máme s partou led v Chomutově od 17:00. Nechceš se přidat? 🏒',
-      time: '08:00',
-      messages: [
-        {
-          id: 1,
-          sender: 'Olda',
-          text: 'Ahoj! Zítra máme s partou led v Chomutově od 17:00. Nechceš se přidat? 🏒',
-          time: '08:00',
-          read: false
-        }
-      ]
-    },
-    {
-      id: 'doktor',
-      name: 'Doktor Novák',
-      avatar: '👨‍⚕️',
-      unread: 0,
-      lastMessage: 'Výsledky vypadají dobře',
-      time: 'včera',
-      messages: [
-        {
-          id: 1,
-          sender: 'Doktor',
-          text: 'Výsledky vypadají dobře',
-          time: 'včera',
-          read: true
-        }
-      ]
-    }
-  ]);
+  const [conversations, setConversations] = useState(() => {
+    const savedMessages = localStorage.getItem('oldaChatMessages');
+    const lastMessage = savedMessages ? JSON.parse(savedMessages).slice(-1)[0] : null;
+    
+    return [
+      {
+        id: 'olda',
+        name: 'Olda Trenér',
+        avatar: '👨‍🦳',
+        unread: 0,
+        lastMessage: lastMessage ? lastMessage.text : 'Ahoj! Zítra máme s partou led v Chomutově od 17:00. Nechceš se přidat? 🏒',
+        time: lastMessage ? lastMessage.time : '08:00',
+        messages: savedMessages ? JSON.parse(savedMessages) : [
+          {
+            id: 1,
+            sender: 'Olda',
+            text: 'Ahoj! Zítra máme s partou led v Chomutově od 17:00. Nechceš se přidat? ��',
+            time: '08:00',
+            read: false
+          }
+        ]
+      },
+      {
+        id: 'doktor',
+        name: 'Doktor Novák',
+        avatar: '👨‍⚕️',
+        unread: 0,
+        lastMessage: 'Výsledky vypadají dobře',
+        time: 'včera',
+        messages: [
+          {
+            id: 1,
+            sender: 'Doktor',
+            text: 'Výsledky vypadají dobře',
+            time: 'včera',
+            read: true
+          }
+        ]
+      }
+    ];
+  });
 
   // Blikající LED efekt
   const [ledBlink, setLedBlink] = useState(false);

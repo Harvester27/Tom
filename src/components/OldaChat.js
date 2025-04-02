@@ -165,19 +165,46 @@ const OldaChat = () => {
     }
   };
 
-  const [messages, setMessages] = useState([
-    {
+  // Načtení historie z localStorage nebo použití výchozí zprávy
+  const [messages, setMessages] = useState(() => {
+    const savedMessages = localStorage.getItem('oldaChatMessages');
+    const savedSequence = localStorage.getItem('oldaChatSequence');
+    
+    if (savedMessages && savedSequence) {
+      return JSON.parse(savedMessages);
+    }
+    
+    return [{
       id: 1,
       sender: 'Olda',
       text: "Ahoj! Zítra máme s partou led v Chomutově od 17:00. Nechceš se přidat? 🏒",
       time: '08:00',
       read: false
-    }
-  ]);
+    }];
+  });
 
-  const [currentSequence, setCurrentSequence] = useState('start');
-  const [showOptions, setShowOptions] = useState(true);
+  // Načtení aktuální sekvence z localStorage nebo použití 'start'
+  const [currentSequence, setCurrentSequence] = useState(() => {
+    const savedSequence = localStorage.getItem('oldaChatSequence');
+    return savedSequence || 'start';
+  });
+
+  const [showOptions, setShowOptions] = useState(() => {
+    const savedSequence = localStorage.getItem('oldaChatSequence');
+    return savedSequence !== 'end';
+  });
+  
   const [isTyping, setIsTyping] = useState(false);
+
+  // Ukládání zpráv do localStorage při každé změně
+  useEffect(() => {
+    localStorage.setItem('oldaChatMessages', JSON.stringify(messages));
+  }, [messages]);
+
+  // Ukládání aktuální sekvence do localStorage
+  useEffect(() => {
+    localStorage.setItem('oldaChatSequence', currentSequence);
+  }, [currentSequence]);
 
   const handleOptionSelect = (option) => {
     // Přidání odpovědi hráče
@@ -206,6 +233,8 @@ const OldaChat = () => {
       if (option.next !== 'end') {
         setCurrentSequence(option.next);
         setShowOptions(true);
+      } else {
+        setShowOptions(false);
       }
     }, 1500);
   };
