@@ -545,7 +545,8 @@ const litvinovLancers = {
       return null;
     }
     
-    const photoUrl = `/images/players/${player.photo}`;
+    // Použijeme stejnou cestu jako v CardGame.js
+    const photoUrl = `/Images/players/${player.photo}`;
     
     console.log('🖼️ Getting photo URL for player:', {
       searchedId: playerId,
