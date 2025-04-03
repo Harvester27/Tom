@@ -462,12 +462,57 @@ const PlayerCareer = ({ onBack, money, xp, level, getXpToNextLevel, getLevelProg
           onClick: () => console.log('Prohlídka trofejí')
         },
         {
+          name: 'Uložit hru',
+          onClick: () => {
+            const gameState = {
+              playerName,
+              currentDate: currentDate.toISOString(),
+              currentHour,
+              weather,
+              temperature,
+              conversations,
+              hockeyPractice,
+              money,
+              xp,
+              level
+            };
+            localStorage.setItem('savedGameState', JSON.stringify(gameState));
+            alert('Hra byla úspěšně uložena!');
+          }
+        },
+        {
+          name: 'Načíst uloženou hru',
+          onClick: () => {
+            const savedState = localStorage.getItem('savedGameState');
+            if (savedState) {
+              if (confirm('Opravdu chceš načíst uloženou hru? Přijdeš o současný postup.')) {
+                const gameState = JSON.parse(savedState);
+                setPlayerName(gameState.playerName);
+                setCurrentDate(new Date(gameState.currentDate));
+                setCurrentHour(gameState.currentHour);
+                setWeather(gameState.weather);
+                setTemperature(gameState.temperature);
+                setConversations(gameState.conversations);
+                setHockeyPractice(gameState.hockeyPractice);
+                // Aktualizujeme localStorage pro jednotlivé komponenty
+                localStorage.setItem('oldaChatMessages', JSON.stringify(gameState.conversations[0].messages));
+                localStorage.setItem('playerCareerConversations', JSON.stringify(gameState.conversations));
+                localStorage.setItem('hockeyPractice', JSON.stringify(gameState.hockeyPractice));
+                window.location.reload();
+              }
+            } else {
+              alert('Nebyla nalezena žádná uložená hra.');
+            }
+          }
+        },
+        {
           name: 'Resetovat hru',
           onClick: () => {
-            if (confirm('Opravdu chceš resetovat hru? Přijdeš o všechny uložené zprávy a postup.')) {
+            if (confirm('Opravdu chceš resetovat hru? Přijdeš o všechny uložené zprávy a aktuální postup.')) {
               localStorage.removeItem('oldaChatMessages');
               localStorage.removeItem('playerCareerConversations');
               localStorage.removeItem('hockeyPractice');
+              // Necháme savedGameState v localStorage
               window.location.reload();
             }
           }
