@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import Image from 'next/image';
 import OldaChat from './OldaChat';
 import { litvinovLancers } from '../data/LitvinovLancers';
@@ -109,6 +109,33 @@ const PlayerCareer = ({ onBack, money, xp, level, getXpToNextLevel, getLevelProg
   const [phoneScreen, setPhoneScreen] = useState('home'); // 'home', 'messages', 'chat'
   const [unreadMessages, setUnreadMessages] = useState(1);
   const [activeChat, setActiveChat] = useState(null);
+  const [scale, setScale] = useState(1); // State for scale factor
+  const contentRef = useRef(null); // Ref for the content wrapper
+
+  // --- Scaling Logic Start ---
+  useEffect(() => {
+    const updateScale = () => {
+      const baseWidth = 1600; // Base width the layout is designed for
+      const baseHeight = 900; // Base height
+      const windowWidth = window.innerWidth;
+      const windowHeight = window.innerHeight;
+
+      const scaleX = windowWidth / baseWidth;
+      const scaleY = windowHeight / baseHeight;
+      const newScale = Math.min(scaleX, scaleY); // Fit within both dimensions
+
+      // Apply a minimum scale if needed, e.g., 0.5
+      // const finalScale = Math.max(0.5, newScale);
+      setScale(newScale);
+    };
+
+    updateScale(); // Initial calculation
+    window.addEventListener('resize', updateScale);
+
+    // Cleanup listener on component unmount
+    return () => window.removeEventListener('resize', updateScale);
+  }, []);
+  // --- Scaling Logic End ---
 
   // Initial state loading from localStorage or default
   const [conversations, setConversations] = useState(() => {
@@ -793,299 +820,60 @@ const PlayerCareer = ({ onBack, money, xp, level, getXpToNextLevel, getLevelProg
   }, [currentDate, currentHour, hockeyPractice]);
 
   return (
-    <div className="fixed inset-0 bg-black/90 flex flex-col items-center justify-center z-50 p-8 overflow-y-auto">
-      {/* Stats v levém horním rohu */}
-      <div className="fixed top-4 left-4 flex gap-4 z-50">
-        <div className="bg-black/60 backdrop-blur-sm px-6 py-3 rounded-xl border border-indigo-500/20 shadow-lg shadow-indigo-500/20">
-          <p className="text-indigo-100 text-xl">
-            Peníze: <span className="font-bold text-indigo-400">{money.toLocaleString()} Kč</span>
-          </p>
-        </div>
-        <div className="bg-black/60 backdrop-blur-sm px-6 py-3 rounded-xl border border-indigo-500/20 relative overflow-hidden shadow-lg shadow-indigo-500/20">
-          <p className="text-indigo-100 text-xl relative z-10">
-            <span className="font-bold text-indigo-400">{playerName}</span>
-            <span className="mx-2">•</span>
-            Level: <span className="font-bold text-indigo-400">{level}</span>
-            <span className="ml-1 text-sm text-indigo-200">({xp} XP)</span>
-          </p>
-          <div className="absolute bottom-0 left-0 h-1 bg-gradient-to-r from-indigo-500 to-indigo-600" 
-               style={{ width: `${getLevelProgress(xp)}%` }}></div>
-          <div className="absolute top-1 right-2 text-xs text-indigo-200">
-            {getXpToNextLevel(xp)} XP do dalšího levelu
+    // Outermost container centers the scaled content
+    <div className="fixed inset-0 flex items-center justify-center overflow-hidden bg-black/90 z-50">
+      {/* Scalable content wrapper */}
+      <div
+        ref={contentRef}
+        style={{ transform: `scale(${scale})`, transformOrigin: 'center center' }}
+        className="relative transition-transform duration-200 ease-out"
+      >
+        {/* Original fixed inset-0 div content moved here */}
+        {/* Note: Removed fixed positioning from stats bar, handled by scaling container */}
+        <div className="flex gap-4 p-4">
+          {/* Stats Bar Content (no longer fixed) */}
+          <div className="bg-black/60 backdrop-blur-sm px-6 py-3 rounded-xl border border-indigo-500/20 shadow-lg shadow-indigo-500/20">
+            <p className="text-indigo-100 text-xl">
+              Peníze: <span className="font-bold text-indigo-400">{money.toLocaleString()} Kč</span>
+            </p>
+          </div>
+          <div className="bg-black/60 backdrop-blur-sm px-6 py-3 rounded-xl border border-indigo-500/20 relative overflow-hidden shadow-lg shadow-indigo-500/20">
+            <p className="text-indigo-100 text-xl relative z-10">
+              <span className="font-bold text-indigo-400">{playerName}</span>
+              <span className="mx-2">•</span>
+              Level: <span className="font-bold text-indigo-400">{level}</span>
+              <span className="ml-1 text-sm text-indigo-200">({xp} XP)</span>
+            </p>
+            <div className="absolute bottom-0 left-0 h-1 bg-gradient-to-r from-indigo-500 to-indigo-600" 
+                 style={{ width: `${getLevelProgress(xp)}%` }}></div>
+            <div className="absolute top-1 right-2 text-xs text-indigo-200">
+              {getXpToNextLevel(xp)} XP do dalšího levelu
+            </div>
+          </div>
+          <div className="bg-black/60 backdrop-blur-sm px-6 py-3 rounded-xl border border-indigo-500/20 shadow-lg shadow-indigo-500/20">
+            <p className="text-indigo-100 text-xl">
+              <span className="mr-2">{getWeatherEmoji()}</span>
+              <span className="font-bold text-indigo-400">{getWeatherDescription()}</span>
+              <span className="mx-2">•</span>
+              <span className="font-bold text-indigo-400">{temperature}°C</span>
+            </p>
           </div>
         </div>
-        <div className="bg-black/60 backdrop-blur-sm px-6 py-3 rounded-xl border border-indigo-500/20 shadow-lg shadow-indigo-500/20">
-          <p className="text-indigo-100 text-xl">
-            <span className="font-bold text-indigo-400">{formatDate(currentDate)}</span>
-            <span className="mx-2">•</span>
-            <span className="font-bold text-indigo-400">{currentHour.toString().padStart(2, '0')}:00</span>
-          </p>
-        </div>
-        <div className="bg-black/60 backdrop-blur-sm px-6 py-3 rounded-xl border border-indigo-500/20 shadow-lg shadow-indigo-500/20">
-          <p className="text-indigo-100 text-xl">
-            <span className="mr-2">{getWeatherEmoji()}</span>
-            <span className="font-bold text-indigo-400">{getWeatherDescription()}</span>
-            <span className="mx-2">•</span>
-            <span className="font-bold text-indigo-400">{temperature}°C</span>
-          </p>
+
+        {/* Back Button Container (no longer fixed or flex justify-center) */}
+        <div className="mt-8 text-center">
+          <button
+            onClick={onBack}
+            className="bg-gradient-to-r from-indigo-500 to-indigo-600 hover:from-indigo-600 hover:to-indigo-700
+              text-white font-bold py-3 px-8 rounded-xl shadow-lg transform transition-all duration-300
+              hover:scale-105 active:scale-95 border-2 border-white/20"
+          >
+            Zpět do menu
+          </button>
         </div>
       </div>
 
-      {/* Modal pro nastavení jména */}
-      {showNameModal && (
-        <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-[60]">
-          <div className="bg-gradient-to-br from-indigo-900/90 to-indigo-800/90 p-8 rounded-xl border border-indigo-500/30 shadow-xl backdrop-blur-sm max-w-md w-full mx-4">
-            <h3 className="text-2xl font-bold text-indigo-400 mb-6">Nastavení jména hráče</h3>
-            <div className="space-y-4">
-              <div>
-                <label className="block text-indigo-300 mb-2">Jméno</label>
-                <input
-                  type="text"
-                  value={tempFirstName}
-                  onChange={(e) => setTempFirstName(e.target.value)}
-                  className="w-full bg-black/50 border border-indigo-500/30 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-indigo-500"
-                  placeholder="Zadejte jméno"
-                />
-              </div>
-              <div>
-                <label className="block text-indigo-300 mb-2">Příjmení</label>
-                <input
-                  type="text"
-                  value={tempLastName}
-                  onChange={(e) => setTempLastName(e.target.value)}
-                  className="w-full bg-black/50 border border-indigo-500/30 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-indigo-500"
-                  placeholder="Zadejte příjmení"
-                />
-              </div>
-              <div className="flex gap-4 mt-6">
-                <button
-                  onClick={() => setShowNameModal(false)}
-                  className="flex-1 bg-gray-500/50 hover:bg-gray-500/70 text-white font-bold py-2 px-4 rounded-lg transition-colors"
-                >
-                  Zrušit
-                </button>
-                <button
-                  onClick={savePlayerName}
-                  disabled={!tempFirstName || !tempLastName}
-                  className={`flex-1 ${
-                    tempFirstName && tempLastName
-                      ? 'bg-indigo-500 hover:bg-indigo-600'
-                      : 'bg-indigo-500/50 cursor-not-allowed'
-                  } text-white font-bold py-2 px-4 rounded-lg transition-colors`}
-                >
-                  Uložit
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      <div className="max-w-7xl w-full mx-auto">
-        <div className="bg-gradient-to-br from-indigo-900/50 to-indigo-800/20 rounded-xl p-8 border border-indigo-500/20 shadow-xl backdrop-blur-sm">
-          {/* Hlavička */}
-          <div className="text-center mb-8">
-            <h2 className="text-4xl font-bold bg-gradient-to-r from-indigo-400 to-indigo-600 bg-clip-text text-transparent">
-              Mapa města
-            </h2>
-            <div className="text-indigo-300 mt-2">
-              {getWeatherDescription()}
-            </div>
-          </div>
-
-          {/* Hlavní kontejner pro telefon a mapu */}
-          <div className="flex gap-8">
-            {/* Mobilní telefon - zarovnaný úplně vlevo */}
-            <div className="w-[300px] h-[600px] bg-black rounded-[40px] p-3 relative shadow-2xl border-4 border-gray-800" style={{ marginLeft: '-22rem' }}>
-              {/* Výřez pro kameru a senzory */}
-              <div className="absolute top-0 left-1/2 transform -translate-x-1/2 w-[150px] h-[30px] bg-black rounded-b-3xl z-20 flex items-center justify-center gap-3">
-                <div className="w-2 h-2 rounded-full bg-gray-800"></div>
-                <div className={`w-4 h-4 rounded-full transition-colors duration-300 ${ledBlink ? 'bg-blue-500' : 'bg-gray-800'}`}></div>
-                <div className="w-2 h-2 rounded-full bg-gray-800"></div>
-              </div>
-              
-              {/* Displej telefonu */}
-              <div className="w-full h-full bg-gradient-to-br from-indigo-900 to-indigo-800 rounded-[32px] overflow-hidden relative">
-                {/* Stavový řádek */}
-                <div className="absolute top-0 left-0 right-0 h-6 bg-black/30 flex items-center justify-between px-6 text-white text-sm">
-                  <span>{currentHour.toString().padStart(2, '0')}:{(Math.floor(Date.now() / 1000) % 60).toString().padStart(2, '0')}</span>
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs">5G</span>
-                    <span>📶</span>
-                    <span>🔋 100%</span>
-                  </div>
-                </div>
-
-                {/* Dynamický obsah telefonu */}
-                {renderPhoneContent()}
-              </div>
-            </div>
-
-            {/* Mapa - zůstává beze změny */}
-            <div className="flex-1 h-[600px] rounded-xl overflow-hidden transition-all duration-1000">
-              {/* Efekty počasí */}
-              {weather !== 'clear' && weather !== 'partlyCloudy' && weather !== 'cloudy' && (
-                <div className={`absolute inset-0 pointer-events-none
-                  ${weather === 'rain' ? 'animate-rain bg-gradient-to-b from-transparent to-blue-500/10' :
-                    weather === 'thunderstorm' ? 'animate-storm bg-gradient-to-b from-transparent to-purple-500/20' :
-                    weather === 'snow' ? 'animate-snow bg-gradient-to-b from-transparent to-white/10' :
-                    weather === 'snowRain' ? 'animate-mixed-precipitation bg-gradient-to-b from-transparent to-blue-500/10' :
-                    weather === 'fog' ? 'animate-fog bg-gradient-to-b from-gray-400/20 to-gray-400/10' : ''}`}
-                />
-              )}
-
-              {/* Cesty */}
-              <svg className="absolute inset-0 w-full h-full" viewBox="0 0 100 100">
-                {/* Hlavní cesty */}
-                <path 
-                  d="M 20,20 C 40,20 60,20 80,20 C 80,40 80,60 80,80 C 60,80 40,80 20,80 C 20,60 20,40 20,20" 
-                  className={`stroke-2 fill-none transition-all duration-1000
-                    ${weather === 'clear' ? 'stroke-slate-400/50' :
-                      weather === 'cloudy' ? 'stroke-gray-400/50' :
-                      weather === 'rain' ? 'stroke-blue-400/30' :
-                      'stroke-gray-400/30'}`}
-                  strokeDasharray="4 2"
-                />
-                
-                {/* Vedlejší cesty */}
-                <path 
-                  d="M 50,20 Q 50,50 50,80 M 20,50 Q 50,50 80,50" 
-                  className={`stroke-2 fill-none transition-all duration-1000
-                    ${weather === 'clear' ? 'stroke-slate-400/30' :
-                      weather === 'cloudy' ? 'stroke-gray-400/30' :
-                      weather === 'rain' ? 'stroke-blue-400/20' :
-                      'stroke-gray-400/20'}`}
-                  strokeDasharray="4 2"
-                />
-                
-                {/* Řeka */}
-                <path 
-                  d="M 10,40 Q 30,45 40,35 Q 50,25 60,45 Q 70,65 90,60" 
-                  className={`stroke-[3] fill-none transition-all duration-1000
-                    ${weather === 'clear' ? 'stroke-blue-500/30' :
-                      weather === 'cloudy' ? 'stroke-gray-500/30' :
-                      weather === 'rain' ? 'stroke-blue-700/30' :
-                      'stroke-gray-700/30'}`}
-                  strokeLinecap="round"
-                >
-                  <animate
-                    attributeName="d"
-                    dur="5s"
-                    repeatCount="indefinite"
-                    values="M 10,40 Q 30,45 40,35 Q 50,25 60,45 Q 70,65 90,60;
-                           M 10,42 Q 30,47 40,37 Q 50,27 60,47 Q 70,67 90,62;
-                           M 10,40 Q 30,45 40,35 Q 50,25 60,45 Q 70,65 90,60"
-                  />
-                </path>
-              </svg>
-
-              {/* Lokace */}
-              {locations.map((location) => {
-                const isHockeyDay = location.id === 'stadium' && 
-                                  hockeyPractice && 
-                                  isHockeyPracticeDay(currentDate, hockeyPractice) && 
-                                  isBeforePractice(currentHour, hockeyPractice);
-
-                return (
-                  <button
-                    key={location.id}
-                    className={`absolute transform -translate-x-1/2 -translate-y-1/2 
-                      w-16 h-16 rounded-full flex items-center justify-center
-                      transition-all duration-300 hover:scale-110 
-                      ${location.id === 'stadium' && isHockeyDay ? 'animate-pulse-strong' : 'hover:z-10'}
-                      ${weather === 'rain' ? 'shadow-glow' : 'shadow-lg'}`}
-                    style={{ 
-                      left: `${location.x}%`, 
-                      top: `${location.y}%`,
-                      backgroundColor: `${location.color}40`,
-                      boxShadow: hoveredLocation?.id === location.id 
-                        ? `0 0 20px ${location.color}80` 
-                        : isHockeyDay
-                        ? `0 0 30px rgba(255, 255, 255, 0.8)`
-                        : `0 0 10px ${location.color}40`,
-                      borderColor: location.color
-                    }}
-                    onClick={() => handleLocationClick(location)}
-                    onMouseEnter={() => setHoveredLocation(location)}
-                    onMouseLeave={() => setHoveredLocation(null)}
-                  >
-                    {isHockeyDay && (
-                      <div className="absolute -top-2 -right-2 w-4 h-4 bg-red-500 rounded-full animate-ping" />
-                    )}
-                    {isHockeyDay && (
-                      <div className="absolute -top-2 -right-2 w-4 h-4 bg-red-500 rounded-full" />
-                    )}
-                    <span className="text-3xl filter drop-shadow-lg transform transition-transform duration-300 hover:scale-110">
-                      {location.icon}
-                    </span>
-                    {hoveredLocation?.id === location.id && (
-                      <div className="absolute -bottom-8 left-1/2 transform -translate-x-1/2 
-                                   whitespace-nowrap bg-black/80 text-white text-sm px-2 py-1 
-                                   rounded-lg pointer-events-none">
-                        {location.name}
-                        {isHockeyDay && (
-                          <span className="ml-2 text-red-400">• Hokej v {hockeyPractice.time}</span>
-                        )}
-                      </div>
-                    )}
-                  </button>
-                );
-              })}
-
-              {/* Info panel o lokaci */}
-              {showLocationInfo && selectedLocation && (
-                <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 
-                             w-96 bg-black/80 backdrop-blur-sm rounded-xl p-6
-                             border border-indigo-500/30 text-white
-                             animate-slideUp shadow-xl">
-                  <h3 className="text-2xl font-bold text-indigo-400 mb-2 flex items-center gap-2">
-                    <span>{selectedLocation.icon}</span>
-                    {selectedLocation.name}
-                  </h3>
-                  <p className="text-indigo-100 mb-4">
-                    {selectedLocation.description}
-                  </p>
-                  <div className="space-y-2">
-                    {selectedLocation.actions.map((action, index) => (
-                      <button
-                        key={index}
-                        onClick={action.onClick || (() => {})}
-                        className="w-full text-left px-4 py-2 rounded-lg
-                                 bg-indigo-500/20 hover:bg-indigo-500/30
-                                 transition-colors duration-200
-                                 text-indigo-200 hover:text-indigo-100"
-                      >
-                        {action.name || action}
-                      </button>
-                    ))}
-                  </div>
-                  <button
-                    className="mt-4 bg-indigo-500/50 hover:bg-indigo-500/70 
-                             px-4 py-2 rounded-lg text-sm transition-colors
-                             absolute top-4 right-4"
-                    onClick={() => setShowLocationInfo(false)}
-                  >
-                    ✕
-                  </button>
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Tlačítko pro návrat */}
-      <div className="flex justify-center mt-8">
-        <button
-          onClick={onBack}
-          className="bg-gradient-to-r from-indigo-500 to-indigo-600 hover:from-indigo-600 hover:to-indigo-700
-            text-white font-bold py-3 px-8 rounded-xl shadow-lg transform transition-all duration-300
-            hover:scale-105 active:scale-95 border-2 border-white/20"
-        >
-          Zpět do menu
-        </button>
-      </div>
-
+      {/* Existing JSX for styles, unchanged */}
       <style jsx>{`
         @keyframes slideUp {
           from { transform: translate(-50%, 100%); opacity: 0; }
