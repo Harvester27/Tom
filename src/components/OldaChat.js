@@ -171,8 +171,38 @@ const OldaChat = ({ initialMessages, onChatUpdate }) => {
     }
   };
 
-  // Stav zpráv je inicializován z props
-  const [messages, setMessages] = useState(initialMessages || []);
+  // Stav zpráv je inicializován z props nebo z localStorage
+  const [messages, setMessages] = useState(() => {
+    // Nejprve zkusíme načíst z props
+    if (initialMessages && initialMessages.length > 0) {
+      return initialMessages;
+    }
+    
+    // Pokud nejsou v props, zkusíme načíst z localStorage
+    if (typeof window !== 'undefined') {
+      try {
+        const savedMessages = localStorage.getItem('oldaChatMessages');
+        if (savedMessages) {
+          return JSON.parse(savedMessages);
+        }
+      } catch (error) {
+        console.error('Chyba při načítání zpráv z localStorage:', error);
+      }
+    }
+    
+    return [];
+  });
+
+  // Funkce pro ukládání zpráv do localStorage
+  const saveMessagesToLocalStorage = (msgs) => {
+    if (typeof window !== 'undefined') {
+      try {
+        localStorage.setItem('oldaChatMessages', JSON.stringify(msgs));
+      } catch (error) {
+        console.error('Chyba při ukládání zpráv do localStorage:', error);
+      }
+    }
+  };
 
   // Funkce pro nalezení poslední sekvence na základě poslední zprávy hráče
   const findLastSequence = (msgs) => {
@@ -211,6 +241,10 @@ const OldaChat = ({ initialMessages, onChatUpdate }) => {
     const updatedMessagesAfterPlayer = [...messages, playerMessage];
     // Okamžitě aktualizujeme stav, aby se zobrazila zpráva hráče
     setMessages(updatedMessagesAfterPlayer);
+    
+    // Ukládáme zprávy do localStorage
+    saveMessagesToLocalStorage(updatedMessagesAfterPlayer);
+    
     // Informujeme PlayerCareer o změně
     if (onChatUpdate) {
         onChatUpdate(updatedMessagesAfterPlayer);
@@ -239,6 +273,10 @@ const OldaChat = ({ initialMessages, onChatUpdate }) => {
           updatedMessagesAfterOlda = [...updatedMessagesAfterPlayer, oldaMessage];
           // Aktualizujeme lokální stav pro zobrazení
           setMessages(updatedMessagesAfterOlda);
+          
+          // Ukládáme aktualizované zprávy do localStorage
+          saveMessagesToLocalStorage(updatedMessagesAfterOlda);
+          
           // Informujeme PlayerCareer o druhé změně
           if (onChatUpdate) {
               onChatUpdate(updatedMessagesAfterOlda);

@@ -62,6 +62,8 @@ const isHockeyPracticeDay = (currentDate, hockeyPractice) => {
   console.log('🏒 isHockeyPracticeDay - porovnání:', {
     currentDate: `${currentDate.getDate()}.${currentDate.getMonth() + 1}.${currentDate.getFullYear()}`,
     practiceDate: `${practiceDate.getDate()}.${practiceDate.getMonth() + 1}.${practiceDate.getFullYear()}`,
+    currentDateObj: currentDate,
+    practiceDateObj: practiceDate,
     isSameDay
   });
   
@@ -366,8 +368,35 @@ const PlayerCareer = ({ onBack, money, xp, level, getXpToNextLevel, getLevelProg
 
   // Nastavení počátečního data a počasí při prvním načtení
   useEffect(() => {
-    const startDate = new Date(2024, 5, 1); // Měsíce jsou 0-based, takže 5 = červen
-    startDate.setHours(8, 0, 0, 0);
+    // Zkontrolujeme, jestli existuje hokejový trénink a nastavíme počáteční datum podle něj
+    let startDate;
+    const savedPractice = localStorage.getItem('hockeyPractice');
+    
+    if (savedPractice) {
+      try {
+        const practice = JSON.parse(savedPractice);
+        if (practice && practice.date) {
+          // Použijeme datum tréninku jako výchozí
+          startDate = new Date(practice.date);
+          // Resetujeme čas na 8:00 ráno
+          startDate.setHours(8, 0, 0, 0);
+          console.log('🏒 Nastaveno počáteční datum podle tréninku:', startDate);
+        } else {
+          // Pokud nejsou platná data, použijeme výchozí
+          startDate = new Date(2024, 5, 1);
+          startDate.setHours(8, 0, 0, 0);
+        }
+      } catch (error) {
+        console.error('Chyba při načítání hokejového tréninku:', error);
+        startDate = new Date(2024, 5, 1);
+        startDate.setHours(8, 0, 0, 0);
+      }
+    } else {
+      // Výchozí datum, pokud nejsou žádná data o tréninku
+      startDate = new Date(2024, 5, 1); // Měsíce jsou 0-based, takže 5 = červen
+      startDate.setHours(8, 0, 0, 0);
+    }
+    
     setCurrentDate(startDate);
     
     // Generování počátečního počasí
