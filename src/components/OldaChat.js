@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import Image from 'next/image';
 import { litvinovLancers } from '../data/LitvinovLancers';
 
-const OldaChat = ({ onNewMessage }) => {
+const OldaChat = ({ initialMessages, onChatUpdate }) => {
   // Definice dialogových sekvencí
   const dialogSequences = {
     start: {
@@ -164,59 +164,57 @@ const OldaChat = ({ onNewMessage }) => {
           next: "end" 
         }
       ]
+    },
+    end: {
+      message: "",
+      options: []
     }
   };
 
-  // Načtení historie z localStorage nebo použití výchozí zprávy
-  const [messages, setMessages] = useState(() => {
-    const savedMessages = localStorage.getItem('oldaChatMessages');
-    const savedSequence = localStorage.getItem('oldaChatSequence');
-    
-    if (savedMessages && savedSequence) {
-      return JSON.parse(savedMessages);
+  // Stav zpráv je inicializován z props
+  const [messages, setMessages] = useState(initialMessages || []);
+
+  // Funkce pro nalezení poslední sekvence na základě poslední zprávy hráče
+  const findLastSequence = (msgs) => {
+    const playerMessages = msgs.filter(m => m.sender === 'Player');
+    if (playerMessages.length === 0) return 'start';
+
+    const lastPlayerMsgText = playerMessages[playerMessages.length - 1].text;
+
+    // Prohledání všech sekvencí a jejich možností
+    for (const seqKey in dialogSequences) {
+      if (dialogSequences[seqKey].options) {
+        const foundOption = dialogSequences[seqKey].options.find(opt => opt.text === lastPlayerMsgText);
+        if (foundOption) {
+          return foundOption.next; // Vrací klíč *následující* sekvence
+        }
+      }
     }
-    
-    return [{
-      id: 1,
-      sender: 'Olda',
-      text: "Ahoj! Zítra máme s partou led v Chomutově od 17:00. Nechceš se přidat? 🏒",
-      time: '08:00',
-      read: false
-    }];
-  });
+    return 'start'; // Fallback
+  };
 
-  // Načtení aktuální sekvence z localStorage nebo použití 'start'
-  const [currentSequence, setCurrentSequence] = useState(() => {
-    const savedSequence = localStorage.getItem('oldaChatSequence');
-    return savedSequence || 'start';
-  });
+  // Aktuální sekvence je odvozena ze zpráv
+  const [currentSequence, setCurrentSequence] = useState(() => findLastSequence(messages));
 
-  const [showOptions, setShowOptions] = useState(() => {
-    const savedSequence = localStorage.getItem('oldaChatSequence');
-    return savedSequence !== 'end';
-  });
-  
+  const [showOptions, setShowOptions] = useState(currentSequence !== 'end');
   const [isTyping, setIsTyping] = useState(false);
 
-  // Ukládání zpráv do localStorage při každé změně
-  useEffect(() => {
-    localStorage.setItem('oldaChatMessages', JSON.stringify(messages));
-  }, [messages]);
-
-  // Ukládání aktuální sekvence do localStorage
-  useEffect(() => {
-    localStorage.setItem('oldaChatSequence', currentSequence);
-  }, [currentSequence]);
-
   const handleOptionSelect = (option) => {
-    // Přidání odpovědi hráče
-    setMessages(prev => [...prev, {
+    const playerMessage = {
       id: Date.now(),
       sender: 'Player',
       text: option.text,
       time: new Date().toLocaleTimeString('cs-CZ', { hour: '2-digit', minute: '2-digit' }),
       read: true
-    }]);
+    };
+
+    const updatedMessagesAfterPlayer = [...messages, playerMessage];
+    // Okamžitě aktualizujeme stav, aby se zobrazila zpráva hráče
+    setMessages(updatedMessagesAfterPlayer);
+    // Informujeme PlayerCareer o změně
+    if (onChatUpdate) {
+        onChatUpdate(updatedMessagesAfterPlayer);
+    }
 
     setShowOptions(false);
     setIsTyping(true);
@@ -224,27 +222,33 @@ const OldaChat = ({ onNewMessage }) => {
     // Simulace psaní Oldy
     setTimeout(() => {
       setIsTyping(false);
-      const newMessage = {
-        id: Date.now() + 1,
-        sender: 'Olda',
-        text: dialogSequences[option.next].message,
-        time: new Date().toLocaleTimeString('cs-CZ', { hour: '2-digit', minute: '2-digit' }),
-        read: false
-      };
       
-      setMessages(prev => [...prev, newMessage]);
-      
-      // Propagace nové zprávy do nadřazené komponenty
-      if (onNewMessage) {
-        onNewMessage(newMessage);
+      const nextSequenceKey = option.next;
+      const nextDialog = dialogSequences[nextSequenceKey];
+
+      // Přidáme Oldovu odpověď, pouze pokud sekvence není 'end'
+      let updatedMessagesAfterOlda = updatedMessagesAfterPlayer;
+      if (nextSequenceKey !== 'end' && nextDialog && nextDialog.message) {
+          const oldaMessage = {
+              id: Date.now() + 1, // Zajistí unikátní ID
+              sender: 'Olda',
+              text: nextDialog.message,
+              time: new Date().toLocaleTimeString('cs-CZ', { hour: '2-digit', minute: '2-digit' }),
+              read: false
+          };
+          updatedMessagesAfterOlda = [...updatedMessagesAfterPlayer, oldaMessage];
+          // Aktualizujeme lokální stav pro zobrazení
+          setMessages(updatedMessagesAfterOlda);
+          // Informujeme PlayerCareer o druhé změně
+          if (onChatUpdate) {
+              onChatUpdate(updatedMessagesAfterOlda);
+          }
       }
-      
-      if (option.next !== 'end') {
-        setCurrentSequence(option.next);
-        setShowOptions(true);
-      } else {
-        setShowOptions(false);
-      }
+
+      // Aktualizujeme sekvenci a zobrazení možností
+      setCurrentSequence(nextSequenceKey);
+      setShowOptions(nextSequenceKey !== 'end');
+
     }, 1500);
   };
 
@@ -302,7 +306,7 @@ const OldaChat = ({ onNewMessage }) => {
       </div>
 
       {/* Response options */}
-      {showOptions && currentSequence !== 'end' && (
+      {showOptions && currentSequence !== 'end' && dialogSequences[currentSequence] && (
         <div className="p-4 bg-indigo-950/50 space-y-2">
           {dialogSequences[currentSequence].options.map((option, index) => (
             <button

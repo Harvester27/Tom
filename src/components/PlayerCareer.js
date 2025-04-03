@@ -5,6 +5,46 @@ import Image from 'next/image';
 import OldaChat from './OldaChat';
 import { litvinovLancers } from '../data/LitvinovLancers';
 
+// Helper function for initial state
+function getInitialConversationsState() {
+  return [
+    {
+      id: 'olda',
+      name: 'Olda Trenér',
+      avatar: litvinovLancers.getPlayerPhotoUrl('Oldřich Štěpanovský'), // Generuje lowercase
+      unread: 1, // Start with 1 unread
+      lastMessage: 'Ahoj! Zítra máme s partou led v Chomutově od 17:00. Nechceš se přidat? 🏒',
+      time: '08:00',
+      messages: [
+        {
+          id: 1,
+          sender: 'Olda',
+          text: 'Ahoj! Zítra máme s partou led v Chomutově od 17:00. Nechceš se přidat? 🏒',
+          time: '08:00',
+          read: false
+        }
+      ]
+    },
+    {
+      id: 'doktor',
+      name: 'Doktor Novák',
+      avatar: '👨‍⚕️',
+      unread: 0,
+      lastMessage: 'Výsledky vypadají dobře',
+      time: 'včera',
+      messages: [
+        {
+          id: 1,
+          sender: 'Doktor',
+          text: 'Výsledky vypadají dobře',
+          time: 'včera',
+          read: true
+        }
+      ]
+    }
+  ];
+}
+
 // Pomocné funkce pro kontrolu data a času
 const isHockeyPracticeDay = (currentDate, hockeyPractice) => {
   if (!hockeyPractice || !hockeyPractice.date) {
@@ -69,47 +109,46 @@ const PlayerCareer = ({ onBack, money, xp, level, getXpToNextLevel, getLevelProg
   const [phoneScreen, setPhoneScreen] = useState('home'); // 'home', 'messages', 'chat'
   const [unreadMessages, setUnreadMessages] = useState(1);
   const [activeChat, setActiveChat] = useState(null);
+
+  // Initial state loading from localStorage or default
   const [conversations, setConversations] = useState(() => {
-    const savedMessages = localStorage.getItem('oldaChatMessages');
-    const lastMessage = savedMessages ? JSON.parse(savedMessages).slice(-1)[0] : null;
-    
-    return [
-      {
-        id: 'olda',
-        name: 'Olda Trenér',
-        avatar: litvinovLancers.getPlayerPhotoUrl('Oldřich Štěpanovský'),
-        unread: lastMessage && !lastMessage.read ? 1 : 0,
-        lastMessage: lastMessage ? lastMessage.text : 'Ahoj! Zítra máme s partou led v Chomutově od 17:00. Nechceš se přidat? 🏒',
-        time: lastMessage ? lastMessage.time : '08:00',
-        messages: savedMessages ? JSON.parse(savedMessages) : [
-          {
-            id: 1,
-            sender: 'Olda',
-            text: 'Ahoj! Zítra máme s partou led v Chomutově od 17:00. Nechceš se přidat? 🏒',
-            time: '08:00',
-            read: false
-          }
-        ]
-      },
-      {
-        id: 'doktor',
-        name: 'Doktor Novák',
-        avatar: '👨‍⚕️',
-        unread: 0,
-        lastMessage: 'Výsledky vypadají dobře',
-        time: 'včera',
-        messages: [
-          {
-            id: 1,
-            sender: 'Doktor',
-            text: 'Výsledky vypadají dobře',
-            time: 'včera',
-            read: true
-          }
-        ]
-      }
-    ];
+    if (typeof window === 'undefined') {
+      return getInitialConversationsState();
+    }
+    try {
+      const savedState = localStorage.getItem('playerCareerConversations'); // Nový klíč
+      if (savedState) {
+        const parsedState = JSON.parse(savedState);
+        // Základní validace, zda je to pole
+        if (Array.isArray(parsedState)) {
+            // Zajištění, že avatar URL je aktuální (pro případ změn)
+            return parsedState.map(conv => {
+                if (conv.id === 'olda') {
+                    return { ...conv, avatar: litvinovLancers.getPlayerPhotoUrl('Oldřich Štěpanovský') };
+                }
+                return conv;
+            });
+        } else {
+             console.warn("Invalid conversation state found in localStorage, using default.");
+             return getInitialConversationsState();
+        }
+      } 
+    } catch (error) {
+      console.error("Error reading conversations from localStorage:", error);
+    }
+    return getInitialConversationsState();
   });
+
+  // Effect for saving state to localStorage
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+        try {
+            localStorage.setItem('playerCareerConversations', JSON.stringify(conversations));
+        } catch (error) {
+            console.error("Error saving conversations to localStorage:", error);
+        }
+    }
+  }, [conversations]);
 
   // Blikající LED efekt
   const [ledBlink, setLedBlink] = useState(false);
@@ -466,120 +505,62 @@ const PlayerCareer = ({ onBack, money, xp, level, getXpToNextLevel, getLevelProg
     }
   }, [hasNewMessage]);
 
-  const handleNewMessage = (message, conversationId) => {
-    setConversations(prev => prev.map(conv => 
-      conv.id === conversationId ? {
-        ...conv,
-        unread: phoneScreen === 'chat' && activeChat?.id === conversationId ? conv.unread : conv.unread + 1,
-        lastMessage: message.text,
-        time: message.time,
-        messages: [...conv.messages, {
-          ...message,
-          read: phoneScreen === 'chat' && activeChat?.id === conversationId
-        }]
-      } : conv
-    ));
+  // ===== LOGIKA ZPRÁV =====
+
+  // Funkce volaná komponentou OldaChat, když tam dojde ke změně (nová zpráva od Oldy nebo hráče)
+  const handleChatUpdate = (conversationId, updatedMessages) => {
+    setConversations(prevConvs => {
+      const newConvs = prevConvs.map(conv => {
+        if (conv.id === conversationId) {
+          const lastMsg = updatedMessages[updatedMessages.length - 1];
+          return {
+            ...conv,
+            messages: updatedMessages,
+            lastMessage: lastMsg ? lastMsg.text : conv.lastMessage, // Aktualizuj poslední zprávu
+            time: lastMsg ? lastMsg.time : conv.time, // Aktualizuj čas
+            unread: conv.unread // Unread se bude řešit níže
+          };
+        }
+        return conv;
+      });
+      return newConvs;
+    });
   };
 
-  const handleSendMessage = (text, conversationId) => {
-    if (!text.trim()) return;
-
-    const newMessage = {
-      id: Date.now(),
-      sender: 'Player',
-      text: text,
-      time: new Date().toLocaleTimeString('cs-CZ', { hour: '2-digit', minute: '2-digit' }),
-      read: true
-    };
-
-    setConversations(prev => prev.map(conv => 
-      conv.id === conversationId ? {
-        ...conv,
-        lastMessage: text,
-        time: newMessage.time,
-        messages: [...conv.messages, newMessage]
-      } : conv
-    ));
-
-    // Simulate response for Olda
-    if (conversationId === 'olda') {
-      simulateOldaResponse(text, conversationId);
-    }
-  };
-
-  const simulateOldaResponse = (playerMessage, conversationId) => {
-    const oldaResponses = {
-      default: [
-        'To zní dobře!',
-        'Jasně, chápu.',
-        'Tak to je super!',
-        'Musíme to někdy probrat osobně.',
-        'Na tréninku si o tom popovídáme.'
-      ],
-      training: [
-        'Hlavně nezapomeň na rozcvičku!',
-        'Dneska to bude náročný trénink.',
-        'Včera jsi hrál výborně!',
-        'Nezapomeň si vzít novou hokejku.'
-      ],
-      match: [
-        'Ten zápas včera byl super!',
-        'Příště jim to ukážeme!',
-        'Musíme potrénovat přesilovky.',
-        'V šatně jsem ti nechal nové chrániče.'
-      ]
-    };
-
-    let responseCategory = 'default';
-    if (playerMessage.toLowerCase().includes('trénink')) responseCategory = 'training';
-    if (playerMessage.toLowerCase().includes('zápas')) responseCategory = 'match';
-
-    const responses = oldaResponses[responseCategory];
-    const response = responses[Math.floor(Math.random() * responses.length)];
-
-    setTimeout(() => {
-      const newMessage = {
-        id: Date.now(),
-        sender: 'Olda',
-        text: response,
-        time: new Date().toLocaleTimeString('cs-CZ', { hour: '2-digit', minute: '2-digit' }),
-        read: false
-      };
-      handleNewMessage(newMessage, conversationId);
-    }, 1500);
-  };
-
-  // Přidání efektu pro kontrolu nepřečtených zpráv
+  // Efekt pro sledování nepřečtených zpráv
   useEffect(() => {
-    const totalUnread = conversations.reduce((sum, conv) => sum + conv.unread, 0);
+    const totalUnread = conversations.reduce((sum, conv) => {
+        // Spočítá nepřečtené zprávy od ostatních (ne od 'Player')
+        const unreadFromOthers = conv.messages.filter(msg => msg.sender !== 'Player' && !msg.read).length;
+        return sum + unreadFromOthers;
+    }, 0);
     setUnreadMessages(totalUnread);
     setHasNewMessage(totalUnread > 0);
   }, [conversations]);
 
-  // Aktualizace funkce pro označení zpráv jako přečtené
+  // Funkce pro označení konverzace jako přečtené
   const markConversationAsRead = (conversationId) => {
-    setConversations(prev => prev.map(conv => {
+    setConversations(prevConvs => prevConvs.map(conv => {
       if (conv.id === conversationId) {
         return {
           ...conv,
-          unread: 0,
-          messages: conv.messages.map(msg => ({
-            ...msg,
-            read: true
-          }))
+          // Projdi zprávy a označ všechny jako přečtené
+          messages: conv.messages.map(msg => ({ ...msg, read: true }))
+          // Unread count se přepočítá v useEffect výše
         };
       }
       return conv;
     }));
   };
 
-  // Aktualizace funkce pro otevření chatu
+  // Funkce pro otevření chatu
   const openChat = (conv) => {
     setActiveChat(conv);
     setPhoneScreen('chat');
-    markConversationAsRead(conv.id);
+    markConversationAsRead(conv.id); // Označí zprávy jako přečtené při otevření
   };
 
+  // Funkce pro renderování obsahu telefonu
   const renderPhoneContent = () => {
     switch (phoneScreen) {
       case 'messages':
@@ -640,6 +621,8 @@ const PlayerCareer = ({ onBack, money, xp, level, getXpToNextLevel, getLevelProg
         );
 
       case 'chat':
+        if (!activeChat) return null; // Pojistka
+        // Předáme OldaChat komponentě potřebné props
         return (
           <div className="h-full flex flex-col">
             <div className="p-4 bg-indigo-950/50 flex items-center gap-4">
@@ -673,8 +656,11 @@ const PlayerCareer = ({ onBack, money, xp, level, getXpToNextLevel, getLevelProg
                 </div>
               </div>
             </div>
-
-            <OldaChat onNewMessage={(message) => handleNewMessage(message, 'olda')} />
+            <OldaChat
+              key={activeChat.id} // Přidáno pro reset stavu při změně chatu
+              initialMessages={activeChat.messages}
+              onChatUpdate={(updatedMessages) => handleChatUpdate(activeChat.id, updatedMessages)}
+            />
           </div>
         );
 
