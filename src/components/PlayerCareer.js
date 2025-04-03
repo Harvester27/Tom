@@ -460,6 +460,17 @@ const PlayerCareer = ({ onBack, money, xp, level, getXpToNextLevel, getLevelProg
         {
           name: 'Prohlídka trofejí',
           onClick: () => console.log('Prohlídka trofejí')
+        },
+        {
+          name: 'Resetovat hru',
+          onClick: () => {
+            if (confirm('Opravdu chceš resetovat hru? Přijdeš o všechny uložené zprávy a postup.')) {
+              localStorage.removeItem('oldaChatMessages');
+              localStorage.removeItem('playerCareerConversations');
+              localStorage.removeItem('hockeyPractice');
+              window.location.reload();
+            }
+          }
         }
       ]
     },
