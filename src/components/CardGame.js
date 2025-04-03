@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import PlayerCareer from './PlayerCareer';
 
   // Definice týmů pro turnaj
@@ -2691,6 +2691,30 @@ const CardGame = () => {
   };
 
   const [showCareer, setShowCareer] = useState(false);
+
+  // Add state and ref for scaling
+  const [scaleFactor, setScaleFactor] = useState(1);
+  const containerRef = useRef(null);
+
+  // Add useEffect for scaling logic
+  useEffect(() => {
+    const updateScale = () => {
+      const container = containerRef.current;
+      if (container) {
+        const containerWidth = 1920; // Base width
+        const containerHeight = 1080; // Base height
+        const scaleX = window.innerWidth / containerWidth;
+        const scaleY = window.innerHeight / containerHeight;
+        setScaleFactor(Math.min(scaleX, scaleY));
+      }
+    };
+
+    updateScale(); // Initial scale
+    window.addEventListener('resize', updateScale);
+
+    // Cleanup listener on component unmount
+    return () => window.removeEventListener('resize', updateScale);
+  }, []);
 
   return (
     <div className="relative min-h-screen bg-gradient-to-br from-gray-900 to-black font-hokej p-4">
