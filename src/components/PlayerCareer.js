@@ -873,6 +873,12 @@ const PlayerCareer = ({ onBack, money, xp, level, getXpToNextLevel, getLevelProg
       if (isConfirmed) {
         // Nastavení data na 2. června 2024
         const practiceDate = new Date(2024, 5, 2, 17, 0, 0, 0);
+        
+        // Pokud je aktuální datum po 2. červnu, nastavíme trénink na další týden
+        const currentDate = new Date();
+        if (currentDate > practiceDate) {
+          practiceDate.setDate(practiceDate.getDate() + 7);
+        }
 
         const practice = {
           date: practiceDate.toISOString(),
