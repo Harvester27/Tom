@@ -706,10 +706,11 @@ const PlayerCareer = ({ onBack, money, xp, level, getXpToNextLevel, getLevelProg
                 >
                   <div className="flex items-center gap-3">
                     <div className="w-12 h-12 rounded-full bg-indigo-500 flex items-center justify-center text-2xl overflow-hidden">
-                      {conv.id === 'olda' ? (
+                      {typeof conv.avatar === 'string' && 
+                       (conv.avatar.startsWith('/') || conv.avatar.startsWith('http')) ? (
                         <Image
-                          src={litvinovLancers.getPlayerPhotoUrl('Oldřich Štěpanovský')}
-                          alt="Olda"
+                          src={conv.avatar}
+                          alt={conv.name}
                           width={48}
                           height={48}
                           className="w-full h-full object-cover"
@@ -820,10 +821,11 @@ const PlayerCareer = ({ onBack, money, xp, level, getXpToNextLevel, getLevelProg
                   >
                     <div className="flex items-center gap-3">
                       <div className="w-10 h-10 rounded-full bg-indigo-500 flex items-center justify-center text-xl overflow-hidden">
-                        {conv.id === 'olda' ? (
+                        {typeof conv.avatar === 'string' && 
+                         (conv.avatar.startsWith('/') || conv.avatar.startsWith('http')) ? (
                           <Image
-                            src={litvinovLancers.getPlayerPhotoUrl('Oldřich Štěpanovský')}
-                            alt="Olda"
+                            src={conv.avatar}
+                            alt={conv.name}
                             width={40}
                             height={40}
                             className="w-full h-full object-cover"
