@@ -686,7 +686,8 @@ const PlayerCareer = ({ onBack, money, xp, level, getXpToNextLevel, getLevelProg
     switch (phoneScreen) {
       case 'messages':
         return (
-          <div className="h-full">
+          <div className="h-full flex flex-col">
+            {/* Záhlaví */}
             <div className="p-4 bg-indigo-950/50 flex items-center justify-between">
               <button 
                 onClick={() => setPhoneScreen('home')}
@@ -697,43 +698,53 @@ const PlayerCareer = ({ onBack, money, xp, level, getXpToNextLevel, getLevelProg
               <h2 className="text-white font-bold">Zprávy</h2>
               <div className="w-8"></div>
             </div>
-            <div className="p-4 space-y-3">
+
+            {/* Seznam konverzací */}
+            <div className="flex-1 p-4 space-y-3 overflow-y-auto">
               {conversations.map(conv => (
-                <div 
+                <button 
                   key={conv.id}
-                  className="bg-white/5 p-4 rounded-xl border border-white/10 cursor-pointer hover:bg-white/10 transition-colors"
                   onClick={() => openChat(conv)}
+                  className="w-full bg-white/5 hover:bg-white/10 rounded-xl p-4 transition-colors"
                 >
                   <div className="flex items-center gap-3">
-                    <div className="w-12 h-12 rounded-full bg-indigo-500 flex items-center justify-center text-2xl overflow-hidden">
-                      {typeof conv.avatar === 'string' && 
-                       (conv.avatar.startsWith('/') || conv.avatar.startsWith('http')) ? (
+                    {/* Avatar */}
+                    {conv.id === 'olda' ? (
+                      <div className="w-12 h-12 rounded-full overflow-hidden bg-indigo-500 flex-shrink-0">
                         <Image
-                          src={conv.avatar}
-                          alt={conv.name}
+                          src="/Images/players/oldrich_stepanovsky.png"
+                          alt="Olda"
                           width={48}
                           height={48}
                           className="w-full h-full object-cover"
                           unoptimized={true}
                         />
-                      ) : (
-                        conv.avatar
-                      )}
-                    </div>
-                    <div className="flex-1">
+                      </div>
+                    ) : (
+                      <div className="w-12 h-12 rounded-full bg-indigo-500 flex items-center justify-center text-2xl flex-shrink-0">
+                        {conv.avatar}
+                      </div>
+                    )}
+
+                    {/* Info */}
+                    <div className="flex-1 text-left">
                       <div className="flex items-center justify-between">
                         <span className="text-white font-medium">{conv.name}</span>
                         <span className="text-white/50 text-xs">{conv.time}</span>
                       </div>
-                      <div className="text-white/70 text-sm truncate">{conv.lastMessage}</div>
+                      <p className="text-white/70 text-sm truncate mt-1">
+                        {conv.lastMessage}
+                      </p>
                     </div>
+
+                    {/* Unread badge */}
                     {conv.unread > 0 && (
-                      <div className="w-6 h-6 rounded-full bg-blue-500 flex items-center justify-center text-white text-xs font-bold">
+                      <div className="w-6 h-6 rounded-full bg-blue-500 flex items-center justify-center text-white text-xs font-bold flex-shrink-0">
                         {conv.unread}
                       </div>
                     )}
                   </div>
-                </div>
+                </button>
               ))}
             </div>
           </div>
