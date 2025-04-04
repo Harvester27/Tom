@@ -423,49 +423,49 @@ const OldaGameSimulation = ({ onBack, onGameComplete }) => {
     setHasGreeted(true);
     setShowGreetPrompt(false);
 
-    // Najdeme hráče s fotkou
-    const hraciSFotkou = activePlayers.filter(player => {
-      const hasPhoto = !litvinovLancers.players.find(p => 
-        p.name === player.name && 
-        p.surname === player.surname
-      )?.photo?.includes('default');
-      return hasPhoto;
-    });
-
-    // Zamícháme pořadí hráčů
-    const zamichaniHraci = [...hraciSFotkou]
-      .sort(() => Math.random() - 0.5);
-
-    // Rozdělíme celkový čas 1.5 sekundy mezi všechny hráče
-    const timePerPlayer = 1500 / hraciSFotkou.length;
+    // Vezmeme všechny aktivní hráče
+    const vsichniHraci = [...activePlayers];
     
-    // Pro každého hráče nastavíme náhodné zpoždění v rámci timePerPlayer
-    zamichaniHraci.forEach((player, index) => {
-      // Základní zpoždění pro daného hráče
-      const baseDelay = index * timePerPlayer;
-      // Přidáme náhodné zpoždění v rámci timePerPlayer
-      const randomOffset = Math.random() * (timePerPlayer * 0.5);
-      const delay = baseDelay + randomOffset;
+    // Náhodně zamícháme pořadí hráčů
+    const zamichaniHraci = vsichniHraci.sort(() => Math.random() - 0.5);
 
-      setTimeout(() => {
-        setPlayerGreetings(prev => ({
-          ...prev,
-          [`${player.name}${player.surname}`]: getRandomGreeting()
-        }));
+    // Rozdělíme hráče do několika skupin pro přirozenější pozdravy
+    const pocetSkupin = 5;
+    const hraci_ve_skupine = Math.ceil(zamichaniHraci.length / pocetSkupin);
+    const skupiny = Array.from({ length: pocetSkupin }, (_, i) => 
+      zamichaniHraci.slice(i * hraci_ve_skupine, (i + 1) * hraci_ve_skupine)
+    );
 
-        // Každá bublina zmizí po 3 sekundách
+    // Pro každou skupinu nastavíme náhodné zpoždění v rámci časového okna
+    skupiny.forEach((skupina, index) => {
+      // Časové okno pro skupinu (0-2000ms)
+      const baseDelay = index * 400; // 400ms mezi skupinami
+
+      skupina.forEach(player => {
+        // Náhodné zpoždění v rámci skupiny (+-200ms)
+        const randomOffset = Math.random() * 400 - 200;
+        const delay = baseDelay + randomOffset;
+
         setTimeout(() => {
-          setPlayerGreetings(prev => {
-            const newGreetings = { ...prev };
-            delete newGreetings[`${player.name}${player.surname}`];
-            return newGreetings;
-          });
-        }, 3000);
-      }, delay);
+          setPlayerGreetings(prev => ({
+            ...prev,
+            [`${player.name}${player.surname}`]: getRandomGreeting()
+          }));
+
+          // Každá bublina zmizí po 1.5 sekundách
+          setTimeout(() => {
+            setPlayerGreetings(prev => {
+              const newGreetings = { ...prev };
+              delete newGreetings[`${player.name}${player.surname}`];
+              return newGreetings;
+            });
+          }, 1500);
+        }, delay);
+      });
     });
 
-    // Po 2 sekundách od posledního možného pozdravu přejdeme do stavu locker_room
-    const maxDelay = hraciSFotkou.length * timePerPlayer + 2000;
+    // Přejdeme do stavu locker_room po všech pozdravech
+    const maxDelay = pocetSkupin * 400 + 2000;
     setTimeout(() => {
       setGameState('locker_room');
     }, maxDelay);
