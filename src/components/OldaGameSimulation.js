@@ -335,14 +335,18 @@ const OldaGameSimulation = ({ onBack, onGameComplete }) => {
               Kabina Lancers
             </h2>
             
-            {/* Tlačítko pro interakci s týmem */}
-            <div className="absolute top-4 right-24 z-20">
+            {/* Tlačítko pro interakci s týmem - přesunuto doprava */}
+            <div className="absolute top-8 right-8 z-20">
               <button
                 onClick={() => setShowTeamDialog(true)}
-                className="bg-indigo-500 hover:bg-indigo-600 text-white px-4 py-2 rounded-lg transition-colors flex items-center gap-2"
+                className="bg-green-500 hover:bg-green-600 text-white px-6 py-3 rounded-xl 
+                          transition-colors flex items-center gap-2 shadow-lg
+                          animate-pulse-button relative overflow-hidden"
               >
-                <span>💬</span>
+                <span className="text-xl">💬</span>
                 Promluvit na tým
+                {/* Pulzující efekt */}
+                <div className="absolute inset-0 bg-white/20 animate-button-glow"></div>
               </button>
             </div>
 
@@ -531,6 +535,26 @@ const OldaGameSimulation = ({ onBack, onGameComplete }) => {
           15% { opacity: 1; transform: translate(-50%, 0); }
           85% { opacity: 1; transform: translate(-50%, 0); }
           100% { opacity: 0; transform: translate(-50%, -10px); }
+        }
+
+        @keyframes pulse-button {
+          0% { transform: scale(1); }
+          50% { transform: scale(1.05); }
+          100% { transform: scale(1); }
+        }
+
+        @keyframes button-glow {
+          0% { transform: translateX(-100%); }
+          50% { transform: translateX(100%); }
+          100% { transform: translateX(-100%); }
+        }
+
+        .animate-pulse-button {
+          animation: pulse-button 2s infinite;
+        }
+
+        .animate-button-glow {
+          animation: button-glow 3s infinite;
         }
 
         .animate-slideUp {
