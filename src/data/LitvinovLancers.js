@@ -6,10 +6,24 @@ const getPhotoFilename = (name, surname) => {
   };
 
   // Převod jména a příjmení na formát pro soubor
-  const cleanName = removeDiacritics(name).toLowerCase();
-  const cleanSurname = removeDiacritics(surname).toLowerCase();
+  const cleanName = removeDiacritics(name);
+  const cleanSurname = removeDiacritics(surname);
   
-  return `${cleanName}_${cleanSurname}.png`;
+  // Zachováme velká písmena na začátku, ale odstraníme diakritiku
+  const fileName = `${cleanName}_${cleanSurname}.png`;
+  
+  // Speciální případy
+  if (name === "Oldřich" && surname === "Štěpanovský") {
+    return "oldrich_stepanovsky.png";
+  }
+  if (surname === "Schubada St.") {
+    return "Pavel_Schubada st.png";
+  }
+  if (surname === "Schubada ml.") {
+    return "Pavel_Schubada ml.png";
+  }
+  
+  return fileName;
 };
 
 const personalityTypes = {
