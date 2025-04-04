@@ -733,7 +733,7 @@ const PlayerCareer = ({ onBack, money, xp, level, getXpToNextLevel, getLevelProg
                         <span className="text-white/50 text-xs">{conv.time}</span>
                       </div>
                       <p className="text-white/70 text-sm truncate mt-1">
-                        {conv.lastMessage}
+                        {conv.lastMessage.split(' ').slice(0, 3).join(' ') + (conv.lastMessage.split(' ').length > 3 ? '...' : '')}
                       </p>
                     </div>
 
