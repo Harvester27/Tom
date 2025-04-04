@@ -7,14 +7,11 @@ import { litvinovLancers } from '../data/LitvinovLancers';
 
 // Helper function for initial state
 function getInitialConversationsState() {
-  const oldaPhotoUrl = litvinovLancers.getPlayerPhotoUrl('Oldřich Štěpanovský');
-  console.log('🖼️ Olda photo URL:', oldaPhotoUrl);
-  
   return [
     {
       id: 'olda',
       name: 'Olda Trenér',
-      avatar: oldaPhotoUrl,
+      avatar: '/Images/players/oldrich_stepanovsky.png',
       unread: 1, // Start with 1 unread
       lastMessage: 'Ahoj! Zítra máme s partou led v Chomutově od 17:00. Nechceš se přidat? 🏒',
       time: '08:00',
@@ -144,23 +141,21 @@ const PlayerCareer = ({ onBack, money, xp, level, getXpToNextLevel, getLevelProg
       return getInitialConversationsState();
     }
     try {
-      const savedState = localStorage.getItem('playerCareerConversations'); // Nový klíč
+      const savedState = localStorage.getItem('playerCareerConversations');
       if (savedState) {
         const parsedState = JSON.parse(savedState);
-        // Základní validace, zda je to pole
         if (Array.isArray(parsedState)) {
-            // Zajištění, že avatar URL je aktuální (pro případ změn)
-            return parsedState.map(conv => {
-                if (conv.id === 'olda') {
-                    return { ...conv, avatar: litvinovLancers.getPlayerPhotoUrl('Oldřich Štěpanovský') };
-                }
-                return conv;
-            });
+          return parsedState.map(conv => {
+            if (conv.id === 'olda') {
+              return { ...conv, avatar: '/Images/players/oldrich_stepanovsky.png' };
+            }
+            return conv;
+          });
         } else {
-             console.warn("Invalid conversation state found in localStorage, using default.");
-             return getInitialConversationsState();
+          console.warn("Invalid conversation state found in localStorage, using default.");
+          return getInitialConversationsState();
         }
-      } 
+      }
     } catch (error) {
       console.error("Error reading conversations from localStorage:", error);
     }
@@ -711,17 +706,14 @@ const PlayerCareer = ({ onBack, money, xp, level, getXpToNextLevel, getLevelProg
                 >
                   <div className="flex items-center gap-3">
                     <div className="w-12 h-12 rounded-full bg-indigo-500 flex items-center justify-center text-2xl overflow-hidden">
-                      {typeof conv.avatar === 'string' && (conv.avatar.startsWith('/') || conv.avatar.startsWith('http')) ? (
+                      {conv.id === 'olda' ? (
                         <Image
-                          src={conv.avatar}
-                          alt={conv.name}
+                          src="/Images/players/oldrich_stepanovsky.png"
+                          alt="Olda"
                           width={48}
                           height={48}
                           className="w-full h-full object-cover"
                           unoptimized={true}
-                          onError={(e) => {
-                            console.error('❌ Error loading image:', e.target.src);
-                          }}
                         />
                       ) : (
                         conv.avatar
