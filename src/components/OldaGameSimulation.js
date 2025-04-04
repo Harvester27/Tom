@@ -14,22 +14,40 @@ const OldaGameSimulation = ({ onBack, onGameComplete }) => {
   const [showPlayerInteraction, setShowPlayerInteraction] = useState(false);
   const [interactingPlayer, setInteractingPlayer] = useState(null);
 
-  // Definice týmů pro zápas
-  const homeTeam = {
-    name: "Oldova parta",
-    players: [
-      litvinovLancers.players.find(p => p.name === "Vlastimil" && p.surname === "Nistor"), // brankář
-      litvinovLancers.players.find(p => p.name === "Oldřich" && p.surname === "Štěpanovský"), // obránce
-      litvinovLancers.players.find(p => p.name === "Roman" && p.surname === "Šimek"), // obránce
-      litvinovLancers.players.find(p => p.name === "Václav" && p.surname === "Matějovič"), // útočník
-      litvinovLancers.players.find(p => p.name === "Vašek" && p.surname === "Materna"), // útočník
-    ]
-  };
+  // Automatické rozdělení hráčů do týmů
+  const [teams] = useState(() => {
+    // Získáme všechny aktivní hráče (s attendance > 70)
+    const activePlayers = litvinovLancers.getActivePlayers(70);
+    
+    // Rozdělíme je podle pozic
+    const goalkeepers = activePlayers.filter(p => p.position === 'brankář');
+    const defenders = activePlayers.filter(p => p.position === 'obránce');
+    const forwards = activePlayers.filter(p => p.position === 'útočník');
 
-  const awayTeam = {
-    name: "HC Teplice",
-    players: Array(5).fill(null) // Protihráči budou generovaní
-  };
+    // Náhodně zamícháme hráče v každé kategorii
+    const shuffle = arr => [...arr].sort(() => Math.random() - 0.5);
+    
+    const shuffledGoalkeepers = shuffle(goalkeepers);
+    const shuffledDefenders = shuffle(defenders);
+    const shuffledForwards = shuffle(forwards);
+
+    // Vytvoříme dva týmy
+    const whiteTeam = {
+      name: "Lancers Bílí",
+      goalkeeper: shuffledGoalkeepers[0],
+      defenders: shuffledDefenders.slice(0, 3),
+      forwards: shuffledForwards.slice(0, 4)
+    };
+
+    const blackTeam = {
+      name: "Lancers Černí",
+      goalkeeper: shuffledGoalkeepers[1] || shuffledGoalkeepers[0], // Fallback na stejného brankáře
+      defenders: shuffledDefenders.slice(3, 6),
+      forwards: shuffledForwards.slice(4, 8)
+    };
+
+    return { whiteTeam, blackTeam };
+  });
 
   // Generování herních událostí
   const generateGameEvents = () => {
@@ -63,9 +81,13 @@ const OldaGameSimulation = ({ onBack, onGameComplete }) => {
       }
     ];
 
+    // Vybereme náhodného spoluhráče z našeho týmu
+    const teamPlayers = [...teams.whiteTeam.defenders, ...teams.whiteTeam.forwards];
+    const randomPlayer = teamPlayers[Math.floor(Math.random() * teamPlayers.length)];
+
     return possibleEvents.map(event => ({
       ...event,
-      player: homeTeam.players[Math.floor(Math.random() * homeTeam.players.length)]
+      player: randomPlayer
     }));
   };
 
@@ -179,6 +201,71 @@ const OldaGameSimulation = ({ onBack, onGameComplete }) => {
     setGameState('period1');
   };
 
+  // Komponenta pro zobrazení sestavy týmu
+  const TeamLineup = ({ team, isWhite }) => (
+    <div className={`p-4 rounded-xl ${isWhite ? 'bg-white/10' : 'bg-black/30'}`}>
+      <h3 className="text-lg font-bold mb-3">{team.name}</h3>
+      <div className="space-y-2">
+        <div>
+          <div className="text-sm text-indigo-300">Brankář:</div>
+          <div className="flex items-center gap-2">
+            <div className="w-8 h-8 rounded-full overflow-hidden">
+              <Image
+                src={litvinovLancers.getPlayerPhotoUrl(`${team.goalkeeper.name} ${team.goalkeeper.surname}`)}
+                alt={team.goalkeeper.name}
+                width={32}
+                height={32}
+                className="w-full h-full object-cover"
+                unoptimized={true}
+              />
+            </div>
+            <span>{team.goalkeeper.name} {team.goalkeeper.surname}</span>
+          </div>
+        </div>
+        <div>
+          <div className="text-sm text-indigo-300">Obránci:</div>
+          <div className="grid grid-cols-3 gap-2">
+            {team.defenders.map((player, i) => (
+              <div key={i} className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-full overflow-hidden">
+                  <Image
+                    src={litvinovLancers.getPlayerPhotoUrl(`${player.name} ${player.surname}`)}
+                    alt={player.name}
+                    width={32}
+                    height={32}
+                    className="w-full h-full object-cover"
+                    unoptimized={true}
+                  />
+                </div>
+                <span className="text-sm">{player.name} {player.surname}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+        <div>
+          <div className="text-sm text-indigo-300">Útočníci:</div>
+          <div className="grid grid-cols-2 gap-2">
+            {team.forwards.map((player, i) => (
+              <div key={i} className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-full overflow-hidden">
+                  <Image
+                    src={litvinovLancers.getPlayerPhotoUrl(`${player.name} ${player.surname}`)}
+                    alt={player.name}
+                    width={32}
+                    height={32}
+                    className="w-full h-full object-cover"
+                    unoptimized={true}
+                  />
+                </div>
+                <span className="text-sm">{player.name} {player.surname}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+
   return (
     <div className="fixed inset-0 bg-black/90 flex items-center justify-center z-50">
       <div className="bg-gradient-to-br from-indigo-900/90 to-indigo-800/90 p-8 rounded-xl border border-indigo-500/30 shadow-xl backdrop-blur-sm max-w-4xl w-full mx-4 relative">
@@ -190,7 +277,7 @@ const OldaGameSimulation = ({ onBack, onGameComplete }) => {
              `${gameState === 'period1' ? '1.' : gameState === 'period2' ? '2.' : '3.'} třetina`}
           </h2>
           <div className="text-xl font-bold text-white">
-            {homeTeam.name} {score.home} : {score.away} {awayTeam.name}
+            {teams.whiteTeam.name} {score.home} : {score.away} {teams.blackTeam.name}
           </div>
           <div className="text-xl font-bold text-indigo-400">
             {formatGameTime(currentTime)}
@@ -200,19 +287,25 @@ const OldaGameSimulation = ({ onBack, onGameComplete }) => {
         {/* Hlavní obsah */}
         <div className="space-y-6">
           {gameState === 'warmup' ? (
-            <div className="text-center space-y-4">
-              <p className="text-indigo-200">Jsi připraven na zápas s {awayTeam.name}?</p>
-              <button
-                onClick={startGame}
-                className="bg-indigo-500 hover:bg-indigo-600 text-white font-bold py-3 px-8 rounded-xl transition-colors"
-              >
-                Začít zápas
-              </button>
+            <div className="space-y-6">
+              <div className="grid grid-cols-2 gap-4">
+                <TeamLineup team={teams.whiteTeam} isWhite={true} />
+                <TeamLineup team={teams.blackTeam} isWhite={false} />
+              </div>
+              <div className="text-center space-y-4">
+                <p className="text-indigo-200">Týmy jsou připraveny! Jsi v bílém týmu.</p>
+                <button
+                  onClick={startGame}
+                  className="bg-indigo-500 hover:bg-indigo-600 text-white font-bold py-3 px-8 rounded-xl transition-colors"
+                >
+                  Začít zápas
+                </button>
+              </div>
             </div>
           ) : gameState === 'end' ? (
             <div className="text-center space-y-4">
               <p className="text-2xl font-bold text-indigo-400">
-                Konečný výsledek: {homeTeam.name} {score.home} : {score.away} {awayTeam.name}
+                Konečný výsledek: {teams.whiteTeam.name} {score.home} : {score.away} {teams.blackTeam.name}
               </p>
               <p className="text-indigo-200">
                 {score.home > score.away ? 'Gratulujeme k výhře! 🎉' :
