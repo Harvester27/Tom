@@ -635,30 +635,29 @@ const PlayerCareer = ({ onBack, money, xp, level, getXpToNextLevel, getLevelProg
     });
   };
 
-  // Efekt pro sledování nepřečtených zpráv
-  useEffect(() => {
-    const totalUnread = conversations.reduce((sum, conv) => {
-        // Spočítá nepřečtené zprávy od ostatních (ne od 'Player')
-        const unreadFromOthers = conv.messages.filter(msg => msg.sender !== 'Player' && !msg.read).length;
-        return sum + unreadFromOthers;
-    }, 0);
-    setUnreadMessages(totalUnread);
-    setHasNewMessage(totalUnread > 0);
-  }, [conversations]);
-
   // Funkce pro označení konverzace jako přečtené
   const markConversationAsRead = (conversationId) => {
-    setConversations(prevConvs => prevConvs.map(conv => {
-      if (conv.id === conversationId) {
-        return {
-          ...conv,
-          // Projdi zprávy a označ všechny jako přečtené
-          messages: conv.messages.map(msg => ({ ...msg, read: true }))
-          // Unread count se přepočítá v useEffect výše
-        };
+    setConversations(prevConvs => {
+      const newConvs = prevConvs.map(conv => {
+        if (conv.id === conversationId) {
+          return {
+            ...conv,
+            unread: 0, // Vynulujeme počet nepřečtených zpráv
+            messages: conv.messages.map(msg => ({ ...msg, read: true }))
+          };
+        }
+        return conv;
+      });
+
+      // Uložíme aktualizované konverzace do localStorage
+      try {
+        localStorage.setItem('playerCareerConversations', JSON.stringify(newConvs));
+      } catch (error) {
+        console.error("Error saving conversations to localStorage:", error);
       }
-      return conv;
-    }));
+
+      return newConvs;
+    });
   };
 
   // Funkce pro otevření chatu
@@ -667,6 +666,22 @@ const PlayerCareer = ({ onBack, money, xp, level, getXpToNextLevel, getLevelProg
     setPhoneScreen('chat');
     markConversationAsRead(conv.id); // Označí zprávy jako přečtené při otevření
   };
+
+  // Efekt pro sledování nepřečtených zpráv
+  useEffect(() => {
+    const totalUnread = conversations.reduce((sum, conv) => {
+      // Pokud má konverzace nastaveno unread na 0, ignorujeme počítání zpráv
+      if (conv.unread === 0) return sum;
+      // Jinak spočítáme nepřečtené zprávy od ostatních (ne od 'Player')
+      const unreadFromOthers = conv.messages.filter(msg => 
+        msg.sender !== 'Player' && !msg.read
+      ).length;
+      return sum + unreadFromOthers;
+    }, 0);
+    
+    setUnreadMessages(totalUnread);
+    setHasNewMessage(totalUnread > 0);
+  }, [conversations]);
 
   // Funkce pro renderování obsahu telefonu
   const renderPhoneContent = () => {
