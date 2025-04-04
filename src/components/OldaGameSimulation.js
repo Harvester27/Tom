@@ -17,33 +17,48 @@ const OldaGameSimulation = ({ onBack, onGameComplete }) => {
   const [playerGreetings, setPlayerGreetings] = useState({});
   const [hasGreeted, setHasGreeted] = useState(false);
   const [showTeamDialog, setShowTeamDialog] = useState(false);
+  const [usedDialogOptions, setUsedDialogOptions] = useState(new Set());
 
   // Možnosti promluvy k týmu
   const teamDialogOptions = [
     {
+      id: 'humble',
       text: "Hoši, buďte na mě hodní, dlouho jsem na tom nestál...",
       response: "Neboj, všichni jsme tady začínali. Pomůžeme ti! 👍",
       personality: "humble"
     },
     {
+      id: 'practical',
       text: "Jaký dres si mám vzít? Světlý nebo tmavý?",
       response: "Pro začátek si vezmi tmavý, rozdělíme týmy až před zápasem. 👕",
       personality: "practical"
     },
     {
+      id: 'positive',
       text: "Doufám, že si dobře zahrajeme!",
       response: "To si piš, že jo! Hlavně v klidu a s úsměvem. 😊",
       personality: "positive"
     },
     {
+      id: 'nervous',
       text: "Jsem trochu nervózní...",
       response: "To je normální, za chvíli to opadne. Jsme v pohodě parta! 💪",
       personality: "honest"
     }
   ];
 
+  // Funkce pro kontrolu, zda lze ještě mluvit
+  const canStillTalk = () => {
+    const timeLimit = 16 * 60 + 45; // 16:45
+    const hasUnusedOptions = usedDialogOptions.size < teamDialogOptions.length;
+    return currentTime < timeLimit && hasUnusedOptions;
+  };
+
   // Funkce pro zpracování výběru promluvy
   const handleTeamDialog = (option) => {
+    // Přidáme možnost do použitých
+    setUsedDialogOptions(prev => new Set([...prev, option.id]));
+
     // Přidáme zprávu hráče do událostí
     setEvents(prev => [...prev, {
       type: 'player_speech',
@@ -310,6 +325,30 @@ const OldaGameSimulation = ({ onBack, onGameComplete }) => {
     </div>
   );
 
+  // Komponenta pro tlačítko interakce s týmem
+  const TeamInteractionButton = () => {
+    if (!canStillTalk()) return null;
+
+    const unusedOptions = teamDialogOptions.filter(option => !usedDialogOptions.has(option.id));
+    if (unusedOptions.length === 0) return null;
+
+    return (
+      <div className="absolute top-1/2 -right-48 transform -translate-y-1/2 z-20">
+        <button
+          onClick={() => setShowTeamDialog(true)}
+          className="bg-green-500 hover:bg-green-600 text-white px-6 py-3 rounded-xl 
+                    transition-colors flex items-center gap-2 shadow-lg
+                    animate-pulse-button relative overflow-hidden"
+        >
+          <span className="text-xl">💬</span>
+          Promluvit na tým
+          {/* Pulzující efekt */}
+          <div className="absolute inset-0 bg-white/20 animate-button-glow"></div>
+        </button>
+      </div>
+    );
+  };
+
   return (
     <div className="fixed inset-0 bg-black/90 flex items-center justify-center z-50">
       <div className="bg-gradient-to-br from-indigo-900/90 to-indigo-800/90 p-8 rounded-xl border border-indigo-500/30 shadow-xl backdrop-blur-sm max-w-7xl w-full mx-4 relative">
@@ -335,20 +374,7 @@ const OldaGameSimulation = ({ onBack, onGameComplete }) => {
               Kabina Lancers
             </h2>
             
-            {/* Tlačítko pro interakci s týmem - přesunuto doprava */}
-            <div className="absolute top-8 right-8 z-20">
-              <button
-                onClick={() => setShowTeamDialog(true)}
-                className="bg-green-500 hover:bg-green-600 text-white px-6 py-3 rounded-xl 
-                          transition-colors flex items-center gap-2 shadow-lg
-                          animate-pulse-button relative overflow-hidden"
-              >
-                <span className="text-xl">💬</span>
-                Promluvit na tým
-                {/* Pulzující efekt */}
-                <div className="absolute inset-0 bg-white/20 animate-button-glow"></div>
-              </button>
-            </div>
+            <TeamInteractionButton />
 
             {/* Dialog pro interakci s týmem */}
             {showTeamDialog && (
@@ -356,14 +382,16 @@ const OldaGameSimulation = ({ onBack, onGameComplete }) => {
                 <div className="bg-gradient-to-br from-indigo-900/90 to-indigo-800/90 p-6 rounded-xl border border-indigo-500/30 max-w-md w-full mx-4">
                   <h3 className="text-xl font-bold text-indigo-300 mb-4">Co chceš říct týmu?</h3>
                   <div className="space-y-2">
-                    {teamDialogOptions.map((option, index) => (
-                      <button
-                        key={index}
-                        onClick={() => handleTeamDialog(option)}
-                        className="w-full text-left px-4 py-3 rounded-lg bg-indigo-500/20 hover:bg-indigo-500/30 text-white transition-colors"
-                      >
-                        {option.text}
-                      </button>
+                    {teamDialogOptions
+                      .filter(option => !usedDialogOptions.has(option.id))
+                      .map((option, index) => (
+                        <button
+                          key={option.id}
+                          onClick={() => handleTeamDialog(option)}
+                          className="w-full text-left px-4 py-3 rounded-lg bg-indigo-500/20 hover:bg-indigo-500/30 text-white transition-colors"
+                        >
+                          {option.text}
+                        </button>
                     ))}
                   </div>
                   <button
@@ -463,6 +491,52 @@ const OldaGameSimulation = ({ onBack, onGameComplete }) => {
               Kabina Lancers
             </h2>
             
+            <TeamInteractionButton />
+
+            {/* Dialog pro interakci s týmem */}
+            {showTeamDialog && (
+              <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+                <div className="bg-gradient-to-br from-indigo-900/90 to-indigo-800/90 p-6 rounded-xl border border-indigo-500/30 max-w-md w-full mx-4">
+                  <h3 className="text-xl font-bold text-indigo-300 mb-4">Co chceš říct týmu?</h3>
+                  <div className="space-y-2">
+                    {teamDialogOptions
+                      .filter(option => !usedDialogOptions.has(option.id))
+                      .map((option, index) => (
+                        <button
+                          key={option.id}
+                          onClick={() => handleTeamDialog(option)}
+                          className="w-full text-left px-4 py-3 rounded-lg bg-indigo-500/20 hover:bg-indigo-500/30 text-white transition-colors"
+                        >
+                          {option.text}
+                        </button>
+                    ))}
+                  </div>
+                  <button
+                    onClick={() => setShowTeamDialog(false)}
+                    className="mt-4 px-4 py-2 bg-gray-500/50 hover:bg-gray-500/70 text-white rounded-lg transition-colors"
+                  >
+                    Zavřít
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* Seznam událostí (zprávy a odpovědi) */}
+            <div className="fixed bottom-4 right-4 max-w-md w-full space-y-2 pointer-events-none z-30">
+              {events.slice(-3).map((event, index) => (
+                <div
+                  key={index}
+                  className={`p-3 rounded-lg text-white animate-fadeIn ${
+                    event.type === 'player_speech' 
+                      ? 'bg-indigo-600 ml-12' 
+                      : 'bg-gray-600/50 mr-12'
+                  }`}
+                >
+                  {event.text}
+                </div>
+              ))}
+            </div>
+
             <div className="space-y-6">
               {/* Brankáři */}
               <div>
