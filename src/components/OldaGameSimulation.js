@@ -5,7 +5,7 @@ import Image from 'next/image';
 import { litvinovLancers, personalityTypes } from '../data/LitvinovLancers';
 
 const OldaGameSimulation = ({ onBack, onGameComplete }) => {
-  const [gameState, setGameState] = useState('locker_room'); // locker_room, warmup, period1, period2, period3, end
+  const [gameState, setGameState] = useState('entering'); // entering -> greeting -> locker_room -> warmup -> ...
   const [currentTime, setCurrentTime] = useState(16 * 60 + 30); // 16:30 v minutách
   const [gameSpeed, setGameSpeed] = useState(1);
   const [events, setEvents] = useState([]);
@@ -13,10 +13,106 @@ const OldaGameSimulation = ({ onBack, onGameComplete }) => {
   const [showPlayerInteraction, setShowPlayerInteraction] = useState(false);
   const [interactingPlayer, setInteractingPlayer] = useState(null);
   const [score, setScore] = useState({ home: 0, away: 0 });
+  const [showGreetPrompt, setShowGreetPrompt] = useState(false);
+  const [playerGreetings, setPlayerGreetings] = useState({});
+  const [hasGreeted, setHasGreeted] = useState(false);
+
+  // Funkce pro náhodný výběr hráčů podle jejich docházky
+  const selectPlayersByChance = (players) => {
+    return players.filter(player => {
+      // Vygenerujeme náhodné číslo 0-100
+      const chance = Math.random() * 100;
+      // Hráč přijde, pokud je náhodné číslo menší než jeho docházka
+      return chance < player.attendance;
+    });
+  };
+
+  // Funkce pro zajištění minimálního počtu hráčů
+  const ensureMinimumPlayers = (selectedPlayers, allPlayers, minCount, position) => {
+    let players = [...selectedPlayers];
+    
+    // Pokud nemáme dost hráčů, přidáme ty s nejvyšší docházkou
+    if (players.length < minCount) {
+      const remainingPlayers = allPlayers
+        .filter(p => !players.includes(p))
+        .sort((a, b) => b.attendance - a.attendance);
+      
+      while (players.length < minCount && remainingPlayers.length > 0) {
+        players.push(remainingPlayers.shift());
+      }
+    }
+    
+    return players;
+  };
+
+  // Funkce pro omezení maximálního počtu hráčů
+  const limitMaxPlayers = (players, maxCount) => {
+    // Seřadíme podle docházky a vezmeme jen maxCount hráčů
+    return [...players].sort((a, b) => b.attendance - a.attendance).slice(0, maxCount);
+  };
+
+  // Výběr aktivních hráčů
   const [activePlayers] = useState(() => {
-    // Získáme všechny aktivní hráče (s attendance > 70)
-    return litvinovLancers.getActivePlayers(70);
+    // Získáme všechny hráče
+    const allPlayers = litvinovLancers.players;
+    
+    // Rozdělíme hráče podle pozic
+    const goalkeepers = allPlayers.filter(p => p.position === 'brankář');
+    const defenders = allPlayers.filter(p => p.position === 'obránce');
+    const forwards = allPlayers.filter(p => p.position === 'útočník');
+
+    // Najdeme Oldřicha (ten přijde vždy)
+    const olda = defenders.find(p => p.name === "Oldřich" && p.surname === "Štěpanovský");
+    const defendersWithoutOlda = defenders.filter(p => p !== olda);
+
+    // Vybereme hráče podle jejich šance na příchod
+    let selectedGoalkeepers = selectPlayersByChance(goalkeepers);
+    let selectedDefenders = selectPlayersByChance(defendersWithoutOlda);
+    let selectedForwards = selectPlayersByChance(forwards);
+
+    // Zajistíme minimální počty
+    selectedGoalkeepers = ensureMinimumPlayers(selectedGoalkeepers, goalkeepers, 2, 'brankář');
+    selectedDefenders = ensureMinimumPlayers(selectedDefenders, defendersWithoutOlda, 5, 'obránce');
+    selectedForwards = ensureMinimumPlayers(selectedForwards, forwards, 6, 'útočník');
+
+    // Omezíme maximální počty (2 brankáři, celkem max 22 hráčů)
+    selectedGoalkeepers = limitMaxPlayers(selectedGoalkeepers, 2);
+    
+    // Přidáme Oldřicha k obráncům
+    selectedDefenders = [...selectedDefenders, olda];
+    
+    // Omezíme celkový počet hráčů v poli (max 20)
+    const maxFieldPlayers = 20;
+    const totalFieldPlayers = selectedDefenders.length + selectedForwards.length;
+    if (totalFieldPlayers > maxFieldPlayers) {
+      // Pokud máme moc hráčů, proporcionálně snížíme počty
+      const ratio = maxFieldPlayers / totalFieldPlayers;
+      const maxDefenders = Math.floor((selectedDefenders.length - 1) * ratio); // -1 pro Oldřicha
+      const maxForwards = Math.floor(selectedForwards.length * ratio);
+      
+      selectedDefenders = [
+        ...limitMaxPlayers(selectedDefenders.filter(p => p !== olda), maxDefenders),
+        olda
+      ];
+      selectedForwards = limitMaxPlayers(selectedForwards, maxForwards);
+    }
+
+    // Vrátíme všechny vybrané hráče
+    return [
+      ...selectedGoalkeepers,
+      ...selectedDefenders,
+      ...selectedForwards
+    ];
   });
+
+  // Rozdělení hráčů podle pozic pro lepší organizaci
+  const groupedPlayers = activePlayers.reduce((acc, player) => {
+    if (!acc[player.position]) {
+      acc[player.position] = [];
+    }
+    acc[player.position].push(player);
+    return acc;
+  }, {});
 
   // Formátování času
   const formatGameTime = (totalMinutes) => {
@@ -44,9 +140,58 @@ const OldaGameSimulation = ({ onBack, onGameComplete }) => {
     return () => clearInterval(interval);
   }, [gameState, gameSpeed]);
 
+  // Funkce pro generování náhodného pozdravu
+  const getRandomGreeting = () => {
+    const greetings = [
+      "Ahoj!",
+      "Čau!",
+      "Nazdar!",
+      "Zdravím!",
+      "Čus!",
+      "Dobrý den!",
+      "Zdar!",
+    ];
+    return greetings[Math.floor(Math.random() * greetings.length)];
+  };
+
+  // Funkce pro zpracování pozdravu od hráče
+  const handleGreet = () => {
+    setHasGreeted(true);
+    setShowGreetPrompt(false);
+
+    // Postupně necháme odpovědět hráče s fotkami
+    let delay = 0;
+    const newGreetings = {};
+    
+    activePlayers.forEach(player => {
+      // Zjistíme, jestli má hráč fotku
+      const hasPhoto = !litvinovLancers.players.find(p => 
+        p.name === player.name && 
+        p.surname === player.surname
+      )?.photo?.includes('default');
+
+      if (hasPhoto) {
+        delay += Math.random() * 3000; // Náhodné zpoždění do 3 sekund
+        setTimeout(() => {
+          setPlayerGreetings(prev => ({
+            ...prev,
+            [`${player.name}${player.surname}`]: getRandomGreeting()
+          }));
+        }, delay);
+      }
+    });
+
+    // Po 4 sekundách přejdeme do stavu locker_room
+    setTimeout(() => {
+      setGameState('locker_room');
+      setPlayerGreetings({});
+    }, 4000);
+  };
+
   // Komponenta pro zobrazení hráče v kabině
   const LockerRoomPlayer = ({ player }) => (
-    <div className="flex items-center gap-4 bg-black/30 p-3 rounded-xl hover:bg-black/40 transition-colors">
+    <div className={`relative flex items-center gap-4 bg-black/30 p-3 rounded-xl hover:bg-black/40 transition-colors
+      ${player.name === "Oldřich" && player.surname === "Štěpanovský" ? 'border-2 border-yellow-500/50' : ''}`}>
       <div className="w-12 h-12 rounded-full overflow-hidden border-2 border-indigo-500/50">
         <Image
           src={litvinovLancers.getPlayerPhotoUrl(`${player.name} ${player.surname}`)}
@@ -60,6 +205,7 @@ const OldaGameSimulation = ({ onBack, onGameComplete }) => {
       <div>
         <div className="text-base font-bold text-white">
           {player.name} {player.surname}
+          <span className="ml-2 text-xs text-indigo-400">({player.attendance}%)</span>
         </div>
         <div className="text-sm text-indigo-300">
           {player.position.charAt(0).toUpperCase() + player.position.slice(1)}
@@ -67,6 +213,14 @@ const OldaGameSimulation = ({ onBack, onGameComplete }) => {
           {personalityTypes[player.personality].name}
         </div>
       </div>
+      {/* Bublina s pozdravem */}
+      {playerGreetings[`${player.name}${player.surname}`] && (
+        <div className="absolute -top-8 left-1/2 transform -translate-x-1/2 
+                      bg-white text-black px-3 py-1 rounded-xl
+                      animate-fadeInOut whitespace-nowrap">
+          {playerGreetings[`${player.name}${player.surname}`]}
+        </div>
+      )}
     </div>
   );
 
@@ -92,19 +246,26 @@ const OldaGameSimulation = ({ onBack, onGameComplete }) => {
     </div>
   );
 
-  // Rozdělení hráčů podle pozic pro lepší organizaci
-  const groupedPlayers = activePlayers.reduce((acc, player) => {
-    if (!acc[player.position]) {
-      acc[player.position] = [];
-    }
-    acc[player.position].push(player);
-    return acc;
-  }, {});
-
   return (
     <div className="fixed inset-0 bg-black/90 flex items-center justify-center z-50">
       <div className="bg-gradient-to-br from-indigo-900/90 to-indigo-800/90 p-8 rounded-xl border border-indigo-500/30 shadow-xl backdrop-blur-sm max-w-7xl w-full mx-4 relative">
-        {gameState === 'locker_room' ? (
+        {gameState === 'entering' ? (
+          <div className="text-center py-12">
+            <h2 className="text-3xl font-bold bg-gradient-to-r from-indigo-400 to-indigo-600 bg-clip-text text-transparent mb-8 animate-fadeIn">
+              Vstupuješ do kabiny...
+            </h2>
+            <button
+              onClick={() => {
+                setGameState('greeting');
+                setShowGreetPrompt(true);
+              }}
+              className="bg-indigo-500 hover:bg-indigo-600 text-white px-6 py-3 rounded-xl
+                        transition-all duration-300 transform hover:scale-105"
+            >
+              Vstoupit do kabiny
+            </button>
+          </div>
+        ) : gameState === 'greeting' ? (
           <>
             <h2 className="text-3xl font-bold text-center bg-gradient-to-r from-indigo-400 to-indigo-600 bg-clip-text text-transparent mb-8">
               Kabina Lancers
@@ -113,7 +274,9 @@ const OldaGameSimulation = ({ onBack, onGameComplete }) => {
             <div className="space-y-6">
               {/* Brankáři */}
               <div>
-                <h3 className="text-xl font-bold text-indigo-300 mb-3">Brankáři</h3>
+                <h3 className="text-xl font-bold text-indigo-300 mb-3">
+                  Brankáři <span className="text-sm text-indigo-400">({groupedPlayers['brankář']?.length || 0} / 2)</span>
+                </h3>
                 <div className="grid grid-cols-2 gap-4">
                   {groupedPlayers['brankář']?.map((player, index) => (
                     <LockerRoomPlayer key={index} player={player} />
@@ -123,7 +286,9 @@ const OldaGameSimulation = ({ onBack, onGameComplete }) => {
 
               {/* Obránci */}
               <div>
-                <h3 className="text-xl font-bold text-indigo-300 mb-3">Obránci</h3>
+                <h3 className="text-xl font-bold text-indigo-300 mb-3">
+                  Obránci <span className="text-sm text-indigo-400">({groupedPlayers['obránce']?.length || 0} / 6)</span>
+                </h3>
                 <div className="grid grid-cols-3 gap-4">
                   {groupedPlayers['obránce']?.map((player, index) => (
                     <LockerRoomPlayer key={index} player={player} />
@@ -133,7 +298,80 @@ const OldaGameSimulation = ({ onBack, onGameComplete }) => {
 
               {/* Útočníci */}
               <div>
-                <h3 className="text-xl font-bold text-indigo-300 mb-3">Útočníci</h3>
+                <h3 className="text-xl font-bold text-indigo-300 mb-3">
+                  Útočníci <span className="text-sm text-indigo-400">({groupedPlayers['útočník']?.length || 0} / 11)</span>
+                </h3>
+                <div className="grid grid-cols-4 gap-4">
+                  {groupedPlayers['útočník']?.map((player, index) => (
+                    <LockerRoomPlayer key={index} player={player} />
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            {showGreetPrompt && (
+              <div className="fixed inset-0 flex items-center justify-center bg-black/50 z-50">
+                <div className="bg-indigo-900/90 p-8 rounded-xl border border-indigo-500/30 text-center">
+                  <h3 className="text-2xl font-bold text-indigo-300 mb-4">
+                    Pozdravit ostatní?
+                  </h3>
+                  <div className="space-x-4">
+                    <button
+                      onClick={handleGreet}
+                      className="bg-indigo-500 hover:bg-indigo-600 text-white px-6 py-2 rounded-lg transition-colors"
+                    >
+                      Pozdravit
+                    </button>
+                    <button
+                      onClick={() => {
+                        setShowGreetPrompt(false);
+                        setGameState('locker_room');
+                      }}
+                      className="bg-gray-500/50 hover:bg-gray-500/70 text-white px-6 py-2 rounded-lg transition-colors"
+                    >
+                      Ignorovat
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+          </>
+        ) : gameState === 'locker_room' ? (
+          <>
+            <h2 className="text-3xl font-bold text-center bg-gradient-to-r from-indigo-400 to-indigo-600 bg-clip-text text-transparent mb-8">
+              Kabina Lancers
+            </h2>
+            
+            <div className="space-y-6">
+              {/* Brankáři */}
+              <div>
+                <h3 className="text-xl font-bold text-indigo-300 mb-3">
+                  Brankáři <span className="text-sm text-indigo-400">({groupedPlayers['brankář']?.length || 0} / 2)</span>
+                </h3>
+                <div className="grid grid-cols-2 gap-4">
+                  {groupedPlayers['brankář']?.map((player, index) => (
+                    <LockerRoomPlayer key={index} player={player} />
+                  ))}
+                </div>
+              </div>
+
+              {/* Obránci */}
+              <div>
+                <h3 className="text-xl font-bold text-indigo-300 mb-3">
+                  Obránci <span className="text-sm text-indigo-400">({groupedPlayers['obránce']?.length || 0} / 6)</span>
+                </h3>
+                <div className="grid grid-cols-3 gap-4">
+                  {groupedPlayers['obránce']?.map((player, index) => (
+                    <LockerRoomPlayer key={index} player={player} />
+                  ))}
+                </div>
+              </div>
+
+              {/* Útočníci */}
+              <div>
+                <h3 className="text-xl font-bold text-indigo-300 mb-3">
+                  Útočníci <span className="text-sm text-indigo-400">({groupedPlayers['útočník']?.length || 0} / 11)</span>
+                </h3>
                 <div className="grid grid-cols-4 gap-4">
                   {groupedPlayers['útočník']?.map((player, index) => (
                     <LockerRoomPlayer key={index} player={player} />
@@ -147,18 +385,17 @@ const OldaGameSimulation = ({ onBack, onGameComplete }) => {
             </div>
 
             <TimeControl />
-
-            <button
-              onClick={onBack}
-              className="absolute top-4 left-4 bg-indigo-500/50 hover:bg-indigo-500/70 text-white px-4 py-2 rounded-lg transition-colors"
-            >
-              ← Zpět
-            </button>
           </>
         ) : (
-          // ... zbytek kódu pro ostatní stavy hry ...
           <div>Další stavy hry budou následovat...</div>
         )}
+
+        <button
+          onClick={onBack}
+          className="absolute top-4 left-4 bg-indigo-500/50 hover:bg-indigo-500/70 text-white px-4 py-2 rounded-lg transition-colors"
+        >
+          ← Zpět
+        </button>
       </div>
 
       <style jsx>{`
@@ -166,8 +403,29 @@ const OldaGameSimulation = ({ onBack, onGameComplete }) => {
           from { transform: translateY(100%); opacity: 0; }
           to { transform: translateY(0); opacity: 1; }
         }
+
+        @keyframes fadeIn {
+          from { opacity: 0; }
+          to { opacity: 1; }
+        }
+
+        @keyframes fadeInOut {
+          0% { opacity: 0; transform: translate(-50%, 10px); }
+          20% { opacity: 1; transform: translate(-50%, 0); }
+          80% { opacity: 1; transform: translate(-50%, 0); }
+          100% { opacity: 0; transform: translate(-50%, -10px); }
+        }
+
         .animate-slideUp {
           animation: slideUp 0.3s ease-out forwards;
+        }
+
+        .animate-fadeIn {
+          animation: fadeIn 0.5s ease-out forwards;
+        }
+
+        .animate-fadeInOut {
+          animation: fadeInOut 2s ease-out forwards;
         }
 
         /* Stylové scrollbary */
