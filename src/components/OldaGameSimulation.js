@@ -519,6 +519,12 @@ const OldaGameSimulation = ({ onBack, onGameComplete }) => {
     );
   };
 
+  // Funkce pro vstup do kabiny
+  const enterLockerRoom = () => {
+    setGameState('greeting');
+    handleGreet(); // Automaticky spustíme pozdravy
+  };
+
   return (
     <div className="fixed inset-0 bg-black/90 flex items-center justify-center z-50">
       <div className="bg-gradient-to-br from-indigo-900/90 to-indigo-800/90 p-8 rounded-xl border border-indigo-500/30 shadow-xl backdrop-blur-sm max-w-7xl w-full mx-4 relative">
@@ -528,10 +534,7 @@ const OldaGameSimulation = ({ onBack, onGameComplete }) => {
               Vstupuješ do kabiny...
             </h2>
             <button
-              onClick={() => {
-                setGameState('greeting');
-                setShowGreetPrompt(true);
-              }}
+              onClick={enterLockerRoom}
               className="bg-indigo-500 hover:bg-indigo-600 text-white px-6 py-3 rounded-xl
                         transition-all duration-300 transform hover:scale-105"
             >
