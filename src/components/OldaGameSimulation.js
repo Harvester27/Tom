@@ -5,7 +5,7 @@ import Image from 'next/image';
 import { litvinovLancers, personalityTypes } from '../data/LitvinovLancers';
 
 const OldaGameSimulation = ({ onBack, onGameComplete }) => {
-  const [gameState, setGameState] = useState('entering'); // entering -> greeting -> locker_room -> warmup -> ...
+  const [gameState, setGameState] = useState('enter'); // 'enter', 'greeting', 'locker_room', 'game'
   const [currentTime, setCurrentTime] = useState(16 * 60 + 30); // 16:30 v minutách
   const [gameSpeed, setGameSpeed] = useState(1);
   const [events, setEvents] = useState([]);
@@ -13,13 +13,15 @@ const OldaGameSimulation = ({ onBack, onGameComplete }) => {
   const [showPlayerInteraction, setShowPlayerInteraction] = useState(false);
   const [interactingPlayer, setInteractingPlayer] = useState(null);
   const [score, setScore] = useState({ home: 0, away: 0 });
-  const [showGreetPrompt, setShowGreetPrompt] = useState(false);
+  const [showGreetPrompt, setShowGreetPrompt] = useState(true);
   const [playerGreetings, setPlayerGreetings] = useState({});
   const [hasGreeted, setHasGreeted] = useState(false);
   const [showTeamDialog, setShowTeamDialog] = useState(false);
   const [usedDialogOptions, setUsedDialogOptions] = useState(new Set());
   const [playerResponses, setPlayerResponses] = useState([]);
   const [selectedQuestion, setSelectedQuestion] = useState(null);
+  const [activePlayers, setActivePlayers] = useState([]);
+  const [selectedTeam, setSelectedTeam] = useState(null);
 
   // Možnosti promluvy k týmu
   const teamDialogOptions = [
@@ -316,58 +318,13 @@ const OldaGameSimulation = ({ onBack, onGameComplete }) => {
   };
 
   // Výběr aktivních hráčů
-  const [activePlayers] = useState(() => {
-    // Získáme všechny hráče
-    const allPlayers = litvinovLancers.players;
-    
-    // Rozdělíme hráče podle pozic
-    const goalkeepers = allPlayers.filter(p => p.position === 'brankář');
-    const defenders = allPlayers.filter(p => p.position === 'obránce');
-    const forwards = allPlayers.filter(p => p.position === 'útočník');
-
-    // Najdeme Oldřicha (ten přijde vždy)
-    const olda = defenders.find(p => p.name === "Oldřich" && p.surname === "Štěpanovský");
-    const defendersWithoutOlda = defenders.filter(p => p !== olda);
-
-    // Vybereme hráče podle jejich šance na příchod
-    let selectedGoalkeepers = selectPlayersByChance(goalkeepers);
-    let selectedDefenders = selectPlayersByChance(defendersWithoutOlda);
-    let selectedForwards = selectPlayersByChance(forwards);
-
-    // Zajistíme minimální počty
-    selectedGoalkeepers = ensureMinimumPlayers(selectedGoalkeepers, goalkeepers, 2, 'brankář');
-    selectedDefenders = ensureMinimumPlayers(selectedDefenders, defendersWithoutOlda, 5, 'obránce');
-    selectedForwards = ensureMinimumPlayers(selectedForwards, forwards, 6, 'útočník');
-
-    // Omezíme maximální počty (2 brankáři, celkem max 22 hráčů)
-    selectedGoalkeepers = limitMaxPlayers(selectedGoalkeepers, 2);
-    
-    // Přidáme Oldřicha k obráncům
-    selectedDefenders = [...selectedDefenders, olda];
-    
-    // Omezíme celkový počet hráčů v poli (max 20)
-    const maxFieldPlayers = 20;
-    const totalFieldPlayers = selectedDefenders.length + selectedForwards.length;
-    if (totalFieldPlayers > maxFieldPlayers) {
-      // Pokud máme moc hráčů, proporcionálně snížíme počty
-      const ratio = maxFieldPlayers / totalFieldPlayers;
-      const maxDefenders = Math.floor((selectedDefenders.length - 1) * ratio); // -1 pro Oldřicha
-      const maxForwards = Math.floor(selectedForwards.length * ratio);
-      
-      selectedDefenders = [
-        ...limitMaxPlayers(selectedDefenders.filter(p => p !== olda), maxDefenders),
-        olda
-      ];
-      selectedForwards = limitMaxPlayers(selectedForwards, maxForwards);
-    }
-
-    // Vrátíme všechny vybrané hráče
-    return [
-      ...selectedGoalkeepers,
-      ...selectedDefenders,
-      ...selectedForwards
-    ];
-  });
+  useEffect(() => {
+    // Filtrujeme hráče s docházkou nad 75%
+    const activePlayersList = litvinovLancers.players.filter(
+      player => player.attendance >= 75
+    );
+    setActivePlayers(activePlayersList);
+  }, []);
 
   // Rozdělení hráčů podle pozic pro lepší organizaci
   const groupedPlayers = activePlayers.reduce((acc, player) => {
@@ -404,16 +361,18 @@ const OldaGameSimulation = ({ onBack, onGameComplete }) => {
     return () => clearInterval(interval);
   }, [gameState, gameSpeed]);
 
-  // Funkce pro generování náhodného pozdravu
+  // Funkce pro získání náhodného pozdravu
   const getRandomGreeting = () => {
     const greetings = [
-      "Ahoj!",
-      "Čau!",
-      "Nazdar!",
-      "Zdravím!",
-      "Čus!",
-      "Dobrý den!",
-      "Zdar!",
+      "Ahoj! 👋",
+      "Čau! 😊",
+      "Nazdar! 💪",
+      "Vítej! 🏒",
+      "Zdravím! 👍",
+      "Čus! 😄",
+      "Ahoj, vítej mezi námi! 🤝",
+      "Čau, rád tě poznávám! 😊",
+      "Nazdar, nová posilo! 💪"
     ];
     return greetings[Math.floor(Math.random() * greetings.length)];
   };
@@ -472,9 +431,9 @@ const OldaGameSimulation = ({ onBack, onGameComplete }) => {
   };
 
   // Komponenta pro zobrazení hráče v kabině
-  const LockerRoomPlayer = ({ player }) => {
-    // Najdeme odpověď tohoto hráče (pokud nějaká je)
-    const response = playerResponses.find(r => r.playerId === `${player.name} ${player.surname}`);
+  const LockerRoomPlayer = ({ player, playerGreetings }) => {
+    // Najdeme pozdrav tohoto hráče (pokud nějaký je)
+    const greeting = playerGreetings[`${player.name}${player.surname}`];
     
     return (
       <div className={`relative flex items-center gap-4 bg-black/30 p-3 rounded-xl hover:bg-black/40 transition-colors
@@ -500,12 +459,12 @@ const OldaGameSimulation = ({ onBack, onGameComplete }) => {
             {personalityTypes[player.personality].name}
           </div>
         </div>
-        {/* Bublina s odpovědí */}
-        {response && (
+        {/* Bublina s pozdravem */}
+        {greeting && (
           <div className="absolute -top-16 left-1/2 transform -translate-x-1/2 
                         bg-white text-black px-4 py-2 rounded-xl
                         animate-messageBubble whitespace-normal max-w-[250px] text-sm">
-            {response.text}
+            {greeting}
             <div className="absolute bottom-0 left-1/2 transform -translate-x-1/2 translate-y-1/2 
                           w-4 h-4 bg-white rotate-45"></div>
           </div>
@@ -637,7 +596,7 @@ const OldaGameSimulation = ({ onBack, onGameComplete }) => {
                 </h3>
                 <div className="grid grid-cols-2 gap-4">
                   {groupedPlayers['brankář']?.map((player, index) => (
-                    <LockerRoomPlayer key={index} player={player} />
+                    <LockerRoomPlayer key={index} player={player} playerGreetings={playerGreetings} />
                   ))}
                 </div>
               </div>
@@ -649,7 +608,7 @@ const OldaGameSimulation = ({ onBack, onGameComplete }) => {
                 </h3>
                 <div className="grid grid-cols-3 gap-4">
                   {groupedPlayers['obránce']?.map((player, index) => (
-                    <LockerRoomPlayer key={index} player={player} />
+                    <LockerRoomPlayer key={index} player={player} playerGreetings={playerGreetings} />
                   ))}
                 </div>
               </div>
@@ -661,7 +620,7 @@ const OldaGameSimulation = ({ onBack, onGameComplete }) => {
                 </h3>
                 <div className="grid grid-cols-4 gap-4">
                   {groupedPlayers['útočník']?.map((player, index) => (
-                    <LockerRoomPlayer key={index} player={player} />
+                    <LockerRoomPlayer key={index} player={player} playerGreetings={playerGreetings} />
                   ))}
                 </div>
               </div>
@@ -752,7 +711,7 @@ const OldaGameSimulation = ({ onBack, onGameComplete }) => {
                 </h3>
                 <div className="grid grid-cols-2 gap-4">
                   {groupedPlayers['brankář']?.map((player, index) => (
-                    <LockerRoomPlayer key={index} player={player} />
+                    <LockerRoomPlayer key={index} player={player} playerGreetings={playerGreetings} />
                   ))}
                 </div>
               </div>
@@ -764,7 +723,7 @@ const OldaGameSimulation = ({ onBack, onGameComplete }) => {
                 </h3>
                 <div className="grid grid-cols-3 gap-4">
                   {groupedPlayers['obránce']?.map((player, index) => (
-                    <LockerRoomPlayer key={index} player={player} />
+                    <LockerRoomPlayer key={index} player={player} playerGreetings={playerGreetings} />
                   ))}
                 </div>
               </div>
@@ -776,7 +735,7 @@ const OldaGameSimulation = ({ onBack, onGameComplete }) => {
                 </h3>
                 <div className="grid grid-cols-4 gap-4">
                   {groupedPlayers['útočník']?.map((player, index) => (
-                    <LockerRoomPlayer key={index} player={player} />
+                    <LockerRoomPlayer key={index} player={player} playerGreetings={playerGreetings} />
                   ))}
                 </div>
               </div>
