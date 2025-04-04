@@ -550,24 +550,47 @@ const litvinovLancers = {
       return normalizedName === normalizedPlayerId;
     });
     
-    if (!player || !player.photo) {
-      console.error('❌ Player not found or no photo:', {
+    if (!player) {
+      console.error('❌ Player not found:', {
         searchedId: playerId,
-        normalizedId: normalizedPlayerId,
-        foundPlayer: player
+        normalizedId: normalizedPlayerId
       });
-      // Použijeme logo týmu jako fallback
       return '/Images/Litvinov_Lancers.png';
+    }
+
+    // Seznam hráčů bez fotek
+    const playersWithoutPhotos = [
+      "Stanislav Švarc",
+      "Ladislav Černý",
+      "Roman Šimek",
+      "Václav Matějovič",
+      "Petr Štěpanovský",
+      "Aleš Kuřitka",
+      "Roman Beneš",
+      "Petra Volmutová",
+      "Jaroslav Volmut"
+    ];
+
+    // Pokud hráč nemá fotku, vrátíme defaultní obrázek
+    if (playersWithoutPhotos.includes(`${player.name} ${player.surname}`)) {
+      const defaultImage = player.position === 'brankář' 
+        ? '/Images/default_goalie.png'
+        : '/Images/default_player.png';
+      
+      console.log('🖼️ Using default photo for player:', {
+        name: `${player.name} ${player.surname}`,
+        position: player.position,
+        defaultImage
+      });
+      
+      return defaultImage;
     }
     
     // Vrátíme cestu k fotce hráče
     const photoUrl = `/Images/players/${player.photo}`;
     
     console.log('🖼️ Getting photo URL for player:', {
-      searchedId: playerId,
-      normalizedId: normalizedPlayerId,
-      name: player.name,
-      surname: player.surname,
+      name: `${player.name} ${player.surname}`,
       photo: player.photo,
       url: photoUrl
     });
