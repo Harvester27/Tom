@@ -708,7 +708,7 @@ const PlayerCareer = ({ onBack, money, xp, level, getXpToNextLevel, getLevelProg
                     <div className="w-12 h-12 rounded-full bg-indigo-500 flex items-center justify-center text-2xl overflow-hidden">
                       {conv.id === 'olda' ? (
                         <Image
-                          src="/Images/players/oldrich_stepanovsky.png"
+                          src={litvinovLancers.getPlayerPhotoUrl('Oldřich Štěpanovský')}
                           alt="Olda"
                           width={48}
                           height={48}
@@ -820,17 +820,14 @@ const PlayerCareer = ({ onBack, money, xp, level, getXpToNextLevel, getLevelProg
                   >
                     <div className="flex items-center gap-3">
                       <div className="w-10 h-10 rounded-full bg-indigo-500 flex items-center justify-center text-xl overflow-hidden">
-                        {typeof conv.avatar === 'string' && (conv.avatar.startsWith('/') || conv.avatar.startsWith('http')) ? (
+                        {conv.id === 'olda' ? (
                           <Image
-                            src={conv.avatar}
-                            alt={conv.name}
+                            src={litvinovLancers.getPlayerPhotoUrl('Oldřich Štěpanovský')}
+                            alt="Olda"
                             width={40}
                             height={40}
                             className="w-full h-full object-cover"
                             unoptimized={true}
-                            onError={(e) => {
-                              console.error('❌ Error loading image:', e.target.src);
-                            }}
                           />
                         ) : (
                           conv.avatar
