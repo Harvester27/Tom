@@ -7,11 +7,14 @@ import { litvinovLancers } from '../data/LitvinovLancers';
 
 // Helper function for initial state
 function getInitialConversationsState() {
+  const oldaPhotoUrl = litvinovLancers.getPlayerPhotoUrl('Oldřich Štěpanovský');
+  console.log('🖼️ Olda photo URL:', oldaPhotoUrl);
+  
   return [
     {
       id: 'olda',
       name: 'Olda Trenér',
-      avatar: litvinovLancers.getPlayerPhotoUrl('Oldřich Štěpanovský'),
+      avatar: oldaPhotoUrl,
       unread: 1, // Start with 1 unread
       lastMessage: 'Ahoj! Zítra máme s partou led v Chomutově od 17:00. Nechceš se přidat? 🏒',
       time: '08:00',
@@ -708,10 +711,10 @@ const PlayerCareer = ({ onBack, money, xp, level, getXpToNextLevel, getLevelProg
                 >
                   <div className="flex items-center gap-3">
                     <div className="w-12 h-12 rounded-full bg-indigo-500 flex items-center justify-center text-2xl overflow-hidden">
-                      {conv.id === 'olda' && (
+                      {typeof conv.avatar === 'string' && (conv.avatar.startsWith('/') || conv.avatar.startsWith('http')) ? (
                         <Image
-                          src={litvinovLancers.getPlayerPhotoUrl('Oldřich Štěpanovský')}
-                          alt="Olda"
+                          src={conv.avatar}
+                          alt={conv.name}
                           width={48}
                           height={48}
                           className="w-full h-full object-cover"
@@ -720,8 +723,9 @@ const PlayerCareer = ({ onBack, money, xp, level, getXpToNextLevel, getLevelProg
                             console.error('❌ Error loading image:', e.target.src);
                           }}
                         />
+                      ) : (
+                        conv.avatar
                       )}
-                      {conv.id !== 'olda' && conv.avatar}
                     </div>
                     <div className="flex-1">
                       <div className="flex items-center justify-between">
