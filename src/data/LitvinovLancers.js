@@ -1,5 +1,10 @@
 // Pomocná funkce pro převod jména na název souboru
 const getPhotoFilename = (name, surname) => {
+  // Speciální případ pro Oldřicha Štěpanovského
+  if (name === "Oldřich" && surname === "Štěpanovský") {
+    return "oldrich_stepanovsky.png";
+  }
+
   // Odstranění diakritiky
   const removeDiacritics = (str) => {
     return str.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
@@ -9,13 +14,7 @@ const getPhotoFilename = (name, surname) => {
   const cleanName = removeDiacritics(name);
   const cleanSurname = removeDiacritics(surname);
   
-  // Zachováme velká písmena na začátku, ale odstraníme diakritiku
-  const fileName = `${cleanName}_${cleanSurname}.png`;
-  
-  // Speciální případy
-  if (name === "Oldřich" && surname === "Štěpanovský") {
-    return "oldrich_stepanovsky.png";
-  }
+  // Speciální případy pro Schubadu
   if (surname === "Schubada St.") {
     return "Pavel_Schubada st.png";
   }
@@ -23,7 +22,8 @@ const getPhotoFilename = (name, surname) => {
     return "Pavel_Schubada ml.png";
   }
   
-  return fileName;
+  // Pro ostatní hráče zachováme velká písmena
+  return `${cleanName}_${cleanSurname}.png`;
 };
 
 const personalityTypes = {
