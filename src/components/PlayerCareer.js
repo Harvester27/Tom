@@ -708,12 +708,12 @@ const PlayerCareer = ({ onBack, money, xp, level, getXpToNextLevel, getLevelProg
                 >
                   <div className="flex items-center gap-3">
                     <div className="w-12 h-12 rounded-full bg-indigo-500 flex items-center justify-center text-2xl overflow-hidden">
-                      {typeof conv.avatar === 'string' && (conv.avatar.startsWith('/') || conv.avatar.startsWith('http')) ? (
+                      {conv.id === 'olda' ? (
                         <Image
-                          src={conv.avatar}
-                          alt={conv.name}
-                          width={40}
-                          height={40}
+                          src={litvinovLancers.getPlayerPhotoUrl('Oldřich Štěpanovský')}
+                          alt="Olda"
+                          width={48}
+                          height={48}
                           className="w-full h-full object-cover"
                           unoptimized={true}
                           onError={(e) => {
