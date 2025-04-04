@@ -39,26 +39,26 @@ const OldaGameSimulation = ({ onBack, onGameComplete }) => {
         }
         return newTime;
       });
-    }, 1000);
+    }, 60000 / gameSpeed); // Upraveno na minutové intervaly (60000ms = 1 minuta)
 
     return () => clearInterval(interval);
   }, [gameState, gameSpeed]);
 
   // Komponenta pro zobrazení hráče v kabině
   const LockerRoomPlayer = ({ player }) => (
-    <div className="flex items-center gap-4 bg-black/30 p-4 rounded-xl hover:bg-black/40 transition-colors">
-      <div className="w-16 h-16 rounded-full overflow-hidden border-2 border-indigo-500/50">
+    <div className="flex items-center gap-4 bg-black/30 p-3 rounded-xl hover:bg-black/40 transition-colors">
+      <div className="w-12 h-12 rounded-full overflow-hidden border-2 border-indigo-500/50">
         <Image
           src={litvinovLancers.getPlayerPhotoUrl(`${player.name} ${player.surname}`)}
           alt={player.name}
-          width={64}
-          height={64}
+          width={48}
+          height={48}
           className="w-full h-full object-cover"
           unoptimized={true}
         />
       </div>
       <div>
-        <div className="text-lg font-bold text-white">
+        <div className="text-base font-bold text-white">
           {player.name} {player.surname}
         </div>
         <div className="text-sm text-indigo-300">
@@ -92,19 +92,54 @@ const OldaGameSimulation = ({ onBack, onGameComplete }) => {
     </div>
   );
 
+  // Rozdělení hráčů podle pozic pro lepší organizaci
+  const groupedPlayers = activePlayers.reduce((acc, player) => {
+    if (!acc[player.position]) {
+      acc[player.position] = [];
+    }
+    acc[player.position].push(player);
+    return acc;
+  }, {});
+
   return (
     <div className="fixed inset-0 bg-black/90 flex items-center justify-center z-50">
-      <div className="bg-gradient-to-br from-indigo-900/90 to-indigo-800/90 p-8 rounded-xl border border-indigo-500/30 shadow-xl backdrop-blur-sm max-w-6xl w-full mx-4 relative">
+      <div className="bg-gradient-to-br from-indigo-900/90 to-indigo-800/90 p-8 rounded-xl border border-indigo-500/30 shadow-xl backdrop-blur-sm max-w-7xl w-full mx-4 relative">
         {gameState === 'locker_room' ? (
           <>
             <h2 className="text-3xl font-bold text-center bg-gradient-to-r from-indigo-400 to-indigo-600 bg-clip-text text-transparent mb-8">
               Kabina Lancers
             </h2>
             
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 max-h-[600px] overflow-y-auto p-4">
-              {activePlayers.map((player, index) => (
-                <LockerRoomPlayer key={index} player={player} />
-              ))}
+            <div className="space-y-6">
+              {/* Brankáři */}
+              <div>
+                <h3 className="text-xl font-bold text-indigo-300 mb-3">Brankáři</h3>
+                <div className="grid grid-cols-2 gap-4">
+                  {groupedPlayers['brankář']?.map((player, index) => (
+                    <LockerRoomPlayer key={index} player={player} />
+                  ))}
+                </div>
+              </div>
+
+              {/* Obránci */}
+              <div>
+                <h3 className="text-xl font-bold text-indigo-300 mb-3">Obránci</h3>
+                <div className="grid grid-cols-3 gap-4">
+                  {groupedPlayers['obránce']?.map((player, index) => (
+                    <LockerRoomPlayer key={index} player={player} />
+                  ))}
+                </div>
+              </div>
+
+              {/* Útočníci */}
+              <div>
+                <h3 className="text-xl font-bold text-indigo-300 mb-3">Útočníci</h3>
+                <div className="grid grid-cols-4 gap-4">
+                  {groupedPlayers['útočník']?.map((player, index) => (
+                    <LockerRoomPlayer key={index} player={player} />
+                  ))}
+                </div>
+              </div>
             </div>
 
             <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 text-center text-indigo-300">
