@@ -159,8 +159,7 @@ const OldaGameSimulation = ({ onBack, onGameComplete }) => {
     setHasGreeted(true);
     setShowGreetPrompt(false);
 
-    // Postupně necháme odpovědět hráče s fotkami
-    let delay = 0;
+    // Najdeme hráče s fotkou
     const hraciSFotkou = activePlayers.filter(player => {
       const hasPhoto = !litvinovLancers.players.find(p => 
         p.name === player.name && 
@@ -169,11 +168,21 @@ const OldaGameSimulation = ({ onBack, onGameComplete }) => {
       return hasPhoto;
     });
 
+    // Zamícháme pořadí hráčů
+    const zamichaniHraci = [...hraciSFotkou]
+      .sort(() => Math.random() - 0.5);
+
     // Rozdělíme celkový čas 1.5 sekundy mezi všechny hráče
     const timePerPlayer = 1500 / hraciSFotkou.length;
     
-    hraciSFotkou.forEach((player, index) => {
-      delay = index * timePerPlayer; // Každý další hráč odpoví po timePerPlayer ms
+    // Pro každého hráče nastavíme náhodné zpoždění v rámci timePerPlayer
+    zamichaniHraci.forEach((player, index) => {
+      // Základní zpoždění pro daného hráče
+      const baseDelay = index * timePerPlayer;
+      // Přidáme náhodné zpoždění v rámci timePerPlayer
+      const randomOffset = Math.random() * (timePerPlayer * 0.5);
+      const delay = baseDelay + randomOffset;
+
       setTimeout(() => {
         setPlayerGreetings(prev => ({
           ...prev,
@@ -191,10 +200,11 @@ const OldaGameSimulation = ({ onBack, onGameComplete }) => {
       }, delay);
     });
 
-    // Po 2 sekundách od posledního pozdravu přejdeme do stavu locker_room
+    // Po 2 sekundách od posledního možného pozdravu přejdeme do stavu locker_room
+    const maxDelay = hraciSFotkou.length * timePerPlayer + 2000;
     setTimeout(() => {
       setGameState('locker_room');
-    }, delay + 2000);
+    }, maxDelay);
   };
 
   // Komponenta pro zobrazení hráče v kabině
