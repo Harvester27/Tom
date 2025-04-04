@@ -708,7 +708,7 @@ const PlayerCareer = ({ onBack, money, xp, level, getXpToNextLevel, getLevelProg
                 >
                   <div className="flex items-center gap-3">
                     <div className="w-12 h-12 rounded-full bg-indigo-500 flex items-center justify-center text-2xl overflow-hidden">
-                      {conv.id === 'olda' ? (
+                      {conv.id === 'olda' && (
                         <Image
                           src={litvinovLancers.getPlayerPhotoUrl('Oldřich Štěpanovský')}
                           alt="Olda"
@@ -720,9 +720,8 @@ const PlayerCareer = ({ onBack, money, xp, level, getXpToNextLevel, getLevelProg
                             console.error('❌ Error loading image:', e.target.src);
                           }}
                         />
-                      ) : (
-                        conv.avatar
                       )}
+                      {conv.id !== 'olda' && conv.avatar}
                     </div>
                     <div className="flex-1">
                       <div className="flex items-center justify-between">
