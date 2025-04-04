@@ -16,6 +16,51 @@ const OldaGameSimulation = ({ onBack, onGameComplete }) => {
   const [showGreetPrompt, setShowGreetPrompt] = useState(false);
   const [playerGreetings, setPlayerGreetings] = useState({});
   const [hasGreeted, setHasGreeted] = useState(false);
+  const [showTeamDialog, setShowTeamDialog] = useState(false);
+
+  // Možnosti promluvy k týmu
+  const teamDialogOptions = [
+    {
+      text: "Hoši, buďte na mě hodní, dlouho jsem na tom nestál...",
+      response: "Neboj, všichni jsme tady začínali. Pomůžeme ti! 👍",
+      personality: "humble"
+    },
+    {
+      text: "Jaký dres si mám vzít? Světlý nebo tmavý?",
+      response: "Pro začátek si vezmi tmavý, rozdělíme týmy až před zápasem. 👕",
+      personality: "practical"
+    },
+    {
+      text: "Doufám, že si dobře zahrajeme!",
+      response: "To si piš, že jo! Hlavně v klidu a s úsměvem. 😊",
+      personality: "positive"
+    },
+    {
+      text: "Jsem trochu nervózní...",
+      response: "To je normální, za chvíli to opadne. Jsme v pohodě parta! 💪",
+      personality: "honest"
+    }
+  ];
+
+  // Funkce pro zpracování výběru promluvy
+  const handleTeamDialog = (option) => {
+    // Přidáme zprávu hráče do událostí
+    setEvents(prev => [...prev, {
+      type: 'player_speech',
+      text: option.text,
+      time: currentTime
+    }]);
+
+    // Po krátké pauze přidáme odpověď týmu
+    setTimeout(() => {
+      setEvents(prev => [...prev, {
+        type: 'team_response',
+        text: option.response,
+        time: currentTime
+      }]);
+      setShowTeamDialog(false);
+    }, 1500);
+  };
 
   // Funkce pro náhodný výběr hráčů podle jejich docházky
   const selectPlayersByChance = (players) => {
@@ -290,6 +335,59 @@ const OldaGameSimulation = ({ onBack, onGameComplete }) => {
               Kabina Lancers
             </h2>
             
+            {/* Tlačítko pro interakci s týmem */}
+            <div className="absolute top-4 right-24 z-20">
+              <button
+                onClick={() => setShowTeamDialog(true)}
+                className="bg-indigo-500 hover:bg-indigo-600 text-white px-4 py-2 rounded-lg transition-colors flex items-center gap-2"
+              >
+                <span>💬</span>
+                Promluvit na tým
+              </button>
+            </div>
+
+            {/* Dialog pro interakci s týmem */}
+            {showTeamDialog && (
+              <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+                <div className="bg-gradient-to-br from-indigo-900/90 to-indigo-800/90 p-6 rounded-xl border border-indigo-500/30 max-w-md w-full mx-4">
+                  <h3 className="text-xl font-bold text-indigo-300 mb-4">Co chceš říct týmu?</h3>
+                  <div className="space-y-2">
+                    {teamDialogOptions.map((option, index) => (
+                      <button
+                        key={index}
+                        onClick={() => handleTeamDialog(option)}
+                        className="w-full text-left px-4 py-3 rounded-lg bg-indigo-500/20 hover:bg-indigo-500/30 text-white transition-colors"
+                      >
+                        {option.text}
+                      </button>
+                    ))}
+                  </div>
+                  <button
+                    onClick={() => setShowTeamDialog(false)}
+                    className="mt-4 px-4 py-2 bg-gray-500/50 hover:bg-gray-500/70 text-white rounded-lg transition-colors"
+                  >
+                    Zavřít
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* Seznam událostí (zprávy a odpovědi) */}
+            <div className="fixed bottom-4 right-4 max-w-md w-full space-y-2 pointer-events-none z-30">
+              {events.slice(-3).map((event, index) => (
+                <div
+                  key={index}
+                  className={`p-3 rounded-lg text-white animate-fadeIn ${
+                    event.type === 'player_speech' 
+                      ? 'bg-indigo-600 ml-12' 
+                      : 'bg-gray-600/50 mr-12'
+                  }`}
+                >
+                  {event.text}
+                </div>
+              ))}
+            </div>
+
             <div className="space-y-6">
               {/* Brankáři */}
               <div>
