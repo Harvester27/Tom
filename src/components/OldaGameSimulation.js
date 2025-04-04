@@ -161,31 +161,40 @@ const OldaGameSimulation = ({ onBack, onGameComplete }) => {
 
     // Postupně necháme odpovědět hráče s fotkami
     let delay = 0;
-    const newGreetings = {};
-    
-    activePlayers.forEach(player => {
-      // Zjistíme, jestli má hráč fotku
+    const hraciSFotkou = activePlayers.filter(player => {
       const hasPhoto = !litvinovLancers.players.find(p => 
         p.name === player.name && 
         p.surname === player.surname
       )?.photo?.includes('default');
-
-      if (hasPhoto) {
-        delay += Math.random() * 3000; // Náhodné zpoždění do 3 sekund
-        setTimeout(() => {
-          setPlayerGreetings(prev => ({
-            ...prev,
-            [`${player.name}${player.surname}`]: getRandomGreeting()
-          }));
-        }, delay);
-      }
+      return hasPhoto;
     });
 
-    // Po 4 sekundách přejdeme do stavu locker_room
+    // Rozdělíme celkový čas 1.5 sekundy mezi všechny hráče
+    const timePerPlayer = 1500 / hraciSFotkou.length;
+    
+    hraciSFotkou.forEach((player, index) => {
+      delay = index * timePerPlayer; // Každý další hráč odpoví po timePerPlayer ms
+      setTimeout(() => {
+        setPlayerGreetings(prev => ({
+          ...prev,
+          [`${player.name}${player.surname}`]: getRandomGreeting()
+        }));
+
+        // Každá bublina zmizí po 3 sekundách
+        setTimeout(() => {
+          setPlayerGreetings(prev => {
+            const newGreetings = { ...prev };
+            delete newGreetings[`${player.name}${player.surname}`];
+            return newGreetings;
+          });
+        }, 3000);
+      }, delay);
+    });
+
+    // Po 2 sekundách od posledního pozdravu přejdeme do stavu locker_room
     setTimeout(() => {
       setGameState('locker_room');
-      setPlayerGreetings({});
-    }, 4000);
+    }, delay + 2000);
   };
 
   // Komponenta pro zobrazení hráče v kabině
@@ -217,7 +226,7 @@ const OldaGameSimulation = ({ onBack, onGameComplete }) => {
       {playerGreetings[`${player.name}${player.surname}`] && (
         <div className="absolute -top-8 left-1/2 transform -translate-x-1/2 
                       bg-white text-black px-3 py-1 rounded-xl
-                      animate-fadeInOut whitespace-nowrap">
+                      animate-greetingBubble whitespace-nowrap">
           {playerGreetings[`${player.name}${player.surname}`]}
         </div>
       )}
@@ -409,10 +418,10 @@ const OldaGameSimulation = ({ onBack, onGameComplete }) => {
           to { opacity: 1; }
         }
 
-        @keyframes fadeInOut {
+        @keyframes greetingBubble {
           0% { opacity: 0; transform: translate(-50%, 10px); }
-          20% { opacity: 1; transform: translate(-50%, 0); }
-          80% { opacity: 1; transform: translate(-50%, 0); }
+          15% { opacity: 1; transform: translate(-50%, 0); }
+          85% { opacity: 1; transform: translate(-50%, 0); }
           100% { opacity: 0; transform: translate(-50%, -10px); }
         }
 
@@ -424,8 +433,8 @@ const OldaGameSimulation = ({ onBack, onGameComplete }) => {
           animation: fadeIn 0.5s ease-out forwards;
         }
 
-        .animate-fadeInOut {
-          animation: fadeInOut 2s ease-out forwards;
+        .animate-greetingBubble {
+          animation: greetingBubble 3s ease-out forwards;
         }
 
         /* Stylové scrollbary */
