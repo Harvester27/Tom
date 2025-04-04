@@ -11,7 +11,7 @@ function getInitialConversationsState() {
     {
       id: 'olda',
       name: 'Olda Trenér',
-      avatar: litvinovLancers.getPlayerPhotoUrl('Oldřich Štěpanovský'), // Generuje lowercase
+      avatar: litvinovLancers.getPlayerPhotoUrl('Oldřich Štěpanovský'),
       unread: 1, // Start with 1 unread
       lastMessage: 'Ahoj! Zítra máme s partou led v Chomutově od 17:00. Nechceš se přidat? 🏒',
       time: '08:00',
@@ -820,7 +820,7 @@ const PlayerCareer = ({ onBack, money, xp, level, getXpToNextLevel, getLevelProg
                 {conversations.filter(conv => conv.unread > 0).map(conv => (
                   <div 
                     key={conv.id}
-                    className={`bg-white/5 p-4 rounded-xl border ${conv.unread > 0 ? 'border-blue-500/50 animate-pulse' : 'border-white/10'} cursor-pointer`}
+                    className={`bg-white/5 p-4 rounded-xl border ${conv.unread > 0 ? 'border-blue-500/50 animate-pulse' : 'border-white/10'} cursor-pointer hover:bg-white/10 transition-colors`}
                     onClick={() => openChat(conv)}
                   >
                     <div className="flex items-center gap-3">
