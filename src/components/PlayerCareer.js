@@ -4,6 +4,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import Image from 'next/image';
 import OldaChat from './OldaChat';
 import { litvinovLancers } from '../data/LitvinovLancers';
+import OldaGameSimulation from './OldaGameSimulation';
 
 // Helper function for initial state
 function getInitialConversationsState() {
@@ -113,6 +114,9 @@ const PlayerCareer = ({ onBack, money, xp, level, getXpToNextLevel, getLevelProg
   const [activeChat, setActiveChat] = useState(null);
   const [scale, setScale] = useState(1); // State for scale factor
   const contentRef = useRef(null); // Ref for the content wrapper
+  const [showOldaGame, setShowOldaGame] = useState(false);
+  const [showRewards, setShowRewards] = useState(false);
+  const [matchResult, setMatchResult] = useState(null);
 
   // --- Scaling Logic Start ---
   useEffect(() => {
@@ -532,8 +536,7 @@ const PlayerCareer = ({ onBack, money, xp, level, getXpToNextLevel, getLevelProg
             : 'Trénink týmu',
           onClick: () => {
             if (hockeyPractice && isHockeyPracticeDay(currentDate, hockeyPractice) && isBeforePractice(currentHour, hockeyPractice)) {
-              // TODO: Implementovat hokejový zápas s partou
-              alert('Přišel jsi na hokej s partou! (Tato funkce bude brzy implementována)');
+              setShowOldaGame(true);
             } else {
               console.log('Trénink týmu');
             }
@@ -920,6 +923,28 @@ const PlayerCareer = ({ onBack, money, xp, level, getXpToNextLevel, getLevelProg
     });
   }, [currentDate, currentHour, hockeyPractice]);
 
+  // Funkce pro zpracování výsledku zápasu s Oldovou partou
+  const handleOldaGameComplete = (result) => {
+    // Přidání zkušeností a peněz
+    const xpReward = result.score.home > result.score.away ? 50 : 20;
+    const moneyReward = result.score.home > result.score.away ? 200 : 100;
+    
+    // Informujeme rodiče o změnách
+    if (onXpChange) onXpChange(xp + xpReward);
+    if (onMoneyChange) onMoneyChange(money + moneyReward);
+    
+    // Skryjeme simulaci a zobrazíme odměny
+    setShowOldaGame(false);
+    setShowRewards(true);
+    setMatchResult({
+      result: result.score.home > result.score.away ? 'win' : 'loss',
+      xpReward,
+      moneyReward,
+      homeScore: result.score.home,
+      awayScore: result.score.away
+    });
+  };
+
   return (
     // Outermost container centers the scaled content
     <div className="fixed inset-0 flex items-center justify-center overflow-hidden bg-black/90 z-50 p-4">
@@ -970,6 +995,48 @@ const PlayerCareer = ({ onBack, money, xp, level, getXpToNextLevel, getLevelProg
                 </button>
               </div>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Simulace zápasu s Oldovou partou */}
+      {showOldaGame && (
+        <OldaGameSimulation
+          onBack={() => setShowOldaGame(false)}
+          onGameComplete={handleOldaGameComplete}
+        />
+      )}
+
+      {/* Zobrazení odměn po zápase */}
+      {showRewards && matchResult && (
+        <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-[60]">
+          <div className="bg-gradient-to-br from-indigo-900/90 to-indigo-800/90 p-8 rounded-xl border border-indigo-500/30 shadow-xl backdrop-blur-sm max-w-md w-full mx-4">
+            <h3 className="text-2xl font-bold text-indigo-400 mb-6">
+              {matchResult.result === 'win' ? 'Výhra! 🎉' : 'Prohra 😔'}
+            </h3>
+            <div className="text-white mb-4">
+              <p className="text-xl mb-2">Konečné skóre:</p>
+              <p className="text-2xl font-bold mb-4">
+                Oldova parta {matchResult.homeScore} : {matchResult.awayScore} HC Teplice
+              </p>
+              <p className="text-lg">Získáno:</p>
+              <ul className="space-y-2 mt-2">
+                <li className="flex items-center gap-2">
+                  <span className="text-yellow-400">💰</span>
+                  {matchResult.moneyReward} Kč
+                </li>
+                <li className="flex items-center gap-2">
+                  <span className="text-blue-400">⭐</span>
+                  {matchResult.xpReward} XP
+                </li>
+              </ul>
+            </div>
+            <button
+              onClick={() => setShowRewards(false)}
+              className="w-full bg-indigo-500 hover:bg-indigo-600 text-white font-bold py-3 px-8 rounded-xl transition-colors"
+            >
+              Zavřít
+            </button>
           </div>
         </div>
       )}
