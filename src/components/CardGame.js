@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import PlayerCareer from './PlayerCareer';
+import OldaGameSimulation from './OldaGameSimulation';
 
   // Definice týmů pro turnaj
   const teamGinTonic = {
@@ -1089,144 +1090,39 @@ const CardGame = () => {
 
     // Zjistíme, zda se jedná o turnajový zápas
     const isTournamentMatch = tournamentState.phase !== null;
-    // === DEBUG LOG START ===
-    console.log(`[startMatch] Hodnota isTournamentMatch: ${isTournamentMatch} (protože phase je ${tournamentState.phase === null ? 'null' : 'není null'})`);
-    // === DEBUG LOG END ===
-    console.log(`Spouštím zápas (Turnaj: ${isTournamentMatch})`);
-
-    // Provedeme zbývající inicializaci zápasu
-    setShowMatch(true);
+    
+    // Spustíme novou simulaci zápasu
+    setShowGameSimulation(true);
     setShowTeamSelection(false);
-    
-    let opponent;
-    let isHomeTeam = true;  // Výchozí hodnota pro přátelský zápas
-    
-    // Určení soupeře a zda jsme domácí POUZE pro turnajové zápasy
-    if (isTournamentMatch) {
-      let currentMatch;
-      if (tournamentState.phase === 'playoff') {
-        currentMatch = tournamentState.matches.playoff.find(match => !match.score && (match.home === selectedTeam.name || match.away === selectedTeam.name));
-        // Pokud nenajdeme náš zápas v playoff (např. simulace), nenastavujeme soupeře
-        if (!currentMatch) {
-          console.error("Nenalezen aktuální playoff zápas pro hráče.");
-          // Můžeme zde vrátit nebo nastavit výchozí chování
-          // Prozatím necháme opponent = null, což by mělo použít výchozího soupeře
-        }
-      } else if (tournamentState.phase === 'groups') {
-        currentMatch = tournamentState.matches.groups[tournamentState.currentMatchIndex];
-      }
-
-      if (currentMatch) {
-        // Určíme, zda jsme domácí tým
-        isHomeTeam = currentMatch.home === selectedTeam.name;
-        const opponentName = isHomeTeam ? currentMatch.away : currentMatch.home;
-        opponent = getTeamByName(opponentName);
-        console.log(`Turnajový zápas: ${selectedTeam.name} (${isHomeTeam ? 'Domácí' : 'Hosté'}) vs ${opponentName}`);
-      } else {
-        console.log("Nebylo možné určit turnajového soupeře, použije se výchozí.");
-      }
-    } else {
-      console.log(`Přátelský zápas: ${selectedTeam.name} (Domácí) vs HC Lopaty Praha`);
-      // === DEBUG LOG START - Explicitní nastavení pro přátelský zápas ===
-      // ZDE BY MOHLO BÝT POTŘEBA NASTAVIT phase NA null, POKUD JEŠTĚ NENÍ
-      // Např.: if (tournamentState.phase !== null) {
-      //   console.log('[startMatch] Explicitně nastavuji tournamentState.phase na null pro přátelský zápas.');
-      //   setTournamentState(prev => ({ ...prev, phase: null }));
-      // }
-      // === DEBUG LOG END ===
-    }
-
-    // Pokud není turnajový soupeř určen, použijeme výchozího (pro přátelský zápas nebo jako fallback)
-    if (!opponent) {
-      opponent = opponentTeam;
-    }
-
-    // Generování časů střel pro oba týmy
-    const shotTimes = generateShotTimes(selectedTeam, opponent);
-    
-    // Inicializace stavu zápasu
-    setMatchState(prev => ({
-      ...prev,
-      period: 1,
-      time: 1200,
-      isPlaying: true,
-      score: { home: 0, away: 0 },
-      events: [],
-      playerStats: {
-        goals: {},
-        assists: {},
-        saves: {},
-        saveAccuracy: {},
-        shots: {}
-      },
-      penalties: [],
-      scheduledEvents: generateEventsForAllPeriods(),
-      currentOpponent: opponent,
-      shotTimes: shotTimes,
-      isHomeTeam: isHomeTeam // Nastavíme podle skutečnosti
-    }));
   };
 
-  // Funkce pro generování časů střel
-  const generateShotTimes = (homeTeam, awayTeam) => {
-    const shotTimes = {
-      home: [],
-      away: []
-    };
-
-    // Výpočet síly týmů
-    const homeTeamStrength = homeTeam.forwards.reduce((sum, id) => sum + getCardLevel(id), 0) +
-                            homeTeam.defenders.reduce((sum, id) => sum + getCardLevel(id), 0);
+  const handleGameComplete = (result) => {
+    setShowGameSimulation(false);
     
-    const awayTeamStrength = awayTeam.forwards.reduce((sum, p) => sum + (typeof p === 'string' ? getCardLevel(p) : p.level), 0) +
-                            awayTeam.defenders.reduce((sum, p) => sum + (typeof p === 'string' ? getCardLevel(p) : p.level), 0);
-
-    // Pro každou třetinu
-    for (let period = 1; period <= 3; period++) {
-      const minTime = (period - 1) * 1200 + 5;
-      const maxTime = period * 1200;
-      
-      // Základní počet střel je 8-12, plus bonus podle síly týmu
-      const homeBaseShots = Math.floor(Math.random() * 5) + 8;
-      const awayBaseShots = Math.floor(Math.random() * 5) + 8;
-
-      // Bonus střel podle síly týmu (každých 5 bodů síly = +1 střela)
-      const homeShots = homeBaseShots + Math.floor(homeTeamStrength / 5);
-      const awayShots = awayBaseShots + Math.floor(awayTeamStrength / 5);
-
-      // Přidání náhodných časů pro oba týmy
-      for (let i = 0; i < homeShots; i++) {
-        shotTimes.home.push(Math.floor(Math.random() * (maxTime - minTime) + minTime));
-      }
-      for (let i = 0; i < awayShots; i++) {
-        shotTimes.away.push(Math.floor(Math.random() * (maxTime - minTime) + minTime));
-      }
-    }
-
-    // Seřazení časů
-    shotTimes.home.sort((a, b) => a - b);
-    shotTimes.away.sort((a, b) => a - b);
-
-    return shotTimes;
-  };
-
-  // Funkce pro generování událostí pro všechny třetiny
-  const generateEventsForAllPeriods = () => {
-    const events = [];
-    // Pro každou třetinu
-    for (let period = 1; period <= 3; period++) {
-      const periodStart = (period - 1) * 1200;
-      const periodEnd = period * 1200;
-      // Generujeme 5-12 událostí pro každou třetinu
-      const numEvents = Math.floor(Math.random() * (12 - 5 + 1)) + 5;
-      for (let i = 0; i < numEvents; i++) {
-        // Generujeme čas v rámci dané třetiny
-        const eventTime = Math.floor(Math.random() * (periodEnd - periodStart - 5)) + periodStart + 5;
-        events.push(eventTime);
-      }
-    }
-    // Seřadíme události sestupně (od největšího času po nejmenší)
-    return events.sort((a, b) => b - a);
+    // Přidání zkušeností po dokončení zápasu
+    const earnedXp = result.score.home > result.score.away 
+      ? 25  // Výhra
+      : result.score.home === result.score.away 
+        ? 10  // Remíza
+        : 1;  // Prohra
+    
+    setXp(prevXp => prevXp + earnedXp);
+    
+    // Nastavení výsledku zápasu pro zobrazení odměn
+    setMatchResult({
+      result: result.score.home > result.score.away 
+        ? "win" 
+        : result.score.home === result.score.away 
+          ? "draw" 
+          : "loss",
+      xpReward: earnedXp,
+      moneyReward: result.score.home > result.score.away ? 50 : result.score.home === result.score.away ? 10 : 1,
+      homeScore: result.score.home,
+      awayScore: result.score.away
+    });
+    
+    // Zobrazení odměn
+    setShowRewards(true);
   };
 
   // Herní timer
@@ -2715,6 +2611,8 @@ const CardGame = () => {
     // Cleanup listener on component unmount
     return () => window.removeEventListener('resize', updateScale);
   }, []);
+
+  const [showGameSimulation, setShowGameSimulation] = useState(false);
 
   return (
     <div className="relative min-h-screen bg-gradient-to-br from-gray-900 to-black font-hokej p-4">
@@ -4691,6 +4589,13 @@ const CardGame = () => {
           </div>
         )}
       </div>
+
+      {showGameSimulation && (
+        <OldaGameSimulation
+          onBack={() => setShowGameSimulation(false)}
+          onGameComplete={handleGameComplete}
+        />
+      )}
     </div>
   );
 };

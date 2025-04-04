@@ -1,239 +1,336 @@
+'use client';
+
 import React, { useState, useEffect } from 'react';
-import { litvinovLancers } from '../data/LitvinovLancers';
+import Image from 'next/image';
+import { litvinovLancers, personalityTypes } from '../data/LitvinovLancers';
 
 const OldaGameSimulation = ({ onBack, onGameComplete }) => {
-  const [gameState, setGameState] = useState({
-    period: 1,
-    time: 1200, // 20 minut v sekundách
-    score: { home: 0, away: 0 },
-    events: [],
-    isPlaying: true
-  });
-
+  const [gameState, setGameState] = useState('warmup'); // warmup, period1, period2, period3, end
+  const [score, setScore] = useState({ home: 0, away: 0 });
+  const [currentTime, setCurrentTime] = useState(0); // 0-1200 seconds (20 minutes)
   const [gameSpeed, setGameSpeed] = useState(1);
+  const [events, setEvents] = useState([]);
+  const [currentEvent, setCurrentEvent] = useState(null);
+  const [showPlayerInteraction, setShowPlayerInteraction] = useState(false);
+  const [interactingPlayer, setInteractingPlayer] = useState(null);
 
-  const formatTime = (seconds) => {
+  // Definice týmů pro zápas
+  const homeTeam = {
+    name: "Oldova parta",
+    players: [
+      litvinovLancers.players.find(p => p.name === "Vlastimil" && p.surname === "Nistor"), // brankář
+      litvinovLancers.players.find(p => p.name === "Oldřich" && p.surname === "Štěpanovský"), // obránce
+      litvinovLancers.players.find(p => p.name === "Roman" && p.surname === "Šimek"), // obránce
+      litvinovLancers.players.find(p => p.name === "Václav" && p.surname === "Matějovič"), // útočník
+      litvinovLancers.players.find(p => p.name === "Vašek" && p.surname === "Materna"), // útočník
+    ]
+  };
+
+  const awayTeam = {
+    name: "HC Teplice",
+    players: Array(5).fill(null) // Protihráči budou generovaní
+  };
+
+  // Generování herních událostí
+  const generateGameEvents = () => {
+    const possibleEvents = [
+      {
+        type: 'shot',
+        description: 'Dostáváš přihrávku od {player}, střílíš na bránu!',
+        choices: [
+          { text: 'Vystřelit přímo', success: 0.4, relationship: 'neutral' },
+          { text: 'Naznačit střelu a vystřelit', success: 0.6, relationship: 'neutral' },
+          { text: 'Přihrát zpět na {player}', success: 0.8, relationship: 'assist' }
+        ]
+      },
+      {
+        type: 'defense',
+        description: 'Soupeř se řítí na naši bránu, jsi poslední obránce!',
+        choices: [
+          { text: 'Zkusit vypíchnout puk', success: 0.5, relationship: 'neutral' },
+          { text: 'Přibrzdit soupeře tělem', success: 0.7, relationship: 'neutral' },
+          { text: 'Počkat na pomoc od {player}', success: 0.8, relationship: 'assist' }
+        ]
+      },
+      {
+        type: 'pass',
+        description: '{player} je volný před bránou!',
+        choices: [
+          { text: 'Rychle přihrát', success: 0.6, relationship: 'assist' },
+          { text: 'Zkusit to sám', success: 0.3, relationship: 'mistake' },
+          { text: 'Počkat na lepší pozici', success: 0.4, relationship: 'neutral' }
+        ]
+      }
+    ];
+
+    return possibleEvents.map(event => ({
+      ...event,
+      player: homeTeam.players[Math.floor(Math.random() * homeTeam.players.length)]
+    }));
+  };
+
+  // Generování komentářů spoluhráčů podle jejich osobnosti
+  const generatePlayerComment = (player, eventResult) => {
+    const personality = personalityTypes[player.personality];
+    const comments = {
+      success: {
+        pratelsky: ["Skvělá práce, parťáku! 👍", "To byla paráda! Jen tak dál! 🎉"],
+        profesional: ["Dobře odehraná situace.", "Přesně tak se to má hrát."],
+        soutezivi: ["Výborně! Takhle je dostaneme! 💪", "To je ono! Ještě pár takových akcí!"],
+        mentor: ["Správné rozhodnutí v té situaci.", "Vidíš, jak to funguje, když se hraje hlavou?"],
+        samotarsky: ["Dobrý zákrok.", "*přikývne*"],
+        vtipkar: ["No ty jsi ale šikula! 😄", "Takhle nějak to učili v hokejové školce? 😉"]
+      },
+      failure: {
+        pratelsky: ["Nevadí, příště to vyjde! 😊", "Hlavně se z toho neposer 😅"],
+        profesional: ["Musíme se z toho poučit.", "Příště lépe vyhodnotit situaci."],
+        soutezivi: ["Tohle si nemůžeme dovolit!", "Musíme být důraznější! 😤"],
+        mentor: ["Pojď, probereme, co šlo udělat jinak.", "Z chyb se člověk učí."],
+        samotarsky: ["Hmm...", "*pokrčí rameny*"],
+        vtipkar: ["Aspoň že jsi hezkej/hezká! 😂", "I mistr tesař se někdy utne! 😅"]
+      }
+    };
+
+    const commentType = eventResult ? 'success' : 'failure';
+    const possibleComments = comments[commentType][player.personality];
+    return possibleComments[Math.floor(Math.random() * possibleComments.length)];
+  };
+
+  // Efekt pro simulaci hry
+  useEffect(() => {
+    if (gameState === 'end') return;
+
+    const interval = setInterval(() => {
+      setCurrentTime(prev => {
+        const newTime = prev + gameSpeed;
+        
+        // Generování nové události
+        if (Math.random() < 0.1 && !currentEvent) {
+          const possibleEvents = generateGameEvents();
+          setCurrentEvent(possibleEvents[Math.floor(Math.random() * possibleEvents.length)]);
+        }
+
+        // Kontrola konce třetiny/zápasu
+        if (newTime >= 1200) {
+          if (gameState === 'period3') {
+            setGameState('end');
+            if (onGameComplete) {
+              onGameComplete({ score });
+            }
+          } else {
+            setGameState(prev => {
+              switch (prev) {
+                case 'period1': return 'period2';
+                case 'period2': return 'period3';
+                default: return prev;
+              }
+            });
+            return 0;
+          }
+        }
+        
+        return newTime;
+      });
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, [gameState, gameSpeed, currentEvent]);
+
+  // Formátování času
+  const formatGameTime = (seconds) => {
     const minutes = Math.floor(seconds / 60);
     const remainingSeconds = seconds % 60;
-    return `${minutes.toString().padStart(2, '0')}:${remainingSeconds.toString().padStart(2, '0')}`;
+    return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
   };
 
-  // Generování náhodných událostí
-  const generateEvent = (currentTime) => {
-    const events = [
-      "Střela na branku",
-      "Nebezpečná akce",
-      "Dobrý zákrok brankáře",
-      "Faul",
-      "Přihrávka do šance"
-    ];
+  // Zpracování volby hráče
+  const handleChoice = (choice) => {
+    const success = Math.random() < choice.success;
+    const eventPlayer = currentEvent.player;
 
-    const players = [
-      "Oldřich Štěpanovský",
-      "Petr Štěpanovský",
-      "Jiří Belinger",
-      "Roman Šimek",
-      "Václav Matějovič"
-    ];
-
-    const event = events[Math.floor(Math.random() * events.length)];
-    const player = players[Math.floor(Math.random() * players.length)];
-    const isHomeTeam = Math.random() > 0.5;
-
-    // 20% šance na gól při každé události
-    const isGoal = Math.random() < 0.2;
-
-    return {
-      type: isGoal ? "goal" : "event",
-      text: isGoal 
-        ? `GÓÓÓL! ${player} skóruje!` 
-        : `${event} - ${player}`,
-      time: formatTime(1200 - currentTime),
-      isHomeTeam,
-      id: Date.now()
-    };
-  };
-
-  // Herní timer
-  useEffect(() => {
-    if (gameState.isPlaying) {
-      const gameTimer = setInterval(() => {
-        setGameState(prev => {
-          const timeDecrease = gameSpeed;
-          const newTime = prev.time - timeDecrease;
-
-          // Generování náhodných událostí
-          if (Math.random() < 0.1) { // 10% šance na událost každou sekundu
-            const event = generateEvent(newTime);
-            const newEvents = [...prev.events];
-            newEvents.unshift(event);
-
-            // Aktualizace skóre pokud je to gól
-            let newScore = { ...prev.score };
-            if (event.type === "goal") {
-              if (event.isHomeTeam) {
-                newScore.home += 1;
-              } else {
-                newScore.away += 1;
-              }
-            }
-
-            if (newTime <= 0) {
-              if (prev.period < 3) {
-                return {
-                  ...prev,
-                  period: prev.period + 1,
-                  time: 1200,
-                  score: newScore,
-                  events: newEvents
-                };
-              } else {
-                clearInterval(gameTimer);
-                // Zavoláme callback s výsledkem
-                if (onGameComplete) {
-                  onGameComplete({
-                    score: newScore,
-                    events: newEvents
-                  });
-                }
-                return {
-                  ...prev,
-                  isPlaying: false,
-                  time: 0,
-                  score: newScore,
-                  events: newEvents
-                };
-              }
-            }
-
-            return {
-              ...prev,
-              time: newTime,
-              score: newScore,
-              events: newEvents
-            };
-          }
-
-          if (newTime <= 0) {
-            if (prev.period < 3) {
-              return {
-                ...prev,
-                period: prev.period + 1,
-                time: 1200
-              };
-            } else {
-              clearInterval(gameTimer);
-              // Zavoláme callback s výsledkem
-              if (onGameComplete) {
-                onGameComplete({
-                  score: prev.score,
-                  events: prev.events
-                });
-              }
-              return {
-                ...prev,
-                isPlaying: false,
-                time: 0
-              };
-            }
-          }
-
-          return {
-            ...prev,
-            time: newTime
-          };
-        });
-      }, 1000);
-
-      return () => clearInterval(gameTimer);
+    if (success) {
+      if (Math.random() < 0.3) {
+        setScore(prev => ({ ...prev, home: prev.home + 1 }));
+      }
+    } else {
+      if (Math.random() < 0.2) {
+        setScore(prev => ({ ...prev, away: prev.away + 1 }));
+      }
     }
-  }, [gameState.isPlaying, gameSpeed, onGameComplete]);
+
+    // Přidání události do historie
+    setEvents(prev => [...prev, {
+      time: currentTime,
+      description: currentEvent.description.replace('{player}', `${eventPlayer.name} ${eventPlayer.surname}`),
+      choice: choice.text.replace('{player}', `${eventPlayer.name} ${eventPlayer.surname}`),
+      result: success ? 'success' : 'failure'
+    }]);
+
+    // Zobrazení reakce spoluhráče
+    setInteractingPlayer(eventPlayer);
+    setShowPlayerInteraction(true);
+    setTimeout(() => setShowPlayerInteraction(false), 3000);
+
+    setCurrentEvent(null);
+  };
+
+  // Začátek zápasu
+  const startGame = () => {
+    setGameState('period1');
+  };
 
   return (
-    <div className="fixed inset-0 bg-black/90 flex flex-col items-center justify-center z-50 p-4">
-      <div className="max-w-4xl w-full mx-auto bg-gradient-to-br from-blue-900/50 to-blue-800/20 rounded-xl p-8 border border-blue-500/20">
-        <div className="text-center mb-8">
-          <h2 className="text-3xl font-bold text-blue-400 mb-2">Hokej s Oldovou partou</h2>
-          <div className="text-xl text-white">
-            Oldova parta vs HC Teplice
+    <div className="fixed inset-0 bg-black/90 flex items-center justify-center z-50">
+      <div className="bg-gradient-to-br from-indigo-900/90 to-indigo-800/90 p-8 rounded-xl border border-indigo-500/30 shadow-xl backdrop-blur-sm max-w-4xl w-full mx-4 relative">
+        {/* Záhlaví */}
+        <div className="flex justify-between items-center mb-6">
+          <h2 className="text-2xl font-bold text-indigo-400">
+            {gameState === 'warmup' ? 'Příprava na zápas' :
+             gameState === 'end' ? 'Konec zápasu' :
+             `${gameState === 'period1' ? '1.' : gameState === 'period2' ? '2.' : '3.'} třetina`}
+          </h2>
+          <div className="text-xl font-bold text-white">
+            {homeTeam.name} {score.home} : {score.away} {awayTeam.name}
+          </div>
+          <div className="text-xl font-bold text-indigo-400">
+            {formatGameTime(currentTime)}
           </div>
         </div>
 
-        {/* Časomíra a skóre */}
-        <div className="bg-black/50 p-6 rounded-xl mb-8">
-          <div className="flex justify-between items-center">
-            <div className="text-center">
-              <img src="/Images/Litvinov_Lancers.png" alt="Oldova parta" className="h-16 object-contain mb-2" />
-              <div className="text-white font-bold">Oldova parta</div>
+        {/* Hlavní obsah */}
+        <div className="space-y-6">
+          {gameState === 'warmup' ? (
+            <div className="text-center space-y-4">
+              <p className="text-indigo-200">Jsi připraven na zápas s {awayTeam.name}?</p>
+              <button
+                onClick={startGame}
+                className="bg-indigo-500 hover:bg-indigo-600 text-white font-bold py-3 px-8 rounded-xl transition-colors"
+              >
+                Začít zápas
+              </button>
             </div>
-            <div className="text-center">
-              <div className="text-4xl font-bold text-yellow-400 mb-2">
-                {gameState.score.home} : {gameState.score.away}
-              </div>
-              <div className="text-3xl font-mono text-white">
-                {formatTime(gameState.time)}
-              </div>
-              <div className="text-xl text-yellow-200 mt-2">
-                {gameState.period}. třetina
-              </div>
+          ) : gameState === 'end' ? (
+            <div className="text-center space-y-4">
+              <p className="text-2xl font-bold text-indigo-400">
+                Konečný výsledek: {homeTeam.name} {score.home} : {score.away} {awayTeam.name}
+              </p>
+              <p className="text-indigo-200">
+                {score.home > score.away ? 'Gratulujeme k výhře! 🎉' :
+                 score.home < score.away ? 'Příště to bude lepší! 💪' :
+                 'Dobrá remíza! 🤝'}
+              </p>
+              <button
+                onClick={onBack}
+                className="bg-indigo-500 hover:bg-indigo-600 text-white font-bold py-3 px-8 rounded-xl transition-colors"
+              >
+                Zpět do města
+              </button>
             </div>
-            <div className="text-center">
-              <img src="/Images/question_mark.png" alt="HC Teplice" className="h-16 object-contain mb-2" />
-              <div className="text-white font-bold">HC Teplice</div>
-            </div>
-          </div>
+          ) : (
+            <>
+              {/* Aktuální událost */}
+              {currentEvent && (
+                <div className="bg-black/30 p-6 rounded-xl border border-indigo-500/30 space-y-4">
+                  <p className="text-indigo-200">
+                    {currentEvent.description.replace('{player}', `${currentEvent.player.name} ${currentEvent.player.surname}`)}
+                  </p>
+                  <div className="grid grid-cols-3 gap-4">
+                    {currentEvent.choices.map((choice, index) => (
+                      <button
+                        key={index}
+                        onClick={() => handleChoice(choice)}
+                        className="bg-indigo-500/20 hover:bg-indigo-500/30 text-white py-2 px-4 rounded-lg transition-colors"
+                      >
+                        {choice.text.replace('{player}', `${currentEvent.player.name} ${currentEvent.player.surname}`)}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Interakce s hráčem */}
+              {showPlayerInteraction && interactingPlayer && (
+                <div className="absolute bottom-4 right-4 bg-black/60 p-4 rounded-xl border border-indigo-500/30 flex items-center gap-4 animate-slideUp">
+                  <div className="w-16 h-16 rounded-full overflow-hidden">
+                    <Image
+                      src={litvinovLancers.getPlayerPhotoUrl(`${interactingPlayer.name} ${interactingPlayer.surname}`)}
+                      alt={`${interactingPlayer.name} ${interactingPlayer.surname}`}
+                      width={64}
+                      height={64}
+                      className="w-full h-full object-cover"
+                      unoptimized={true}
+                    />
+                  </div>
+                  <div>
+                    <div className="text-indigo-400 font-bold">
+                      {interactingPlayer.name} {interactingPlayer.surname}
+                    </div>
+                    <div className="text-white">
+                      {generatePlayerComment(interactingPlayer, events[events.length - 1]?.result === 'success')}
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Historie událostí */}
+              <div className="mt-4 space-y-2 max-h-40 overflow-y-auto">
+                {events.slice(-5).map((event, index) => (
+                  <div key={index} className="text-indigo-200/70 text-sm">
+                    [{formatGameTime(event.time)}] {event.description} - {event.choice}
+                    <span className={event.result === 'success' ? ' text-green-400' : ' text-red-400'}>
+                      {event.result === 'success' ? ' ✓' : ' ✗'}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </>
+          )}
         </div>
 
         {/* Ovládání rychlosti */}
-        <div className="flex justify-center gap-2 mb-8">
-          {[1, 2, 4, 8].map(speed => (
+        {gameState !== 'warmup' && gameState !== 'end' && (
+          <div className="absolute top-4 right-4 flex items-center gap-2">
             <button
-              key={speed}
-              onClick={() => setGameSpeed(speed)}
-              className={`px-4 py-2 rounded ${
-                gameSpeed === speed
-                  ? 'bg-blue-500 text-white'
-                  : 'bg-blue-900/50 text-blue-200 hover:bg-blue-800/50'
-              }`}
+              onClick={() => setGameSpeed(1)}
+              className={`px-3 py-1 rounded ${gameSpeed === 1 ? 'bg-indigo-500 text-white' : 'bg-indigo-500/20 text-indigo-300'}`}
             >
-              {speed}×
+              1×
             </button>
-          ))}
-        </div>
-
-        {/* Seznam událostí */}
-        <div className="bg-black/30 rounded-xl p-6 max-h-[400px] overflow-y-auto">
-          <div className="space-y-2">
-            {gameState.events.map(event => (
-              <div
-                key={event.id}
-                className={`p-3 rounded-lg ${
-                  event.type === 'goal'
-                    ? 'bg-green-900/40 border-l-4 border-green-500'
-                    : 'bg-blue-900/20'
-                }`}
-              >
-                <div className="flex items-center gap-2">
-                  <span className="text-gray-400 font-mono">{event.time}</span>
-                  <span className="text-white">{event.text}</span>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* Tlačítko pro návrat */}
-        {!gameState.isPlaying && (
-          <div className="text-center mt-8">
             <button
-              onClick={onBack}
-              className="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-6 rounded-lg"
+              onClick={() => setGameSpeed(2)}
+              className={`px-3 py-1 rounded ${gameSpeed === 2 ? 'bg-indigo-500 text-white' : 'bg-indigo-500/20 text-indigo-300'}`}
             >
-              Zpět do menu
+              2×
+            </button>
+            <button
+              onClick={() => setGameSpeed(4)}
+              className={`px-3 py-1 rounded ${gameSpeed === 4 ? 'bg-indigo-500 text-white' : 'bg-indigo-500/20 text-indigo-300'}`}
+            >
+              4×
             </button>
           </div>
         )}
+
+        {/* Tlačítko zpět */}
+        {gameState !== 'end' && (
+          <button
+            onClick={onBack}
+            className="absolute top-4 left-4 bg-indigo-500/50 hover:bg-indigo-500/70 text-white px-4 py-2 rounded-lg transition-colors"
+          >
+            ← Zpět
+          </button>
+        )}
       </div>
+
+      <style jsx>{`
+        @keyframes slideUp {
+          from { transform: translateY(100%); opacity: 0; }
+          to { transform: translateY(0); opacity: 1; }
+        }
+        .animate-slideUp {
+          animation: slideUp 0.3s ease-out forwards;
+        }
+      `}</style>
     </div>
   );
 };
