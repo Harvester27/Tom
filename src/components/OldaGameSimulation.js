@@ -589,12 +589,15 @@ const OldaGameSimulation = ({ onBack, onGameComplete }) => {
               </div>
             )}
 
-            {/* Seznam událostí (zprávy a odpovědi) */}
-            <div className="fixed bottom-4 right-4 max-w-md w-full space-y-2 pointer-events-none z-30">
+            {/* Odpovědi hráčů - přesunuto mimo kabinu */}
+            <div className="fixed bottom-4 right-4 max-w-md w-full space-y-2 pointer-events-none z-[70]">
               {playerResponses.map((response, index) => (
                 <div
                   key={index}
                   className="p-4 rounded-xl text-white bg-indigo-900/90 backdrop-blur-sm animate-slideUp border border-indigo-500/30 flex items-start gap-3"
+                  style={{
+                    animation: `slideUp 0.3s ease-out forwards, fadeOut 5s ease-in forwards ${index * 0.5}s`
+                  }}
                 >
                   <div className="w-12 h-12 rounded-full overflow-hidden flex-shrink-0 border-2 border-indigo-500/50">
                     <Image
@@ -687,6 +690,11 @@ const OldaGameSimulation = ({ onBack, onGameComplete }) => {
         @keyframes slideUp {
           from { transform: translateY(20px); opacity: 0; }
           to { transform: translateY(0); opacity: 1; }
+        }
+
+        @keyframes fadeOut {
+          0%, 80% { opacity: 1; }
+          100% { opacity: 0; }
         }
 
         .animate-slideUp {
