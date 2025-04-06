@@ -526,323 +526,95 @@ const OldaGameSimulation = ({ onBack, onGameComplete }) => {
   };
 
   return (
-    <div className="fixed inset-0 bg-black/90 flex items-center justify-center z-50">
-      <div className="bg-gradient-to-br from-indigo-900/90 to-indigo-800/90 p-8 rounded-xl border border-indigo-500/30 shadow-xl backdrop-blur-sm max-w-7xl w-full mx-4 relative">
-        {gameState === 'entering' ? (
-          <div className="text-center py-12">
-            <h2 className="text-3xl font-bold bg-gradient-to-r from-indigo-400 to-indigo-600 bg-clip-text text-transparent mb-8 animate-fadeIn">
-              Vstupuješ do kabiny...
-            </h2>
+    <div className="fixed inset-0 bg-black/90 text-white z-50 flex items-center justify-center">
+      <div className="w-full max-w-7xl mx-auto p-8">
+        {gameState === 'enter' && (
+          <div className="text-center space-y-8">
+            <h2 className="text-4xl font-bold text-indigo-400">Vstup do kabiny</h2>
+            <p className="text-xl text-indigo-300">Oldova parta už na tebe čeká!</p>
             <button
               onClick={enterLockerRoom}
-              className="bg-indigo-500 hover:bg-indigo-600 text-white px-6 py-3 rounded-xl
-                        transition-all duration-300 transform hover:scale-105"
+              className="bg-indigo-500 hover:bg-indigo-600 text-white px-8 py-3 rounded-xl text-xl font-bold transition-colors"
             >
               Vstoupit do kabiny
             </button>
           </div>
-        ) : gameState === 'greeting' ? (
-          <>
-            <h2 className="text-3xl font-bold text-center bg-gradient-to-r from-indigo-400 to-indigo-600 bg-clip-text text-transparent mb-8">
-              Kabina Lancers
-            </h2>
-            
-            <TeamInteractionButton />
-
-            {/* Dialog pro výběr otázky */}
-            {showTeamDialog && (
-              <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-                <div className="bg-gradient-to-br from-indigo-900/90 to-indigo-800/90 p-6 rounded-xl border border-indigo-500/30 max-w-md w-full mx-4">
-                  <h3 className="text-xl font-bold text-indigo-300 mb-4">Co chceš říct?</h3>
-                  <div className="space-y-2">
-                    {questions.map((question) => (
-                      <button
-                        key={question.id}
-                        onClick={() => handleQuestionSelect(question)}
-                        className="w-full text-left px-4 py-3 rounded-lg bg-indigo-500/20 hover:bg-indigo-500/30 text-white transition-colors"
-                      >
-                        {question.text}
-                      </button>
-                    ))}
-                  </div>
-                  <button
-                    onClick={() => setShowTeamDialog(false)}
-                    className="mt-4 px-4 py-2 bg-gray-500/50 hover:bg-gray-500/70 text-white rounded-lg transition-colors"
-                  >
-                    Zavřít
-                  </button>
-                </div>
-              </div>
-            )}
-
-            {/* Seznam událostí (zprávy a odpovědi) */}
-            <div className="fixed bottom-4 right-4 max-w-md w-full space-y-2 pointer-events-none z-30">
-              {events.slice(-3).map((event, index) => (
-                <div
-                  key={index}
-                  className={`p-3 rounded-lg text-white animate-fadeIn ${
-                    event.type === 'player_speech' 
-                      ? 'bg-indigo-600 ml-12' 
-                      : 'bg-gray-600/50 mr-12'
-                  }`}
-                >
-                  {event.text}
-                </div>
-              ))}
-            </div>
-
-            <div className="space-y-6">
-              {/* Brankáři */}
-              <div>
-                <h3 className="text-xl font-bold text-indigo-300 mb-3">
-                  Brankáři <span className="text-sm text-indigo-400">({groupedPlayers['brankář']?.length || 0} / 2)</span>
-                </h3>
-                <div className="grid grid-cols-2 gap-4">
-                  {groupedPlayers['brankář']?.map((player, index) => (
-                    <LockerRoomPlayer key={index} player={player} playerGreetings={playerGreetings} />
-                  ))}
-                </div>
-              </div>
-
-              {/* Obránci */}
-              <div>
-                <h3 className="text-xl font-bold text-indigo-300 mb-3">
-                  Obránci <span className="text-sm text-indigo-400">({groupedPlayers['obránce']?.length || 0} / 6)</span>
-                </h3>
-                <div className="grid grid-cols-3 gap-4">
-                  {groupedPlayers['obránce']?.map((player, index) => (
-                    <LockerRoomPlayer key={index} player={player} playerGreetings={playerGreetings} />
-                  ))}
-                </div>
-              </div>
-
-              {/* Útočníci */}
-              <div>
-                <h3 className="text-xl font-bold text-indigo-300 mb-3">
-                  Útočníci <span className="text-sm text-indigo-400">({groupedPlayers['útočník']?.length || 0} / 11)</span>
-                </h3>
-                <div className="grid grid-cols-4 gap-4">
-                  {groupedPlayers['útočník']?.map((player, index) => (
-                    <LockerRoomPlayer key={index} player={player} playerGreetings={playerGreetings} />
-                  ))}
-                </div>
-              </div>
-            </div>
-
-            {showGreetPrompt && (
-              <div className="fixed inset-0 flex items-center justify-center bg-black/50 z-50">
-                <div className="bg-indigo-900/90 p-8 rounded-xl border border-indigo-500/30 text-center">
-                  <h3 className="text-2xl font-bold text-indigo-300 mb-4">
-                    Pozdravit ostatní?
-                  </h3>
-                  <div className="space-x-4">
-                    <button
-                      onClick={handleGreet}
-                      className="bg-indigo-500 hover:bg-indigo-600 text-white px-6 py-2 rounded-lg transition-colors"
-                    >
-                      Pozdravit
-                    </button>
-                    <button
-                      onClick={() => {
-                        setShowGreetPrompt(false);
-                        setGameState('locker_room');
-                      }}
-                      className="bg-gray-500/50 hover:bg-gray-500/70 text-white px-6 py-2 rounded-lg transition-colors"
-                    >
-                      Ignorovat
-                    </button>
-                  </div>
-                </div>
-              </div>
-            )}
-          </>
-        ) : gameState === 'locker_room' ? (
-          <>
-            <h2 className="text-3xl font-bold text-center bg-gradient-to-r from-indigo-400 to-indigo-600 bg-clip-text text-transparent mb-8">
-              Kabina Lancers
-            </h2>
-            
-            <TeamInteractionButton />
-
-            {/* Dialog pro výběr otázky */}
-            {showTeamDialog && (
-              <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-                <div className="bg-gradient-to-br from-indigo-900/90 to-indigo-800/90 p-6 rounded-xl border border-indigo-500/30 max-w-md w-full mx-4">
-                  <h3 className="text-xl font-bold text-indigo-300 mb-4">Co chceš říct?</h3>
-                  <div className="space-y-2">
-                    {questions.map((question) => (
-                      <button
-                        key={question.id}
-                        onClick={() => handleQuestionSelect(question)}
-                        className="w-full text-left px-4 py-3 rounded-lg bg-indigo-500/20 hover:bg-indigo-500/30 text-white transition-colors"
-                      >
-                        {question.text}
-                      </button>
-                    ))}
-                  </div>
-                  <button
-                    onClick={() => setShowTeamDialog(false)}
-                    className="mt-4 px-4 py-2 bg-gray-500/50 hover:bg-gray-500/70 text-white rounded-lg transition-colors"
-                  >
-                    Zavřít
-                  </button>
-                </div>
-              </div>
-            )}
-
-            {/* Seznam událostí (zprávy a odpovědi) */}
-            <div className="fixed bottom-4 right-4 max-w-md w-full space-y-2 pointer-events-none z-30">
-              {events.slice(-3).map((event, index) => (
-                <div
-                  key={index}
-                  className={`p-3 rounded-lg text-white animate-fadeIn ${
-                    event.type === 'player_speech' 
-                      ? 'bg-indigo-600 ml-12' 
-                      : 'bg-gray-600/50 mr-12'
-                  }`}
-                >
-                  {event.text}
-                </div>
-              ))}
-            </div>
-
-            <div className="space-y-6">
-              {/* Brankáři */}
-              <div>
-                <h3 className="text-xl font-bold text-indigo-300 mb-3">
-                  Brankáři <span className="text-sm text-indigo-400">({groupedPlayers['brankář']?.length || 0} / 2)</span>
-                </h3>
-                <div className="grid grid-cols-2 gap-4">
-                  {groupedPlayers['brankář']?.map((player, index) => (
-                    <LockerRoomPlayer key={index} player={player} playerGreetings={playerGreetings} />
-                  ))}
-                </div>
-              </div>
-
-              {/* Obránci */}
-              <div>
-                <h3 className="text-xl font-bold text-indigo-300 mb-3">
-                  Obránci <span className="text-sm text-indigo-400">({groupedPlayers['obránce']?.length || 0} / 6)</span>
-                </h3>
-                <div className="grid grid-cols-3 gap-4">
-                  {groupedPlayers['obránce']?.map((player, index) => (
-                    <LockerRoomPlayer key={index} player={player} playerGreetings={playerGreetings} />
-                  ))}
-                </div>
-              </div>
-
-              {/* Útočníci */}
-              <div>
-                <h3 className="text-xl font-bold text-indigo-300 mb-3">
-                  Útočníci <span className="text-sm text-indigo-400">({groupedPlayers['útočník']?.length || 0} / 11)</span>
-                </h3>
-                <div className="grid grid-cols-4 gap-4">
-                  {groupedPlayers['útočník']?.map((player, index) => (
-                    <LockerRoomPlayer key={index} player={player} playerGreetings={playerGreetings} />
-                  ))}
-                </div>
-              </div>
-            </div>
-
-            <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 text-center text-indigo-300">
-              Hráči se připravují na zápas...
-            </div>
-
-            <TimeControl />
-          </>
-        ) : (
-          <div>Další stavy hry budou následovat...</div>
         )}
 
-        <button
-          onClick={onBack}
-          className="absolute top-4 left-4 bg-indigo-500/50 hover:bg-indigo-500/70 text-white px-4 py-2 rounded-lg transition-colors"
-        >
-          ← Zpět
-        </button>
+        {(gameState === 'greeting' || gameState === 'locker_room') && (
+          <div className="space-y-8">
+            <div className="flex justify-between items-center mb-8">
+              <button
+                onClick={onBack}
+                className="bg-indigo-500/50 hover:bg-indigo-500/70 text-white px-4 py-2 rounded-lg transition-colors"
+              >
+                ← Zpět
+              </button>
+              <h2 className="text-3xl font-bold text-indigo-400">Kabina Oldovy party</h2>
+              <div className="w-24"></div>
+            </div>
+
+            {/* Grid pro hráče */}
+            <div className="space-y-8">
+              {/* Brankáři */}
+              <div>
+                <h3 className="text-xl font-bold text-indigo-300 mb-4">Brankáři</h3>
+                <div className="grid grid-cols-2 gap-4">
+                  {activePlayers
+                    .filter(player => player.position === 'brankář')
+                    .map((player, index) => (
+                      <LockerRoomPlayer 
+                        key={index} 
+                        player={player}
+                        playerGreetings={playerGreetings}
+                      />
+                    ))}
+                </div>
+              </div>
+
+              {/* Obránci */}
+              <div>
+                <h3 className="text-xl font-bold text-indigo-300 mb-4">Obránci</h3>
+                <div className="grid grid-cols-3 gap-4">
+                  {activePlayers
+                    .filter(player => player.position === 'obránce')
+                    .map((player, index) => (
+                      <LockerRoomPlayer 
+                        key={index} 
+                        player={player}
+                        playerGreetings={playerGreetings}
+                      />
+                    ))}
+                </div>
+              </div>
+
+              {/* Útočníci */}
+              <div>
+                <h3 className="text-xl font-bold text-indigo-300 mb-4">Útočníci</h3>
+                <div className="grid grid-cols-4 gap-4">
+                  {activePlayers
+                    .filter(player => player.position === 'útočník')
+                    .map((player, index) => (
+                      <LockerRoomPlayer 
+                        key={index} 
+                        player={player}
+                        playerGreetings={playerGreetings}
+                      />
+                    ))}
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {gameState === 'game' && (
+          <div className="text-center">
+            <h2 className="text-4xl font-bold text-indigo-400 mb-8">Zápas s Oldovou partou</h2>
+            {/* Zde bude později implementována herní logika */}
+            <p className="text-xl text-indigo-300">Připravuje se zápas...</p>
+          </div>
+        )}
       </div>
-
-      <style jsx>{`
-        @keyframes slideUp {
-          from { transform: translateY(100%); opacity: 0; }
-          to { transform: translateY(0); opacity: 1; }
-        }
-
-        @keyframes fadeIn {
-          from { opacity: 0; }
-          to { opacity: 1; }
-        }
-
-        @keyframes greetingBubble {
-          0% { opacity: 0; transform: translate(-50%, 10px); }
-          15% { opacity: 1; transform: translate(-50%, 0); }
-          85% { opacity: 1; transform: translate(-50%, 0); }
-          100% { opacity: 0; transform: translate(-50%, -10px); }
-        }
-
-        @keyframes pulse-button {
-          0% { transform: scale(1); }
-          50% { transform: scale(1.05); }
-          100% { transform: scale(1); }
-        }
-
-        @keyframes button-glow {
-          0% { transform: translateX(-100%); }
-          50% { transform: translateX(100%); }
-          100% { transform: translateX(-100%); }
-        }
-
-        @keyframes messageBubble {
-          0% { opacity: 0; transform: translate(-50%, 20px); }
-          20% { opacity: 1; transform: translate(-50%, 0); }
-          80% { opacity: 1; transform: translate(-50%, 0); }
-          100% { opacity: 0; transform: translate(-50%, -20px); }
-        }
-
-        .animate-pulse-button {
-          animation: pulse-button 2s infinite;
-        }
-
-        .animate-button-glow {
-          animation: button-glow 3s infinite;
-        }
-
-        .animate-slideUp {
-          animation: slideUp 0.3s ease-out forwards;
-        }
-
-        .animate-fadeIn {
-          animation: fadeIn 0.5s ease-out forwards;
-        }
-
-        .animate-greetingBubble {
-          animation: greetingBubble 3s ease-out forwards;
-        }
-
-        .animate-messageBubble {
-          animation: messageBubble 4s ease-out forwards;
-        }
-
-        /* Stylové scrollbary */
-        ::-webkit-scrollbar {
-          width: 8px;
-          height: 8px;
-        }
-
-        ::-webkit-scrollbar-track {
-          background: rgba(0, 0, 0, 0.2);
-          border-radius: 4px;
-        }
-
-        ::-webkit-scrollbar-thumb {
-          background: rgba(99, 102, 241, 0.5);
-          border-radius: 4px;
-        }
-
-        ::-webkit-scrollbar-thumb:hover {
-          background: rgba(99, 102, 241, 0.7);
-        }
-      `}</style>
     </div>
   );
 };
