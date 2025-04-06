@@ -463,7 +463,7 @@ const OldaGameSimulation = ({ onBack, onGameComplete }) => {
         {greeting && (
           <div className="absolute -top-16 left-1/2 transform -translate-x-1/2 
                         bg-white text-black px-4 py-2 rounded-xl
-                        animate-messageBubble whitespace-normal max-w-[250px] text-sm">
+                        message-bubble whitespace-normal max-w-[250px] text-sm">
             {greeting}
             <div className="absolute bottom-0 left-1/2 transform -translate-x-1/2 translate-y-1/2 
                           w-4 h-4 bg-white rotate-45"></div>
@@ -594,10 +594,22 @@ const OldaGameSimulation = ({ onBack, onGameComplete }) => {
               {playerResponses.map((response, index) => (
                 <div
                   key={index}
-                  className="p-3 rounded-lg text-white bg-indigo-600/80 backdrop-blur-sm animate-slideUp"
+                  className="p-4 rounded-xl text-white bg-indigo-900/90 backdrop-blur-sm animate-slideUp border border-indigo-500/30 flex items-start gap-3"
                 >
-                  <div className="font-bold mb-1">{response.playerId}</div>
-                  {response.text}
+                  <div className="w-12 h-12 rounded-full overflow-hidden flex-shrink-0 border-2 border-indigo-500/50">
+                    <Image
+                      src={litvinovLancers.getPlayerPhotoUrl(response.playerId)}
+                      alt={response.playerId}
+                      width={48}
+                      height={48}
+                      className="w-full h-full object-cover"
+                      unoptimized={true}
+                    />
+                  </div>
+                  <div className="flex-1">
+                    <div className="font-bold text-indigo-300 mb-1">{response.playerId}</div>
+                    <div className="text-white/90">{response.text}</div>
+                  </div>
                 </div>
               ))}
             </div>
@@ -612,7 +624,7 @@ const OldaGameSimulation = ({ onBack, onGameComplete }) => {
                     .filter(player => player.position === 'brankář')
                     .map((player, index) => (
                       <LockerRoomPlayer 
-                        key={index} 
+                        key={`${player.name}-${player.surname}`}
                         player={player}
                         playerGreetings={playerGreetings}
                       />
@@ -628,7 +640,7 @@ const OldaGameSimulation = ({ onBack, onGameComplete }) => {
                     .filter(player => player.position === 'obránce')
                     .map((player, index) => (
                       <LockerRoomPlayer 
-                        key={index} 
+                        key={`${player.name}-${player.surname}`}
                         player={player}
                         playerGreetings={playerGreetings}
                       />
@@ -644,7 +656,7 @@ const OldaGameSimulation = ({ onBack, onGameComplete }) => {
                     .filter(player => player.position === 'útočník')
                     .map((player, index) => (
                       <LockerRoomPlayer 
-                        key={index} 
+                        key={`${player.name}-${player.surname}`}
                         player={player}
                         playerGreetings={playerGreetings}
                       />
@@ -665,6 +677,13 @@ const OldaGameSimulation = ({ onBack, onGameComplete }) => {
       </div>
 
       <style jsx>{`
+        @keyframes fadeInOut {
+          0% { opacity: 0; transform: translateY(10px); }
+          10% { opacity: 1; transform: translateY(0); }
+          90% { opacity: 1; transform: translateY(0); }
+          100% { opacity: 0; transform: translateY(-10px); }
+        }
+
         @keyframes slideUp {
           from { transform: translateY(20px); opacity: 0; }
           to { transform: translateY(0); opacity: 1; }
@@ -672,6 +691,22 @@ const OldaGameSimulation = ({ onBack, onGameComplete }) => {
 
         .animate-slideUp {
           animation: slideUp 0.3s ease-out forwards;
+        }
+
+        .message-bubble {
+          animation: fadeInOut 1.5s ease-in-out forwards;
+          transform-origin: bottom center;
+          backface-visibility: hidden;
+          will-change: transform, opacity;
+        }
+
+        @keyframes fadeInSlideUp {
+          0% { opacity: 0; transform: translateY(20px); }
+          100% { opacity: 1; transform: translateY(0); }
+        }
+
+        .animate-fadeInSlideUp {
+          animation: fadeInSlideUp 0.5s ease-out forwards;
         }
       `}</style>
     </div>

@@ -229,7 +229,39 @@ const OldaChat = ({ initialMessages, onChatUpdate }) => {
   const [showOptions, setShowOptions] = useState(currentSequence !== 'end');
   const [isTyping, setIsTyping] = useState(false);
 
+  // Přidáme stav pro sledování použitých odpovědí
+  const [usedResponses, setUsedResponses] = useState(() => {
+    // Zkusíme načíst použité odpovědi z localStorage
+    if (typeof window !== 'undefined') {
+      try {
+        const savedUsedResponses = localStorage.getItem('oldaChatUsedResponses');
+        if (savedUsedResponses) {
+          return JSON.parse(savedUsedResponses);
+        }
+      } catch (error) {
+        console.error('Chyba při načítání použitých odpovědí z localStorage:', error);
+      }
+    }
+    return [];
+  });
+
+  // Funkce pro ukládání použitých odpovědí do localStorage
+  const saveUsedResponsesToLocalStorage = (responses) => {
+    if (typeof window !== 'undefined') {
+      try {
+        localStorage.setItem('oldaChatUsedResponses', JSON.stringify(responses));
+      } catch (error) {
+        console.error('Chyba při ukládání použitých odpovědí do localStorage:', error);
+      }
+    }
+  };
+
   const handleOptionSelect = (option) => {
+    // Přidáme odpověď do seznamu použitých
+    const newUsedResponses = [...usedResponses, option.text];
+    setUsedResponses(newUsedResponses);
+    saveUsedResponsesToLocalStorage(newUsedResponses);
+
     const playerMessage = {
       id: Date.now(),
       sender: 'Player',
@@ -343,18 +375,26 @@ const OldaChat = ({ initialMessages, onChatUpdate }) => {
         )}
       </div>
 
-      {/* Response options */}
+      {/* Updated Response options section */}
       {showOptions && currentSequence !== 'end' && dialogSequences[currentSequence] && (
         <div className="p-4 bg-indigo-950/50 space-y-2">
-          {dialogSequences[currentSequence].options.map((option, index) => (
-            <button
-              key={index}
-              onClick={() => handleOptionSelect(option)}
-              className="w-full text-left px-4 py-2 rounded-xl bg-white/10 hover:bg-white/20 text-white transition-colors"
-            >
-              {option.text}
-            </button>
-          ))}
+          {dialogSequences[currentSequence].options.map((option, index) => {
+            const isUsed = usedResponses.includes(option.text);
+            return (
+              <button
+                key={index}
+                onClick={() => !isUsed && handleOptionSelect(option)}
+                disabled={isUsed}
+                className={`w-full text-left px-4 py-2 rounded-xl transition-colors
+                  ${isUsed 
+                    ? 'bg-gray-500/20 text-gray-400 cursor-not-allowed' 
+                    : 'bg-white/10 hover:bg-white/20 text-white'}`}
+              >
+                {option.text}
+                {isUsed && <span className="ml-2 text-gray-500">(již použito)</span>}
+              </button>
+            );
+          })}
         </div>
       )}
     </div>
