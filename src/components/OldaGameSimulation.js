@@ -542,7 +542,7 @@ const OldaGameSimulation = ({ onBack, onGameComplete }) => {
         )}
 
         {(gameState === 'greeting' || gameState === 'locker_room') && (
-          <div className="space-y-8">
+          <div className="bg-gradient-to-br from-indigo-900/90 to-indigo-800/90 p-8 rounded-xl border border-indigo-500/30 shadow-xl backdrop-blur-sm relative">
             <div className="flex justify-between items-center mb-8">
               <button
                 onClick={onBack}
@@ -552,6 +552,54 @@ const OldaGameSimulation = ({ onBack, onGameComplete }) => {
               </button>
               <h2 className="text-3xl font-bold text-indigo-400">Kabina Oldovy party</h2>
               <div className="w-24"></div>
+            </div>
+
+            {/* Tlačítko pro interakci s týmem */}
+            <button
+              onClick={() => setShowTeamDialog(true)}
+              className="fixed bottom-8 right-8 bg-indigo-500 hover:bg-indigo-600 text-white px-6 py-3 rounded-xl
+                        transition-all duration-300 transform hover:scale-105 z-20"
+            >
+              Promluvit s týmem
+            </button>
+
+            {/* Dialog pro výběr otázky */}
+            {showTeamDialog && (
+              <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+                <div className="bg-gradient-to-br from-indigo-900/90 to-indigo-800/90 p-6 rounded-xl border border-indigo-500/30 max-w-md w-full mx-4">
+                  <h3 className="text-xl font-bold text-indigo-300 mb-4">Co chceš říct?</h3>
+                  <div className="space-y-2">
+                    {questions.map((question) => (
+                      <button
+                        key={question.id}
+                        onClick={() => handleQuestionSelect(question)}
+                        className="w-full text-left px-4 py-3 rounded-lg bg-indigo-500/20 hover:bg-indigo-500/30 text-white transition-colors"
+                      >
+                        {question.text}
+                      </button>
+                    ))}
+                  </div>
+                  <button
+                    onClick={() => setShowTeamDialog(false)}
+                    className="mt-4 px-4 py-2 bg-gray-500/50 hover:bg-gray-500/70 text-white rounded-lg transition-colors"
+                  >
+                    Zavřít
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* Seznam událostí (zprávy a odpovědi) */}
+            <div className="fixed bottom-4 right-4 max-w-md w-full space-y-2 pointer-events-none z-30">
+              {playerResponses.map((response, index) => (
+                <div
+                  key={index}
+                  className="p-3 rounded-lg text-white bg-indigo-600/80 backdrop-blur-sm animate-slideUp"
+                >
+                  <div className="font-bold mb-1">{response.playerId}</div>
+                  {response.text}
+                </div>
+              ))}
             </div>
 
             {/* Grid pro hráče */}
@@ -615,6 +663,17 @@ const OldaGameSimulation = ({ onBack, onGameComplete }) => {
           </div>
         )}
       </div>
+
+      <style jsx>{`
+        @keyframes slideUp {
+          from { transform: translateY(20px); opacity: 0; }
+          to { transform: translateY(0); opacity: 1; }
+        }
+
+        .animate-slideUp {
+          animation: slideUp 0.3s ease-out forwards;
+        }
+      `}</style>
     </div>
   );
 };
