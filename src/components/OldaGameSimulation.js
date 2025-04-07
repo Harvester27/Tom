@@ -21,7 +21,7 @@ const ConversationWindow = ({ history }) => {
   }
 
   return (
-    <div className="fixed bottom-4 right-4 w-full max-w-md h-auto max-h-[60vh] bg-gradient-to-br from-gray-900/90 via-indigo-950/90 to-black/90 border border-indigo-500/30 rounded-xl shadow-2xl flex flex-col overflow-hidden backdrop-blur-md z-[60]">
+    <div className="h-full bg-gradient-to-br from-gray-900/90 via-indigo-950/90 to-black/90 border border-indigo-500/30 rounded-xl shadow-2xl flex flex-col overflow-hidden backdrop-blur-md">
       <div className="p-3 bg-indigo-800/80 border-b border-indigo-500/30">
         <h3 className="text-lg font-semibold text-indigo-200 text-center">Konverzace v kabině</h3>
       </div>
@@ -56,7 +56,6 @@ const ConversationWindow = ({ history }) => {
             )}
           </div>
         ))}
-        {/* Invisible element to scroll to */}
         <div ref={messagesEndRef} />
       </div>
     </div>
@@ -308,7 +307,7 @@ const OldaGameSimulation = ({ onBack, onGameComplete }) => {
 
   return (
     <div className="fixed inset-0 bg-black/90 text-white z-50 flex items-center justify-center font-sans"> {/* Přidán font-sans pro konzistenci */}
-      <div className="w-full max-w-7xl mx-auto p-4 md:p-8"> {/* Responzivní padding */}
+      <div className="w-full max-w-[95vw] mx-auto p-4 md:p-8"> {/* Responzivní padding */}
 
         {/* Úvodní obrazovka */}
         {gameState === 'enter' && (
@@ -336,23 +335,68 @@ const OldaGameSimulation = ({ onBack, onGameComplete }) => {
                 ← Zpět
               </button>
               <h2 className="text-2xl md:text-3xl font-bold text-indigo-400 text-center">Kabina Oldovy party</h2>
-              {/* Placeholder pro zarovnání */}
               <div className="w-16"></div>
-              {/* Zde by mohlo být TimeControl */}
+            </div>
+
+            {/* Nový layout - grid s hráči vlevo a konverzací vpravo */}
+            <div className="flex gap-8 h-[70vh]">
+              {/* Levá část - hráči */}
+              <div className="flex-1 overflow-y-auto pr-4 space-y-6">
+                {/* Brankáři */}
+                {activePlayers.filter(p => p.position === 'brankář').length > 0 && (
+                  <div>
+                    <h3 className="text-lg md:text-xl font-bold text-indigo-300 mb-3 md:mb-4 border-b border-indigo-700/50 pb-2">Brankáři</h3>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      {activePlayers.filter(player => player.position === 'brankář').map((player) => (
+                        <LockerRoomPlayer key={`${player.name}-${player.surname}`} player={player} playerGreetings={playerGreetings} />
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Obránci */}
+                {activePlayers.filter(p => p.position === 'obránce').length > 0 && (
+                  <div>
+                    <h3 className="text-lg md:text-xl font-bold text-indigo-300 mb-3 md:mb-4 border-b border-indigo-700/50 pb-2">Obránci</h3>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      {activePlayers.filter(player => player.position === 'obránce').map((player) => (
+                        <LockerRoomPlayer key={`${player.name}-${player.surname}`} player={player} playerGreetings={playerGreetings} />
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Útočníci */}
+                {activePlayers.filter(p => p.position === 'útočník').length > 0 && (
+                  <div>
+                    <h3 className="text-lg md:text-xl font-bold text-indigo-300 mb-3 md:mb-4 border-b border-indigo-700/50 pb-2">Útočníci</h3>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      {activePlayers.filter(player => player.position === 'útočník').map((player) => (
+                        <LockerRoomPlayer key={`${player.name}-${player.surname}`} player={player} playerGreetings={playerGreetings} />
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Pravá část - konverzace */}
+              <div className="w-[400px] relative">
+                <ConversationWindow history={conversationHistory} />
+              </div>
             </div>
 
             {/* Tlačítko pro interakci s týmem */}
-            {gameState === 'locker_room' && ( // Zobrazit jen když už proběhly pozdravy
+            {gameState === 'locker_room' && (
               <button
                 onClick={() => setShowTeamDialog(true)}
                 className="fixed bottom-4 left-4 bg-green-500 hover:bg-green-600 text-white px-5 py-3 rounded-full shadow-lg
                           transition-all duration-300 transform hover:scale-110 z-30 flex items-center gap-2"
-                title="Promluvit s týmem" // Tooltip
+                title="Promluvit s týmem"
               >
                 <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
                 </svg>
-                <span className="hidden md:inline">Promluvit</span> {/* Text jen na větších obrazovkách */}
+                <span className="hidden md:inline">Promluvit</span>
               </button>
             )}
 
@@ -381,46 +425,6 @@ const OldaGameSimulation = ({ onBack, onGameComplete }) => {
                 </div>
               </div>
             )}
-
-            {/* --- Zobrazení okna konverzace --- */}
-            <ConversationWindow history={conversationHistory} />
-
-            {/* Grid pro hráče */}
-            <div className="space-y-6 md:space-y-8 mt-4">
-              {/* Brankáři */}
-              {activePlayers.filter(p => p.position === 'brankář').length > 0 && (
-                <div>
-                  <h3 className="text-lg md:text-xl font-bold text-indigo-300 mb-3 md:mb-4 border-b border-indigo-700/50 pb-2">Brankáři</h3>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                    {activePlayers.filter(player => player.position === 'brankář').map((player) => (
-                      <LockerRoomPlayer key={`${player.name}-${player.surname}`} player={player} playerGreetings={playerGreetings} />
-                    ))}
-                  </div>
-                </div>
-              )}
-              {/* Obránci */}
-              {activePlayers.filter(p => p.position === 'obránce').length > 0 && (
-                <div>
-                  <h3 className="text-lg md:text-xl font-bold text-indigo-300 mb-3 md:mb-4 border-b border-indigo-700/50 pb-2">Obránci</h3>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                    {activePlayers.filter(player => player.position === 'obránce').map((player) => (
-                      <LockerRoomPlayer key={`${player.name}-${player.surname}`} player={player} playerGreetings={playerGreetings} />
-                    ))}
-                  </div>
-                </div>
-              )}
-              {/* Útočníci */}
-              {activePlayers.filter(p => p.position === 'útočník').length > 0 && (
-                 <div>
-                  <h3 className="text-lg md:text-xl font-bold text-indigo-300 mb-3 md:mb-4 border-b border-indigo-700/50 pb-2">Útočníci</h3>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                    {activePlayers.filter(player => player.position === 'útočník').map((player) => (
-                      <LockerRoomPlayer key={`${player.name}-${player.surname}`} player={player} playerGreetings={playerGreetings} />
-                    ))}
-                  </div>
-                </div>
-              )}
-            </div>
           </div>
         )}
 
