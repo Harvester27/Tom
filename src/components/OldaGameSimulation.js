@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import Image from 'next/image';
 import { litvinovLancers, personalityTypes } from '../data/LitvinovLancers';
+import OldaHockeyMatch from './OldaHockeyMatch';
 
 // --- Nová komponenta pro okno konverzace ---
 const ConversationWindow = ({ history }) => {
@@ -85,6 +86,9 @@ const OldaGameSimulation = ({ onBack, onGameComplete }) => {
   // --- Nový stav pro historii konverzace ---
   const [conversationHistory, setConversationHistory] = useState([]);
 
+  // Přidám state pro použité otázky
+  const [usedQuestions, setUsedQuestions] = useState(new Set());
+
   // Možnosti promluvy k týmu (ponecháno, ale aktuálně se používá 'questions' níže)
   // const teamDialogOptions = [ ... ];
 
@@ -154,6 +158,77 @@ const OldaGameSimulation = ({ onBack, onGameComplete }) => {
           if (joker) responses.push({ playerId: `${joker.name} ${joker.surname}`, text: "Nervózní? Počkej až uvidíš Frantu v bráně, ten je tak nervózní, že minule chytal puky i když jsme byli na střídačce! 🤣", delay: 3500 });
           return responses;
         }
+      },
+      {
+        id: 'teams',
+        text: "Rozdělíme týmy?",
+        getResponses: (activePlayers) => {
+          const olda = activePlayers.find(p => p.name === "Oldřich" && p.surname === "Štěpanovský") || { name: 'Oldřich', surname: 'Štěpanovský' };
+          const responses = [];
+          
+          // Olda navrhne rozdělení
+          responses.push({ 
+            playerId: `${olda.name} ${olda.surname}`, 
+            text: "Dobře, tak já to rozdělím. Bílí: Franta, Pepa, Jirka a já. Černí: Honza, Karel, Tomáš a Martin. Co vy na to? 🤔", 
+            delay: 500 
+          });
+
+          // Náhodně vybereme 2-3 hráče pro reakce
+          const availablePlayers = activePlayers.filter(p => 
+            p.name !== "Oldřich" || p.surname !== "Štěpanovský"
+          );
+          const shuffledPlayers = availablePlayers.sort(() => Math.random() - 0.5);
+          const respondingPlayers = shuffledPlayers.slice(0, Math.floor(Math.random() * 2) + 2);
+
+          // Různé typy reakcí podle osobnosti hráče
+          respondingPlayers.forEach((player, index) => {
+            const delay = 1500 + (index * 1500);
+            
+            if (player.personality === "vtipkar") {
+              responses.push({
+                playerId: `${player.name} ${player.surname}`,
+                text: "Tak to zase prohrajeme! 😅 Oldo, ty si vždycky vybereš ty nejlepší do týmu...",
+                delay
+              });
+            } else if (player.personality === "mentor") {
+              responses.push({
+                playerId: `${player.name} ${player.surname}`,
+                text: "Co dát Honzu k nám? On dobře spolupracuje s Pepou v útoku. 🤝",
+                delay
+              });
+            } else if (player.personality === "pratelsky") {
+              responses.push({
+                playerId: `${player.name} ${player.surname}`,
+                text: "Hlavně ať si zahrajeme, složení je fajn! 👍",
+                delay
+              });
+            } else {
+              responses.push({
+                playerId: `${player.name} ${player.surname}`,
+                text: "Nezdá se vám, že mají černí silnější útok? 🤔",
+                delay
+              });
+            }
+          });
+
+          // Olda reaguje na připomínky
+          const shouldChange = Math.random() > 0.5;
+          if (shouldChange) {
+            responses.push({
+              playerId: `${olda.name} ${olda.surname}`,
+              text: "Hmm, máte pravdu. Tak to prohodíme - Honza půjde k bílým a Pepa k černým. Teď by to mělo být vyrovnanější! 👌",
+              delay: responses.length * 1500 + 500
+            });
+          } else {
+            responses.push({
+              playerId: `${olda.name} ${olda.surname}`,
+              text: "Nebojte, ono se to během hry vyrovná. Navíc po polovině můžeme prohodit týmy, kdyby to bylo jednostranný. 😉",
+              delay: responses.length * 1500 + 500
+            });
+          }
+
+          return responses;
+        }
       }
     // Další otázky můžeme přidat později
   ];
@@ -167,15 +242,17 @@ const OldaGameSimulation = ({ onBack, onGameComplete }) => {
 
   // --- Upravená Funkce pro zpracování výběru otázky ---
   const handleQuestionSelect = (question) => {
-    setSelectedQuestion(question); // Můžeme ponechat pro případné budoucí použití
+    setSelectedQuestion(question);
     setShowTeamDialog(false);
-    // setPlayerResponses([]); // Starý stav už nepotřebujeme
+    
+    // Přidám otázku do použitých
+    setUsedQuestions(prev => new Set([...prev, question.id]));
 
     // 1. Přidáme otázku uživatele do historie
     setConversationHistory(prev => [...prev, {
       type: 'user_question',
       text: question.text,
-      timestamp: Date.now() // Můžeme přidat časové razítko
+      timestamp: Date.now()
     }]);
 
     // Získáme odpovědi pro aktuální sestavu hráčů
@@ -188,9 +265,9 @@ const OldaGameSimulation = ({ onBack, onGameComplete }) => {
           type: 'player_response',
           playerId: response.playerId,
           text: response.text,
-          timestamp: Date.now() // Můžeme přidat časové razítko
+          timestamp: Date.now()
         }]);
-      }, response.delay); // Použijeme původní delay pro postupné zobrazování
+      }, response.delay);
     });
   };
 
@@ -305,6 +382,9 @@ const OldaGameSimulation = ({ onBack, onGameComplete }) => {
     handleGreet();
   };
 
+  // Do state přidám nový stav pro hokejový zápas
+  const [showHockeyMatch, setShowHockeyMatch] = useState(false);
+
   return (
     <div className="fixed inset-0 bg-black/90 text-white z-50 flex items-center justify-center font-sans"> {/* Přidán font-sans pro konzistenci */}
       <div className="w-full max-w-[95vw] mx-auto p-4 md:p-8"> {/* Responzivní padding */}
@@ -335,7 +415,13 @@ const OldaGameSimulation = ({ onBack, onGameComplete }) => {
                 ← Zpět
               </button>
               <h2 className="text-2xl md:text-3xl font-bold text-indigo-400 text-center">Kabina Oldovy party</h2>
-              <div className="w-16"></div>
+              <button
+                onClick={() => setShowHockeyMatch(true)}
+                className="bg-green-500/50 hover:bg-green-500/70 text-white px-4 py-2 rounded-lg transition-colors text-sm flex items-center gap-2"
+              >
+                <span>🏒</span>
+                Jít na led
+              </button>
             </div>
 
             {/* Nový layout - grid s hráči vlevo a konverzací vpravo */}
@@ -402,19 +488,21 @@ const OldaGameSimulation = ({ onBack, onGameComplete }) => {
 
             {/* Modální okno pro výběr otázky */}
             {showTeamDialog && (
-              <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 backdrop-blur-sm" onClick={() => setShowTeamDialog(false)}> {/* Kliknutí mimo zavře okno */}
-                <div className="bg-gradient-to-br from-indigo-950 via-gray-900 to-indigo-950 p-6 rounded-xl border border-indigo-500/40 max-w-lg w-[90%] mx-auto shadow-2xl animate-fadeInSlideUp" onClick={(e) => e.stopPropagation()}> {/* Zabrání zavření při kliknutí dovnitř */}
+              <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 backdrop-blur-sm" onClick={() => setShowTeamDialog(false)}>
+                <div className="bg-gradient-to-br from-indigo-950 via-gray-900 to-indigo-950 p-6 rounded-xl border border-indigo-500/40 max-w-lg w-[90%] mx-auto shadow-2xl animate-fadeInSlideUp" onClick={(e) => e.stopPropagation()}>
                   <h3 className="text-xl font-bold text-indigo-300 mb-5 text-center">Co chceš říct nebo se zeptat?</h3>
                   <div className="space-y-3">
-                    {questions.map((question) => (
-                      <button
-                        key={question.id}
-                        onClick={() => handleQuestionSelect(question)}
-                        className="w-full text-left px-4 py-3 rounded-lg bg-indigo-700/40 hover:bg-indigo-600/60 text-indigo-100 hover:text-white transition-all duration-200 transform hover:scale-[1.02]"
-                      >
-                        {question.text}
-                      </button>
-                    ))}
+                    {questions
+                      .filter(question => !usedQuestions.has(question.id)) // Filtrujeme použité otázky
+                      .map((question) => (
+                        <button
+                          key={question.id}
+                          onClick={() => handleQuestionSelect(question)}
+                          className="w-full text-left px-4 py-3 rounded-lg bg-indigo-700/40 hover:bg-indigo-600/60 text-indigo-100 hover:text-white transition-all duration-200 transform hover:scale-[1.02]"
+                        >
+                          {question.text}
+                        </button>
+                      ))}
                   </div>
                   <button
                     onClick={() => setShowTeamDialog(false)}
@@ -509,6 +597,19 @@ const OldaGameSimulation = ({ onBack, onGameComplete }) => {
         }
 
       `}</style>
+
+      {/* Před koncem komponenty přidám podmíněné renderování zápasu */}
+      {showHockeyMatch && (
+        <OldaHockeyMatch
+          onBack={() => setShowHockeyMatch(false)}
+          onGameComplete={(result) => {
+            setShowHockeyMatch(false);
+            if (onGameComplete) {
+              onGameComplete(result);
+            }
+          }}
+        />
+      )}
     </div>
   );
 };
