@@ -89,6 +89,12 @@ const OldaGameSimulation = ({ onBack, onGameComplete }) => {
   // Přidám state pro použité otázky
   const [usedQuestions, setUsedQuestions] = useState(new Set());
 
+  // Přidám state pro sledování přiřazených dresů
+  const [assignedJerseys, setAssignedJerseys] = useState({
+    white: new Set(),
+    black: new Set()
+  });
+
   // Možnosti promluvy k týmu (ponecháno, ale aktuálně se používá 'questions' níže)
   // const teamDialogOptions = [ ... ];
 
@@ -166,10 +172,45 @@ const OldaGameSimulation = ({ onBack, onGameComplete }) => {
           const olda = activePlayers.find(p => p.name === "Oldřich" && p.surname === "Štěpanovský") || { name: 'Oldřich', surname: 'Štěpanovský' };
           const responses = [];
           
+          // Rozdělíme hráče podle pozic
+          const goalies = activePlayers.filter(p => p.position === 'brankář');
+          const defenders = activePlayers.filter(p => p.position === 'obránce');
+          const forwards = activePlayers.filter(p => p.position === 'útočník');
+
+          // Náhodně rozdělíme hráče do týmů
+          const whiteTeam = [];
+          const blackTeam = [];
+
+          // Rozdělíme brankáře
+          if (goalies.length >= 2) {
+            whiteTeam.push(goalies[0]);
+            blackTeam.push(goalies[1]);
+          } else if (goalies.length === 1) {
+            whiteTeam.push(goalies[0]);
+          }
+
+          // Rozdělíme obránce
+          const shuffledDefenders = [...defenders].sort(() => Math.random() - 0.5);
+          shuffledDefenders.forEach((defender, index) => {
+            if (index % 2 === 0) whiteTeam.push(defender);
+            else blackTeam.push(defender);
+          });
+
+          // Rozdělíme útočníky
+          const shuffledForwards = [...forwards].sort(() => Math.random() - 0.5);
+          shuffledForwards.forEach((forward, index) => {
+            if (index % 2 === 0) whiteTeam.push(forward);
+            else blackTeam.push(forward);
+          });
+
           // Olda navrhne rozdělení
+          const formatTeam = (team) => {
+            return team.map(player => `${player.name} ${player.surname} (${player.position})`).join(", ");
+          };
+
           responses.push({ 
             playerId: `${olda.name} ${olda.surname}`, 
-            text: "Dobře, tak já to rozdělím. Bílí: Franta, Pepa, Jirka a já. Černí: Honza, Karel, Tomáš a Martin. Co vy na to? 🤔", 
+            text: `Dobře, tak já to rozdělím. Bílí: ${formatTeam(whiteTeam)}. Černí: ${formatTeam(blackTeam)}. Co vy na to? 🤔`, 
             delay: 500 
           });
 
@@ -180,32 +221,45 @@ const OldaGameSimulation = ({ onBack, onGameComplete }) => {
           const shuffledPlayers = availablePlayers.sort(() => Math.random() - 0.5);
           const respondingPlayers = shuffledPlayers.slice(0, Math.floor(Math.random() * 2) + 2);
 
-          // Různé typy reakcí podle osobnosti hráče
+          // Různé typy reakcí podle osobnosti hráče a jejich pozice
           respondingPlayers.forEach((player, index) => {
             const delay = 1500 + (index * 1500);
+            const isInWhiteTeam = whiteTeam.includes(player);
+            const opposingTeam = isInWhiteTeam ? blackTeam : whiteTeam;
             
             if (player.personality === "vtipkar") {
+              const randomResponse = [
+                `Tak to zase prohrajeme! 😅 ${opposingTeam[0].name} mi vždycky dává čtyři góly...`,
+                "Oldo, ty máš něco proti nám v černých? Vždycky nám dáš ty pomalejší! 😂",
+                `To je jasný, ${whiteTeam[0].name} a ${whiteTeam[1].name} spolu, ti si nahrávají i ve sprše! 🚿😆`
+              ][Math.floor(Math.random() * 3)];
               responses.push({
                 playerId: `${player.name} ${player.surname}`,
-                text: "Tak to zase prohrajeme! 😅 Oldo, ty si vždycky vybereš ty nejlepší do týmu...",
+                text: randomResponse,
                 delay
               });
             } else if (player.personality === "mentor") {
+              // Mentor navrhuje taktické změny
+              const teammate = isInWhiteTeam ? whiteTeam.find(p => p !== player) : blackTeam.find(p => p !== player);
+              const opposingPlayer = opposingTeam[0];
               responses.push({
                 playerId: `${player.name} ${player.surname}`,
-                text: "Co dát Honzu k nám? On dobře spolupracuje s Pepou v útoku. 🤝",
+                text: `Co dát ${opposingPlayer.name}a k nám? On dobře spolupracuje s ${teammate.name}em v útoku. Mohli bychom zkusit rychlé protiútoky. 🤝`,
                 delay
               });
             } else if (player.personality === "pratelsky") {
               responses.push({
                 playerId: `${player.name} ${player.surname}`,
-                text: "Hlavně ať si zahrajeme, složení je fajn! 👍",
+                text: "Hlavně ať si zahrajeme! Ale jestli chcete, můžu jít do druhého týmu, ať jsou síly vyrovnané. 👍",
                 delay
               });
             } else {
+              // Analyzuje síly týmů
+              const ownTeam = isInWhiteTeam ? whiteTeam : blackTeam;
+              const teammateName = ownTeam.find(p => p !== player)?.name;
               responses.push({
                 playerId: `${player.name} ${player.surname}`,
-                text: "Nezdá se vám, že mají černí silnější útok? 🤔",
+                text: `Nezdá se vám, že ${isInWhiteTeam ? 'černí' : 'bílí'} mají silnější útok? ${teammateName} je sice rychlý, ale proti ${opposingTeam[0].name}ovi a ${opposingTeam[1].name}ovi to bude těžké... 🤔`,
                 delay
               });
             }
@@ -214,15 +268,28 @@ const OldaGameSimulation = ({ onBack, onGameComplete }) => {
           // Olda reaguje na připomínky
           const shouldChange = Math.random() > 0.5;
           if (shouldChange) {
+            // Vybereme dva hráče na prohození
+            const player1 = whiteTeam[Math.floor(Math.random() * whiteTeam.length)];
+            const player2 = blackTeam[Math.floor(Math.random() * blackTeam.length)];
             responses.push({
               playerId: `${olda.name} ${olda.surname}`,
-              text: "Hmm, máte pravdu. Tak to prohodíme - Honza půjde k bílým a Pepa k černým. Teď by to mělo být vyrovnanější! 👌",
+              text: `Hmm, máte pravdu. Tak to prohodíme - ${player1.name} půjde k černým a ${player2.name} k bílým. Takhle by to mělo být vyrovnanější! 👌`,
               delay: responses.length * 1500 + 500
             });
+
+            // Někdo ještě přidá vtipnou poznámku
+            const joker = activePlayers.find(p => p.personality === "vtipkar");
+            if (joker) {
+              responses.push({
+                playerId: `${joker.name} ${joker.surname}`,
+                text: `Hlavně ať se ${player1.name} nepřerazí, jak bude chtít všem dokázat, že měl být v prvním týmu! 😂`,
+                delay: responses.length * 1500 + 500
+              });
+            }
           } else {
             responses.push({
               playerId: `${olda.name} ${olda.surname}`,
-              text: "Nebojte, ono se to během hry vyrovná. Navíc po polovině můžeme prohodit týmy, kdyby to bylo jednostranný. 😉",
+              text: "Nebojte, ono se to během hry vyrovná. Po dvou třetinách stejně prohodíme týmy, ať si všichni zahrají spolu. A navíc... kdo dá první gól, může si vzít jednoho hráče z druhého týmu! 😉",
               delay: responses.length * 1500 + 500
             });
           }
@@ -244,31 +311,163 @@ const OldaGameSimulation = ({ onBack, onGameComplete }) => {
   const handleQuestionSelect = (question) => {
     setSelectedQuestion(question);
     setShowTeamDialog(false);
-    
-    // Přidám otázku do použitých
     setUsedQuestions(prev => new Set([...prev, question.id]));
 
-    // 1. Přidáme otázku uživatele do historie
     setConversationHistory(prev => [...prev, {
       type: 'user_question',
       text: question.text,
       timestamp: Date.now()
     }]);
 
-    // Získáme odpovědi pro aktuální sestavu hráčů
-    const responses = question.getResponses(activePlayers);
+    // Pokud jde o rozdělení týmů, připravíme si hráče
+    if (question.id === 'teams') {
+      const goalies = activePlayers.filter(p => p.position === 'brankář');
+      const defenders = activePlayers.filter(p => p.position === 'obránce');
+      const forwards = activePlayers.filter(p => p.position === 'útočník');
 
-    // 2. Postupně přidáváme odpovědi hráčů do historie
-    responses.forEach((response) => {
-      setTimeout(() => {
-        setConversationHistory(prev => [...prev, {
-          type: 'player_response',
-          playerId: response.playerId,
-          text: response.text,
-          timestamp: Date.now()
-        }]);
-      }, response.delay);
-    });
+      // Rozdělíme hráče do týmů
+      const whiteTeam = [];
+      const blackTeam = [];
+
+      // Rozdělíme brankáře
+      if (goalies.length >= 2) {
+        whiteTeam.push(goalies[0]);
+        blackTeam.push(goalies[1]);
+      } else if (goalies.length === 1) {
+        whiteTeam.push(goalies[0]);
+      }
+
+      // Rozdělíme obránce
+      const shuffledDefenders = [...defenders].sort(() => Math.random() - 0.5);
+      shuffledDefenders.forEach((defender, index) => {
+        if (index % 2 === 0) whiteTeam.push(defender);
+        else blackTeam.push(defender);
+      });
+
+      // Rozdělíme útočníky
+      const shuffledForwards = [...forwards].sort(() => Math.random() - 0.5);
+      shuffledForwards.forEach((forward, index) => {
+        if (index % 2 === 0) whiteTeam.push(forward);
+        else blackTeam.push(forward);
+      });
+
+      // Olda postupně oznamuje rozdělení týmů
+      const responses = [];
+      let currentDelay = 500;
+
+      // První zpráva od Oldy
+      responses.push({
+        playerId: `${olda.name} ${olda.surname}`,
+        text: "Dobře, rozdělím týmy. Začneme bílým týmem...",
+        delay: currentDelay
+      });
+
+      // Postupně oznamuje bílý tým
+      currentDelay += 1500;
+      whiteTeam.forEach((player, index) => {
+        const isLast = index === whiteTeam.length - 1;
+        responses.push({
+          playerId: `${olda.name} ${olda.surname}`,
+          text: `${player.name} ${player.surname} - ${player.position}${isLast ? ' 👕' : ''}`,
+          delay: currentDelay,
+          onDisplay: () => {
+            setAssignedJerseys(prev => ({
+              ...prev,
+              white: new Set([...prev.white, `${player.name} ${player.surname}`])
+            }));
+          }
+        });
+        currentDelay += 800;
+      });
+
+      // Přechod k černému týmu
+      currentDelay += 1500;
+      responses.push({
+        playerId: `${olda.name} ${olda.surname}`,
+        text: "A teď černý tým...",
+        delay: currentDelay
+      });
+
+      // Postupně oznamuje černý tým
+      currentDelay += 1500;
+      blackTeam.forEach((player, index) => {
+        const isLast = index === blackTeam.length - 1;
+        responses.push({
+          playerId: `${olda.name} ${olda.surname}`,
+          text: `${player.name} ${player.surname} - ${player.position}${isLast ? ' 🏒' : ''}`,
+          delay: currentDelay,
+          onDisplay: () => {
+            setAssignedJerseys(prev => ({
+              ...prev,
+              black: new Set([...prev.black, `${player.name} ${player.surname}`])
+            }));
+          }
+        });
+        currentDelay += 800;
+      });
+
+      // Závěrečná zpráva
+      currentDelay += 1500;
+      responses.push({
+        playerId: `${olda.name} ${olda.surname}`,
+        text: "Tak co říkáte na rozdělení? 🤔",
+        delay: currentDelay
+      });
+
+      // Přidáme reakce hráčů
+      const respondingPlayers = activePlayers
+        .filter(p => p !== olda)
+        .sort(() => Math.random() - 0.5)
+        .slice(0, 2);
+
+      respondingPlayers.forEach((player) => {
+        currentDelay += 1500;
+        const isInWhiteTeam = whiteTeam.includes(player);
+        const opposingTeam = isInWhiteTeam ? blackTeam : whiteTeam;
+
+        if (player.personality === "vtipkar") {
+          responses.push({
+            playerId: `${player.name} ${player.surname}`,
+            text: `Zase jsi dal ${opposingTeam[0].name}a do druhého týmu! Vždyť víš, že spolu hrajeme nejlíp! 😅`,
+            delay: currentDelay
+          });
+        } else if (player.personality === "mentor") {
+          responses.push({
+            playerId: `${player.name} ${player.surname}`,
+            text: "Vypadá to celkem vyrovnaně, ale možná bychom mohli prohodit pár hráčů kvůli rychlosti... 🤔",
+            delay: currentDelay
+          });
+        }
+      });
+
+      // Postupně přidáváme odpovědi do historie
+      responses.forEach((response) => {
+        setTimeout(() => {
+          if (response.onDisplay) {
+            response.onDisplay();
+          }
+          setConversationHistory(prev => [...prev, {
+            type: 'player_response',
+            playerId: response.playerId,
+            text: response.text,
+            timestamp: Date.now()
+          }]);
+        }, response.delay);
+      });
+    } else {
+      // Pro ostatní otázky použijeme původní logiku
+      const responses = question.getResponses(activePlayers);
+      responses.forEach((response) => {
+        setTimeout(() => {
+          setConversationHistory(prev => [...prev, {
+            type: 'player_response',
+            playerId: response.playerId,
+            text: response.text,
+            timestamp: Date.now()
+          }]);
+        }, response.delay);
+      });
+    }
   };
 
 
@@ -351,14 +550,28 @@ const OldaGameSimulation = ({ onBack, onGameComplete }) => {
   // Komponenta pro zobrazení hráče v kabině (beze změny)
   const LockerRoomPlayer = ({ player, playerGreetings }) => {
     const greeting = playerGreetings[`${player.name}${player.surname}`];
+    const playerFullName = `${player.name} ${player.surname}`;
+    const teamAssignment = assignedJerseys.white.has(playerFullName) ? 'white' : 
+                          assignedJerseys.black.has(playerFullName) ? 'black' : null;
+
     return (
       <div className={`relative flex items-center gap-4 bg-black/30 p-3 rounded-xl hover:bg-black/40 transition-colors ${player.name === "Oldřich" && player.surname === "Štěpanovský" ? 'border-2 border-yellow-500/50' : ''}`}>
         <div className="w-12 h-12 rounded-full overflow-hidden border-2 border-indigo-500/50">
           <Image src={litvinovLancers.getPlayerPhotoUrl(`${player.name} ${player.surname}`)} alt={player.name} width={48} height={48} className="w-full h-full object-cover" unoptimized={true}/>
         </div>
-        <div>
-          <div className="text-base font-bold text-white">{player.name} {player.surname}<span className="ml-2 text-xs text-indigo-400">({player.attendance}%)</span></div>
-          <div className="text-sm text-indigo-300">{player.position.charAt(0).toUpperCase() + player.position.slice(1)}<span className="mx-2">•</span>{personalityTypes[player.personality].name}</div>
+        <div className="flex-1 flex items-center justify-between">
+          <div>
+            <div className="text-base font-bold text-white">{player.name} {player.surname}<span className="ml-2 text-xs text-indigo-400">({player.attendance}%)</span></div>
+            <div className="text-sm text-indigo-300">{player.position.charAt(0).toUpperCase() + player.position.slice(1)}<span className="mx-2">•</span>{personalityTypes[player.personality].name}</div>
+          </div>
+          {teamAssignment && (
+            <div className={`flex items-center gap-2 ${teamAssignment === 'white' ? 'text-white' : 'text-gray-400'} animate-fadeIn`}>
+              <span className="text-sm">{teamAssignment === 'white' ? 'Bílý tým' : 'Černý tým'}</span>
+              <div className={`w-8 h-8 rounded-lg ${teamAssignment === 'white' ? 'bg-white' : 'bg-gray-900'} border ${teamAssignment === 'white' ? 'border-gray-200' : 'border-gray-700'} flex items-center justify-center`}>
+                🏒
+              </div>
+            </div>
+          )}
         </div>
         {greeting && (
           <div className="absolute -top-16 left-1/2 transform -translate-x-1/2 bg-white text-black px-4 py-2 rounded-xl message-bubble whitespace-normal max-w-[250px] text-sm z-10">
