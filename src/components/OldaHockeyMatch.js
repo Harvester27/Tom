@@ -29,7 +29,7 @@ import PlayerSpecialAction from './PlayerSpecialAction'; // Import nové kompone
 // --- Constants ---
 const GAME_DURATION_SECONDS = 60 * 90; // 90 minut (od 16:30 do 18:00)
 const PERIOD_DURATION_SECONDS = GAME_DURATION_SECONDS / 3;
-const MAX_SPEED = 8;
+const MAX_SPEED = 64; // Změněno z 8 na 64 pro podporu vyšších rychlostí
 const EVENT_CHECK_INTERVAL = 15; // V sekundách herního času
 
 // Konstanty pro střídání a únavu
@@ -136,6 +136,9 @@ const OldaHockeyMatch = ({ onBack, onGameComplete, assignedJerseys, playerName =
   const [lastEvent, setLastEvent] = useState(null);
   const [highlightedPlayerKey, setHighlightedPlayerKey] = useState(null);
   
+  // Nové stavy pro statistiky
+  const [playerStats, setPlayerStats] = useState({});
+  
   // Nové stavy pro speciální akce
   const [specialAction, setSpecialAction] = useState(null);
   const [lastSpecialActionTime, setLastSpecialActionTime] = useState(0);
@@ -148,7 +151,7 @@ const OldaHockeyMatch = ({ onBack, onGameComplete, assignedJerseys, playerName =
     black: { name: 'Černý tým' }
   });
 
-  // --- Team Initialization Effect --- (Bez Změn v logice)
+  // --- Team Initialization Effect ---
   useEffect(() => {
     console.log("🔄 Initializing teams...");
     const activePlayers = litvinovLancers.players
@@ -259,6 +262,23 @@ const OldaHockeyMatch = ({ onBack, onGameComplete, assignedJerseys, playerName =
 
     updateTeam('white', { name: 'Lancers Bílý', players: finalWhitePlayers });
     updateTeam('black', { name: 'Lancers Černý', players: finalBlackPlayers });
+
+    // Inicializace statistik hráčů
+    const initialStats = {};
+    [...finalWhitePlayers, ...finalBlackPlayers].forEach(player => {
+      initialStats[player.key] = {
+        timeOnIce: 0,
+        goals: 0,
+        assists: 0,
+        penalties: 0,
+        blocks: 0,
+        shots: 0,
+        saves: 0, // pro brankáře
+        savePercentage: 100, // pro brankáře
+        shotsAgainst: 0 // pro brankáře
+      };
+    });
+    setPlayerStats(initialStats);
 
     // Inicializace dynamického stavu... (kód zůstává stejný)
     const initializeDynamicState = (players) => {
@@ -780,7 +800,27 @@ const OldaHockeyMatch = ({ onBack, onGameComplete, assignedJerseys, playerName =
     if (gameState === 'playing') setGameState('paused');
     else if (gameState === 'paused' || gameState === 'warmup') setGameState('playing');
   };
-  const changeSpeed = (delta) => setGameSpeed(prev => Math.max(1, Math.min(MAX_SPEED, prev + delta)));
+  
+  // Upravená funkce pro změnu rychlosti - přidána podpora pro rychlejší přepínání
+  const changeSpeed = (delta) => {
+    setGameSpeed(prev => {
+      // Pro kladný delta (zrychlení)
+      if (delta > 0) {
+        if (prev < 8) return prev + 1; // Standardní zvýšení o 1 pro rychlosti 1-8
+        else if (prev === 8) return 16; // Skok z 8 na 16
+        else if (prev === 16) return 32; // Skok z 16 na 32
+        else if (prev === 32) return 64; // Skok z 32 na 64
+        else return 64; // Max
+      }
+      // Pro záporný delta (zpomalení)
+      else {
+        if (prev > 32) return 32; // Z 64 na 32
+        else if (prev > 16) return 16; // Z 32 na 16
+        else if (prev > 8) return 8; // Z 16 na 8
+        else return Math.max(1, prev - 1); // Standardní snížení pro 1-8
+      }
+    });
+  };
 
   // --- Scroll event log --- (Beze změny)
    useEffect(() => { if (eventLogRef.current) eventLogRef.current.scrollTop = 0; }, [events]);
@@ -826,9 +866,10 @@ const OldaHockeyMatch = ({ onBack, onGameComplete, assignedJerseys, playerName =
   });
   PlayerStatus.displayName = 'PlayerStatus';
 
-  // --- Render Helper: TeamTable --- (Beze změny)
+  // --- Render Helper: TeamTable --- (Updated with stats)
   const TeamTable = React.memo(({ teamData, teamColor }) => {
     const [selectedTeamColor, setSelectedTeamColor] = useState(teamColor);
+    const [showStats, setShowStats] = useState(false);
     
     // Přidáme useEffect, který aktualizuje selectedTeamColor když se změní teamColor
     useEffect(() => {
@@ -838,24 +879,85 @@ const OldaHockeyMatch = ({ onBack, onGameComplete, assignedJerseys, playerName =
     const currentTeam = teamData[selectedTeamColor];
     if (!currentTeam || !currentTeam.players) return <div className="w-full bg-black/50 rounded-lg p-4 text-center text-gray-500 flex items-center justify-center h-full">Načítání...</div>;
     if (currentTeam.players.length === 0) return <div className="w-full bg-black/50 rounded-lg p-4 text-center text-gray-500 flex items-center justify-center h-full">Žádní hráči.</div>;
+    
+    // Formátování času
+    const formatTime = (seconds) => {
+      const mins = Math.floor(seconds / 60);
+      const secs = seconds % 60;
+      return `${mins}:${secs.toString().padStart(2, '0')}`;
+    };
+    
     return (
       <div className="w-full bg-gradient-to-b from-gray-800/60 to-gray-900/70 rounded-lg overflow-hidden flex flex-col h-full border border-gray-700/50">
         <div className="bg-indigo-900/60 p-2 flex justify-between items-center flex-shrink-0 border-b border-indigo-700/50">
           <button onClick={() => setSelectedTeamColor('white')} className={clsx('px-3 py-1 rounded-lg text-sm font-bold transition-colors flex-1 text-center mx-1', selectedTeamColor === 'white' ? 'bg-white text-black shadow-md' : 'text-white hover:bg-white/20')}>Bílí ({teamData.white.players?.length ?? 0})</button>
           <button onClick={() => setSelectedTeamColor('black')} className={clsx('px-3 py-1 rounded-lg text-sm font-bold transition-colors flex-1 text-center mx-1', selectedTeamColor === 'black' ? 'bg-gray-600 text-white shadow-md' : 'text-gray-300 hover:bg-gray-700/50')}>Černí ({teamData.black.players?.length ?? 0})</button>
+          <button 
+            onClick={() => setShowStats(!showStats)} 
+            className={clsx('px-3 py-1 rounded-lg text-xs font-bold transition-colors text-center ml-1', 
+              showStats ? 'bg-yellow-500 text-black shadow-md' : 'bg-gray-700 text-gray-200 hover:bg-gray-600')}
+          >
+            {showStats ? 'Info' : 'Statistiky'}
+          </button>
         </div>
         <div className="flex-grow overflow-y-auto custom-scrollbar">
-          {currentTeam.players.map((player, index) => {
-             if (!player || !player.key) return null;
-             const playerPhotoUrl = player.isPlayer ? '/Images/players/default_player.png' : litvinovLancers.getPlayerPhotoUrl(`${player.name} ${player.surname}`);
-             return (
+          {showStats ? (
+            // Zobrazení statistik
+            <table className="w-full text-xs">
+              <thead className="bg-gray-800 text-gray-300">
+                <tr>
+                  <th className="p-1 text-left">Hráč</th>
+                  <th className="p-1 text-center">Čas</th>
+                  <th className="p-1 text-center">G</th>
+                  <th className="p-1 text-center">A</th>
+                  <th className="p-1 text-center">TM</th>
+                  <th className="p-1 text-center" title="Bloky/Zásahy">{/* Bloky nebo zásahy */}B/Z</th>
+                  <th className="p-1 text-center" title="Střely/Úspěšnost">{/* Střely nebo úspěšnost */}S/Ú</th>
+                </tr>
+              </thead>
+              <tbody>
+                {currentTeam.players.map((player) => {
+                  if (!player || !player.key) return null;
+                  const isGoalie = player.position === 'brankář';
+                  const stats = playerStats[player.key] || {
+                    timeOnIce: 0, goals: 0, assists: 0, penalties: 0, blocks: 0, shots: 0,
+                    saves: 0, savePercentage: 100, shotsAgainst: 0
+                  };
+                  
+                  return (
+                    <tr key={player.key} className="border-b border-gray-800/50 hover:bg-gray-800/30">
+                      <td className="p-1 font-medium">
+                        <div className="flex items-center">
+                          <span className="truncate max-w-[90px]">
+                            {player.surname} {player.isPlayer ? <span className="text-cyan-400">(Ty)</span> : ''}
+                          </span>
+                        </div>
+                      </td>
+                      <td className="p-1 text-center text-gray-400">{formatTime(stats.timeOnIce)}</td>
+                      <td className="p-1 text-center">{stats.goals}</td>
+                      <td className="p-1 text-center">{stats.assists}</td>
+                      <td className="p-1 text-center">{stats.penalties}</td>
+                      <td className="p-1 text-center">{isGoalie ? stats.saves : stats.blocks}</td>
+                      <td className="p-1 text-center">{isGoalie ? `${stats.savePercentage}%` : stats.shots}</td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          ) : (
+            // Standardní zobrazení hráčů
+            currentTeam.players.map((player, index) => {
+              if (!player || !player.key) return null;
+              const playerPhotoUrl = player.isPlayer ? '/Images/players/default_player.png' : litvinovLancers.getPlayerPhotoUrl(`${player.name} ${player.surname}`);
+              return (
                 <div key={player.key} className={`p-2 text-sm ${index % 2 === 0 ? 'bg-black/30' : 'bg-black/20'} hover:bg-indigo-900/40 transition-colors flex items-center gap-2 border-b border-gray-700/30 last:border-b-0`}>
                   <div className="w-8 h-8 rounded-full overflow-hidden flex-shrink-0 border border-indigo-600"><Image src={playerPhotoUrl} alt={player.name} width={32} height={32} className="w-full h-full object-cover" unoptimized={true} onError={(e) => { e.currentTarget.src = '/Images/players/default_player.png'; }} /></div>
                   <div className="flex-1 min-w-0"><div className="truncate font-medium text-gray-200">{player.name} {player.surname} {player.isPlayer ? <span className="text-cyan-400">(Ty)</span> : ''}</div><div className="text-xs text-indigo-300">{player.position}</div></div>
                   <span className="text-xs font-semibold text-yellow-400 px-1.5 py-0.5 bg-black/30 rounded-md">L{player.level || 1}</span>
                 </div>
-             );
-          })}
+              );
+            })
+          )}
         </div>
       </div>
     );
@@ -867,20 +969,24 @@ const OldaHockeyMatch = ({ onBack, onGameComplete, assignedJerseys, playerName =
     if (gameState !== 'playing') return;
     console.log("🚀 Starting fatigue update interval.");
     const fatigueInterval = setInterval(() => {
+      // Upravíme rychlost únavy podle rychlosti hry
+      const fatigueIncreaseRate = BASE_FATIGUE_INCREASE_RATE * gameSpeed;
+      const recoveryRate = BASE_RECOVERY_RATE * gameSpeed;
+      
       updateTeamState('white', prevWhiteState => {
         if (!prevWhiteState?.fatigue || !prevWhiteState.onIce || !prevWhiteState.bench) return prevWhiteState;
         const newFatigue = { ...prevWhiteState.fatigue }; let fatigueChanged = false;
         prevWhiteState.onIce.forEach(player => {
           if (player?.key) {
             const currentFatigue = newFatigue[player.key] ?? 0;
-            const updatedFatigue = Math.min(MAX_FATIGUE, currentFatigue + FATIGUE_INCREASE_RATE);
+            const updatedFatigue = Math.min(MAX_FATIGUE, currentFatigue + fatigueIncreaseRate);
             if (newFatigue[player.key] !== updatedFatigue) { newFatigue[player.key] = updatedFatigue; fatigueChanged = true; }
           }
         });
         prevWhiteState.bench.forEach(player => {
           if (player?.key) {
             const currentFatigue = newFatigue[player.key] ?? 0;
-            const updatedFatigue = Math.max(0, currentFatigue - RECOVERY_RATE);
+            const updatedFatigue = Math.max(0, currentFatigue - recoveryRate);
              if (newFatigue[player.key] !== updatedFatigue) { newFatigue[player.key] = updatedFatigue; fatigueChanged = true; }
           }
         });
@@ -892,14 +998,14 @@ const OldaHockeyMatch = ({ onBack, onGameComplete, assignedJerseys, playerName =
         prevBlackState.onIce.forEach(player => {
            if (player?.key) {
             const currentFatigue = newFatigue[player.key] ?? 0;
-            const updatedFatigue = Math.min(MAX_FATIGUE, currentFatigue + FATIGUE_INCREASE_RATE);
+            const updatedFatigue = Math.min(MAX_FATIGUE, currentFatigue + fatigueIncreaseRate);
             if (newFatigue[player.key] !== updatedFatigue) { newFatigue[player.key] = updatedFatigue; fatigueChanged = true; }
            }
         });
         prevBlackState.bench.forEach(player => {
            if (player?.key) {
             const currentFatigue = newFatigue[player.key] ?? 0;
-            const updatedFatigue = Math.max(0, currentFatigue - RECOVERY_RATE);
+            const updatedFatigue = Math.max(0, currentFatigue - recoveryRate);
             if (newFatigue[player.key] !== updatedFatigue) { newFatigue[player.key] = updatedFatigue; fatigueChanged = true; }
            }
         });
@@ -907,7 +1013,143 @@ const OldaHockeyMatch = ({ onBack, onGameComplete, assignedJerseys, playerName =
       });
     }, 1000);
     return () => { console.log("🛑 Stopping fatigue update interval."); clearInterval(fatigueInterval); };
-  }, [gameState, updateTeamState]); // Závislost pouze na gameState a updateTeamState
+  }, [gameState, updateTeamState, gameSpeed]); // Přidána závislost na gameSpeed
+
+  // Aktualizace statistik při událostech
+  useEffect(() => {
+    if (!lastEvent || !lastEvent.type) return;
+    
+    setPlayerStats(prevStats => {
+      const newStats = { ...prevStats };
+      
+      // Aktualizace statistik podle typu události
+      switch (lastEvent.type) {
+        case 'goal':
+          if (lastEvent.player && lastEvent.player.key) {
+            newStats[lastEvent.player.key] = {
+              ...newStats[lastEvent.player.key],
+              goals: (newStats[lastEvent.player.key]?.goals || 0) + 1,
+              shots: (newStats[lastEvent.player.key]?.shots || 0) + 1
+            };
+          }
+          if (lastEvent.assistant && lastEvent.assistant.key) {
+            newStats[lastEvent.assistant.key] = {
+              ...newStats[lastEvent.assistant.key],
+              assists: (newStats[lastEvent.assistant.key]?.assists || 0) + 1
+            };
+          }
+          if (lastEvent.team) {
+            // Aktualizovat brankáře soupeře
+            const defTeam = lastEvent.team === 'white' ? 'black' : 'white';
+            const goalie = teamState[defTeam]?.onIce?.find(p => p.position === 'brankář');
+            if (goalie && goalie.key) {
+              const currentShotsAgainst = (newStats[goalie.key]?.shotsAgainst || 0) + 1;
+              const currentSaves = newStats[goalie.key]?.saves || 0;
+              const savePercentage = currentShotsAgainst > 0 
+                ? Math.round((currentSaves / currentShotsAgainst) * 100) 
+                : 100;
+              
+              newStats[goalie.key] = {
+                ...newStats[goalie.key],
+                shotsAgainst: currentShotsAgainst,
+                savePercentage
+              };
+            }
+          }
+          break;
+          
+        case 'save':
+          if (lastEvent.player && lastEvent.player.key) { // Brankář
+            const currentShotsAgainst = (newStats[lastEvent.player.key]?.shotsAgainst || 0) + 1;
+            const currentSaves = (newStats[lastEvent.player.key]?.saves || 0) + 1;
+            const savePercentage = currentShotsAgainst > 0 
+              ? Math.round((currentSaves / currentShotsAgainst) * 100) 
+              : 100;
+            
+            newStats[lastEvent.player.key] = {
+              ...newStats[lastEvent.player.key],
+              saves: currentSaves,
+              shotsAgainst: currentShotsAgainst,
+              savePercentage
+            };
+          }
+          if (lastEvent.shooter && lastEvent.shooter.key) { // Střelec
+            newStats[lastEvent.shooter.key] = {
+              ...newStats[lastEvent.shooter.key],
+              shots: (newStats[lastEvent.shooter.key]?.shots || 0) + 1
+            };
+          }
+          break;
+          
+        case 'miss':
+          if (lastEvent.player && lastEvent.player.key) {
+            newStats[lastEvent.player.key] = {
+              ...newStats[lastEvent.player.key],
+              shots: (newStats[lastEvent.player.key]?.shots || 0) + 1
+            };
+          }
+          break;
+          
+        case 'defense':
+          if (lastEvent.player && lastEvent.player.key) { // Obránce
+            newStats[lastEvent.player.key] = {
+              ...newStats[lastEvent.player.key],
+              blocks: (newStats[lastEvent.player.key]?.blocks || 0) + 1
+            };
+          }
+          if (lastEvent.attacker && lastEvent.attacker.key) { // Útočník
+            newStats[lastEvent.attacker.key] = {
+              ...newStats[lastEvent.attacker.key],
+              shots: (newStats[lastEvent.attacker.key]?.shots || 0) + 1
+            };
+          }
+          break;
+          
+        case 'penalty':
+          if (lastEvent.player && lastEvent.player.key) {
+            newStats[lastEvent.player.key] = {
+              ...newStats[lastEvent.player.key],
+              penalties: (newStats[lastEvent.player.key]?.penalties || 0) + 1
+            };
+          }
+          break;
+          
+        default:
+          break;
+      }
+      
+      return newStats;
+    });
+    
+  }, [lastEvent, teamState]);
+
+  // Aktualizace času na ledě
+  useEffect(() => {
+    if (gameState !== 'playing') return;
+    
+    const timeUpdateInterval = setInterval(() => {
+      setPlayerStats(prevStats => {
+        const newStats = { ...prevStats };
+        
+        // Aktualizujeme čas na ledě pro hráče, kteří jsou aktuálně na ledě
+        ['white', 'black'].forEach(teamColor => {
+          const playersOnIce = teamState[teamColor]?.onIce || [];
+          playersOnIce.forEach(player => {
+            if (player && player.key) {
+              newStats[player.key] = {
+                ...newStats[player.key],
+                timeOnIce: (newStats[player.key]?.timeOnIce || 0) + 1
+              };
+            }
+          });
+        });
+        
+        return newStats;
+      });
+    }, 1000);
+    
+    return () => clearInterval(timeUpdateInterval);
+  }, [gameState, teamState]);
 
   // --- Main Render ---
   return (
@@ -945,7 +1187,7 @@ const OldaHockeyMatch = ({ onBack, onGameComplete, assignedJerseys, playerName =
                      {gameState === 'playing' ? <PauseIcon className="h-5 w-5 sm:h-6 sm:w-6" /> : <PlayIcon className="h-5 w-5 sm:h-6 sm:w-6" />} {gameState === 'playing' ? 'Pauza' : (gameState === 'paused' ? 'Pokračovat' : 'Start')}
                    </button>
                    <button onClick={() => changeSpeed(1)} disabled={gameSpeed >= MAX_SPEED} className="p-1.5 sm:p-2 bg-cyan-600/70 hover:bg-cyan-600 disabled:opacity-50 rounded-full transition-colors" title="Zrychlit"><ForwardIcon className="h-4 w-4 sm:h-5 sm:w-5 text-white" /></button>
-                   <div className="text-xs sm:text-sm text-gray-400 ml-2 sm:ml-4 whitespace-nowrap">Rychlost: {gameSpeed}x</div>
+                   <div className={`text-xs sm:text-sm ${gameSpeed > 8 ? 'text-yellow-400 font-bold' : 'text-gray-400'} ml-2 sm:ml-4 whitespace-nowrap`}>Rychlost: {gameSpeed}x</div>
                  </>
               ) : (
                 <div className='text-center flex flex-col items-center gap-2'>
