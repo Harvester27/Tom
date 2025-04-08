@@ -1014,6 +1014,7 @@ const PlayerCareer = ({ onBack, money, xp, level, getXpToNextLevel, getLevelProg
           onBack={() => setShowOldaGame(false)}
           onGameComplete={handleOldaGameComplete}
           playerName={playerName}
+          level={level}
         />
       )}
 

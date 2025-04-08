@@ -4594,6 +4594,8 @@ const CardGame = () => {
         <OldaGameSimulation
           onBack={() => setShowGameSimulation(false)}
           onGameComplete={handleGameComplete}
+          playerName={playerName}
+          level={currentLevel}
         />
       )}
     </div>

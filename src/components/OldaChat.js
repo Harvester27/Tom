@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
 import Image from 'next/image';
 import { litvinovLancers } from '../data/LitvinovLancers';
+import OldaGameSimulation from './OldaGameSimulation';
 
-const OldaChat = ({ initialMessages, onChatUpdate }) => {
+const OldaChat = ({ initialMessages, onChatUpdate, showGame, playerName, currentLevel }) => {
   // Definice dialogových sekvencí
   const dialogSequences = {
     start: {
@@ -294,6 +295,14 @@ const OldaChat = ({ initialMessages, onChatUpdate }) => {
     }, 1500);
   };
 
+  const handleBackFromGame = () => {
+    // Implementace handleBackFromGame
+  };
+
+  const handleGameComplete = () => {
+    // Implementace handleGameComplete
+  };
+
   return (
     <div className="h-full flex flex-col">
       {/* Messages */}
@@ -362,6 +371,15 @@ const OldaChat = ({ initialMessages, onChatUpdate }) => {
             </button>
           ))}
         </div>
+      )}
+
+      {showGame && (
+        <OldaGameSimulation
+          onBack={handleBackFromGame}
+          onGameComplete={handleGameComplete}
+          playerName={playerName}
+          level={currentLevel}
+        />
       )}
     </div>
   );

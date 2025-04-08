@@ -65,7 +65,7 @@ const ConversationWindow = ({ history }) => {
 // --- Konec komponenty ConversationWindow ---
 
 
-const OldaGameSimulation = ({ onBack, onGameComplete, playerName }) => {
+const OldaGameSimulation = ({ onBack, onGameComplete, playerName, level }) => {
   const [gameState, setGameState] = useState('enter'); // 'enter', 'greeting', 'locker_room', 'game'
   const [currentTime, setCurrentTime] = useState(16 * 60 + 30); // 16:30 v minutách
   const [gameSpeed, setGameSpeed] = useState(1);
@@ -641,6 +641,12 @@ const OldaGameSimulation = ({ onBack, onGameComplete, playerName }) => {
   // Do state přidám nový stav pro hokejový zápas
   const [showHockeyMatch, setShowHockeyMatch] = useState(false);
 
+  // Nastavení obtížnosti podle levelu
+  const [difficulty, setDifficulty] = useState(level);
+  useEffect(() => {
+    setDifficulty(level);
+  }, [level]);
+
   return (
     <div className="fixed inset-0 bg-black/90 text-white z-50 flex items-center justify-center font-sans"> {/* Přidán font-sans pro konzistenci */}
       <div className="w-full max-w-[95vw] mx-auto p-4 md:p-8"> {/* Responzivní padding */}
@@ -866,6 +872,7 @@ const OldaGameSimulation = ({ onBack, onGameComplete, playerName }) => {
           }}
           assignedJerseys={assignedJerseys}
           playerName={playerName}
+          playerLevel={level}
         />
       )}
     </div>

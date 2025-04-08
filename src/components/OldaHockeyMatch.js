@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react';
 import Image from 'next/image';
 import { litvinovLancers } from '../data/LitvinovLancers';
 
-const OldaHockeyMatch = ({ onBack, onGameComplete, assignedJerseys, playerName = 'Nový hráč' }) => {
+const OldaHockeyMatch = ({ onBack, onGameComplete, assignedJerseys, playerName = 'Nový hráč', playerLevel = 1 }) => {
   const [gameState, setGameState] = useState('warmup'); // 'warmup', 'playing', 'end'
   const [score, setScore] = useState({ white: 0, black: 0 });
   const [gameTime, setGameTime] = useState(0); // čas v sekundách
@@ -51,7 +51,7 @@ const OldaHockeyMatch = ({ onBack, onGameComplete, assignedJerseys, playerName =
       name: playerName,
       surname: '',
       position: 'útočník',
-      level: 5,  // Střední level pro hráče
+      level: playerLevel,  // Použijeme skutečný level hráče
       isPlayer: true
     };
 
