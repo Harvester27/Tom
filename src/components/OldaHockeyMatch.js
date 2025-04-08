@@ -139,6 +139,9 @@ const OldaHockeyMatch = ({ onBack, onGameComplete, assignedJerseys, playerName =
   // Nové stavy pro statistiky
   const [playerStats, setPlayerStats] = useState({});
   
+  // Nový stav pro zobrazení modálního okna opuštění
+  const [showExitConfirm, setShowExitConfirm] = useState(false);
+  
   // Nové stavy pro speciální akce
   const [specialAction, setSpecialAction] = useState(null);
   const [lastSpecialActionTime, setLastSpecialActionTime] = useState(0);
@@ -418,21 +421,104 @@ const OldaHockeyMatch = ({ onBack, onGameComplete, assignedJerseys, playerName =
                      newEvent.assistant = assistant;
                      newEvent.description = `🚨 GÓÓÓL! ${attacker.name} ${attacker.surname} ${attacker.isPlayer ? '(Ty!)' : ''} (${attackingTeamId === 'white' ? 'Bílí' : 'Černí'}) skóruje${assistant ? ` po přihrávce od ${assistant.name} ${assistant.surname}` : ''}!`;
                      triggerHighlight([attacker.key, assistant?.key].filter(Boolean));
+                    
+                     // Aktualizace statistik pro speciálního hráče (pokud existuje)
+                     if (attacker.isPlayer) {
+                       setPlayerStats(prevStats => ({
+                         ...prevStats,
+                         [attacker.key]: {
+                           ...(prevStats[attacker.key] || {}),
+                           goals: ((prevStats[attacker.key]?.goals || 0) + 1),
+                           shots: ((prevStats[attacker.key]?.shots || 0) + 1)
+                         }
+                       }));
+                     }
+                     if (assistant && assistant.isPlayer) {
+                       setPlayerStats(prevStats => ({
+                         ...prevStats,
+                         [assistant.key]: {
+                           ...(prevStats[assistant.key] || {}),
+                           assists: ((prevStats[assistant.key]?.assists || 0) + 1)
+                         }
+                       }));
+                     }
                  } else if (outcomeRoll < goalChance + 0.35 || !goalie) { // ZÁKROK / VEDLE
                      if (goalie) {
                          newEvent.type = 'save';
                          newEvent.player = goalie; newEvent.shooter = attacker;
                          newEvent.description = `🧤 Zákrok! ${goalie.name} ${goalie.surname} (${defendingTeamId === 'white' ? 'Bílí' : 'Černí'}) chytá střelu ${attacker.name} ${attacker.surname}${attacker.isPlayer ? ' (Tvoje střela!)' : ''}.`;
                          triggerHighlight([goalie.key, attacker.key].filter(Boolean));
+                        
+                         // Aktualizace statistik pro brankáře a speciálního střelce
+                         if (goalie.isPlayer) {
+                           setPlayerStats(prevStats => {
+                             const currentShotsAgainst = (prevStats[goalie.key]?.shotsAgainst || 0) + 1;
+                             const currentSaves = (prevStats[goalie.key]?.saves || 0) + 1;
+                             const savePercentage = Math.round((currentSaves / currentShotsAgainst) * 100);
+                             
+                             return {
+                               ...prevStats,
+                               [goalie.key]: {
+                                 ...(prevStats[goalie.key] || {}),
+                                 saves: currentSaves,
+                                 shotsAgainst: currentShotsAgainst,
+                                 savePercentage
+                               }
+                             };
+                           });
+                         }
+                         if (attacker.isPlayer) {
+                           setPlayerStats(prevStats => ({
+                             ...prevStats,
+                             [attacker.key]: {
+                               ...(prevStats[attacker.key] || {}),
+                               shots: ((prevStats[attacker.key]?.shots || 0) + 1)
+                             }
+                           }));
+                         }
                      } else {
                          newEvent.type = 'miss'; newEvent.player = attacker;
                          newEvent.description = `💨 Střela vedle od ${attacker.name} ${attacker.surname}${attacker.isPlayer ? ' (Ty!)' : ''} (${attackingTeamId === 'white' ? 'Bílí' : 'Černí'}).`;
                          triggerHighlight(attacker.key);
+                        
+                         // Aktualizace statistik pro speciálního střelce
+                         if (attacker.isPlayer) {
+                           setPlayerStats(prevStats => ({
+                             ...prevStats,
+                             [attacker.key]: {
+                               ...(prevStats[attacker.key] || {}),
+                               shots: ((prevStats[attacker.key]?.shots || 0) + 1)
+                             }
+                           }));
+                         }
                      }
                  } else if (defender) { // BLOK
                      newEvent.type = 'defense'; newEvent.player = defender; newEvent.attacker = attacker;
                      newEvent.description = `🛡️ Blok! ${defender.name} ${defender.surname} (${defendingTeamId === 'white' ? 'Bílí' : 'Černí'}) zastavil střelu ${attacker.name} ${attacker.surname}${attacker.isPlayer ? ' (Tebe!)' : ''}!`;
                      triggerHighlight([defender.key, attacker.key].filter(Boolean));
+                    
+                     // Aktualizace statistik pro speciálního obránce/střelce
+                     if (defender.isPlayer) {
+                       // Pro obránce vyšší šance na blok (50%)
+                       if (Math.random() < 0.5) {
+                         setPlayerStats(prevStats => ({
+                           ...prevStats,
+                           [defender.key]: {
+                             ...(prevStats[defender.key] || {}),
+                             blocks: ((prevStats[defender.key]?.blocks || 0) + 1)
+                           }
+                         }));
+                       }
+                     }
+                     if (attacker.isPlayer) {
+                       setPlayerStats(prevStats => ({
+                         ...prevStats,
+                         [attacker.key]: {
+                           ...(prevStats[attacker.key] || {}),
+                           shots: ((prevStats[attacker.key]?.shots || 0) + 1)
+                         }
+                       }));
+                     }
                  } else { // ZTRÁTA PUKU
                       newEvent.type = 'turnover'; newEvent.player = attacker;
                       newEvent.description = `🔄 Ztráta puku týmem ${attackingTeamId === 'white' ? 'Bílých' : 'Černých'}.`;
@@ -1028,14 +1114,14 @@ const OldaHockeyMatch = ({ onBack, onGameComplete, assignedJerseys, playerName =
           if (lastEvent.player && lastEvent.player.key) {
             newStats[lastEvent.player.key] = {
               ...newStats[lastEvent.player.key],
-              goals: (newStats[lastEvent.player.key]?.goals || 0) + 1,
+              goals: (newStats[lastEvent.player.key]?.goals || 0) + 1, // Pouze +1 gól
               shots: (newStats[lastEvent.player.key]?.shots || 0) + 1
             };
           }
           if (lastEvent.assistant && lastEvent.assistant.key) {
             newStats[lastEvent.assistant.key] = {
               ...newStats[lastEvent.assistant.key],
-              assists: (newStats[lastEvent.assistant.key]?.assists || 0) + 1
+              assists: (newStats[lastEvent.assistant.key]?.assists || 0) + 1 // Pouze +1 asistence
             };
           }
           if (lastEvent.team) {
@@ -1092,10 +1178,16 @@ const OldaHockeyMatch = ({ onBack, onGameComplete, assignedJerseys, playerName =
           
         case 'defense':
           if (lastEvent.player && lastEvent.player.key) { // Obránce
-            newStats[lastEvent.player.key] = {
-              ...newStats[lastEvent.player.key],
-              blocks: (newStats[lastEvent.player.key]?.blocks || 0) + 1
-            };
+            // Upraveno: 30% šance na blok (50% pro obránce) - pro realističtější počet
+            const isDefender = lastEvent.player.position === 'obránce';
+            const blockChance = isDefender ? 0.5 : 0.3;
+            
+            if (Math.random() < blockChance) {
+              newStats[lastEvent.player.key] = {
+                ...newStats[lastEvent.player.key],
+                blocks: (newStats[lastEvent.player.key]?.blocks || 0) + 1
+              };
+            }
           }
           if (lastEvent.attacker && lastEvent.attacker.key) { // Útočník
             newStats[lastEvent.attacker.key] = {
@@ -1127,29 +1219,164 @@ const OldaHockeyMatch = ({ onBack, onGameComplete, assignedJerseys, playerName =
   useEffect(() => {
     if (gameState !== 'playing') return;
     
-    const timeUpdateInterval = setInterval(() => {
-      setPlayerStats(prevStats => {
-        const newStats = { ...prevStats };
-        
-        // Aktualizujeme čas na ledě pro hráče, kteří jsou aktuálně na ledě
-        ['white', 'black'].forEach(teamColor => {
-          const playersOnIce = teamState[teamColor]?.onIce || [];
-          playersOnIce.forEach(player => {
-            if (player && player.key) {
-              newStats[player.key] = {
-                ...newStats[player.key],
-                timeOnIce: (newStats[player.key]?.timeOnIce || 0) + 1
-              };
-            }
-          });
-        });
-        
-        return newStats;
-      });
-    }, 1000);
+    // Místo použití setInterval budeme aktualizovat čas na ledě 
+    // přímo v hlavním herním cyklu při každé změně herního času
+    // Tento effect reaguje jen na změny gameTime
     
-    return () => clearInterval(timeUpdateInterval);
-  }, [gameState, teamState]);
+    setPlayerStats(prevStats => {
+      const newStats = { ...prevStats };
+      
+      // Aktualizujeme čas na ledě pro hráče, kteří jsou aktuálně na ledě
+      // Přičítáme přímo herní rychlost, protože o tolik se posunul čas
+      ['white', 'black'].forEach(teamColor => {
+        const playersOnIce = teamState[teamColor]?.onIce || [];
+        playersOnIce.forEach(player => {
+          if (player && player.key) {
+            newStats[player.key] = {
+              ...newStats[player.key],
+              timeOnIce: (newStats[player.key]?.timeOnIce || 0) + gameSpeed // Přičítáme gameSpeed sekund místo fixní 1 sekundy
+            };
+          }
+        });
+      });
+      
+      return newStats;
+    });
+    
+  }, [gameTime, teamState, gameState, gameSpeed]); // Reagujeme přímo na změny herního času
+
+  // --- Manuální střídání hráče ---
+  const handlePlayerSubstitution = useCallback((teamColor) => {
+    const currentTime = gameTime;
+    
+    // Debug log pro identifikaci problému
+    console.log(`🔄 Manual SUB attempted for team ${teamColor}`);
+    console.log(`OnIce: `, teamState[teamColor]?.onIce?.map(p => p.surname));
+    console.log(`Bench: `, teamState[teamColor]?.bench?.map(p => p.surname));
+    
+    updateTeamState(teamColor, prevTeamState => {
+      if (!prevTeamState || !prevTeamState.onIce || !prevTeamState.bench || !prevTeamState.fatigue) {
+        console.error("❌ SUB ERROR: Invalid team state");
+        return prevTeamState;
+      }
+
+      // Opraveno: Hledáme hráče podle isPlayer vlastnosti, ne podle surname
+      const playerOnIce = prevTeamState.onIce.find(p => p && p.isPlayer);
+      const playerOnBench = prevTeamState.bench.find(p => p && p.isPlayer);
+      
+      console.log("Player on ice:", playerOnIce?.surname);
+      console.log("Player on bench:", playerOnBench?.surname);
+      
+      if (!playerOnIce && !playerOnBench) {
+        console.error("❌ SUB ERROR: Player not found in team");
+        return prevTeamState;
+      }
+
+      if (playerOnIce) { // Hráč jde z ledu
+        const restedBenchPlayer = [...prevTeamState.bench]
+          .filter(p => p && p.position !== 'brankář' && !p.isPlayer)
+          .sort((a, b) => (prevTeamState.fatigue[a.key] ?? 100) - (prevTeamState.fatigue[b.key] ?? 100))[0];
+        
+        if (!restedBenchPlayer) {
+          console.error("❌ SUB ERROR: No rested players on bench to replace the player");
+          return prevTeamState;
+        }
+
+        const newOnIce = prevTeamState.onIce.filter(p => p && !p.isPlayer);
+        newOnIce.push(restedBenchPlayer);
+        
+        const newBench = prevTeamState.bench.filter(p => p && p.key !== restedBenchPlayer.key);
+        newBench.push(playerOnIce);
+        
+        const subEvent = {
+          time: currentTime,
+          type: 'substitution',
+          team: teamColor,
+          description: `Střídání (${teamColor === 'white' ? 'Bílí' : 'Černí'}): ${playerName} (Ty) ⬇️, ${restedBenchPlayer.name} ${restedBenchPlayer.surname} ⬆️`
+        };
+        
+        setEvents(prev => [subEvent, ...prev]);
+        setLastEvent(subEvent);
+        triggerHighlight([playerOnIce.key, restedBenchPlayer.key]);
+        
+        console.log("✅ Player substituted OFF ice successfully");
+        return {
+          ...prevTeamState,
+          onIce: newOnIce,
+          bench: newBench,
+          lastShiftChange: currentTime
+        };
+      }
+
+      if (playerOnBench) { // Hráč jde z lavičky
+        const tiredOnIcePlayer = [...prevTeamState.onIce]
+          .filter(p => p && p.position !== 'brankář' && !p.isPlayer)
+          .sort((a, b) => (prevTeamState.fatigue[b.key] ?? 0) - (prevTeamState.fatigue[a.key] ?? 0))[0];
+        
+        if (!tiredOnIcePlayer) {
+          console.error("❌ SUB ERROR: No tired players on ice to be replaced");
+          return prevTeamState;
+        }
+
+        const newBench = prevTeamState.bench.filter(p => p && !p.isPlayer);
+        newBench.push(tiredOnIcePlayer);
+        
+        const newOnIce = prevTeamState.onIce.filter(p => p && p.key !== tiredOnIcePlayer.key);
+        newOnIce.push(playerOnBench);
+        
+        const subEvent = {
+          time: currentTime,
+          type: 'substitution',
+          team: teamColor,
+          description: `Střídání (${teamColor === 'white' ? 'Bílí' : 'Černí'}): ${playerName} (Ty) ⬆️, ${tiredOnIcePlayer.name} ${tiredOnIcePlayer.surname} ⬇️`
+        };
+        
+        setEvents(prev => [subEvent, ...prev]);
+        setLastEvent(subEvent);
+        triggerHighlight([playerOnBench.key, tiredOnIcePlayer.key]);
+        
+        console.log("✅ Player substituted ON ice successfully");
+        return {
+          ...prevTeamState,
+          onIce: newOnIce,
+          bench: newBench,
+          lastShiftChange: currentTime
+        };
+      }
+      
+      return prevTeamState;
+    });
+  }, [gameTime, updateTeamState, playerName, triggerHighlight, teamState]);
+
+  // Funkce pro potvrzení opuštění zápasu
+  const handleExit = useCallback(() => {
+    if (gameState === 'finished') {
+      // Pokud je hra dokončena, přejdeme přímo na odměny
+      if (onGameComplete) onGameComplete({ score, events, playerStats });
+    } else {
+      // Jinak zobrazíme potvrzovací dialog
+      setShowExitConfirm(true);
+      // Pozastavit hru při zobrazení dialogu
+      if (gameState === 'playing') setGameState('paused');
+    }
+  }, [gameState, score, events, playerStats, onGameComplete]);
+
+  // Funkce pro odchod z potvrzovacího dialogu
+  const handleConfirmExit = useCallback(() => {
+    setShowExitConfirm(false);
+    // Přejít na odměny, ale musíme indikovat, že zápas byl ukončen předčasně
+    if (onGameComplete) onGameComplete({ 
+      score, 
+      events, 
+      playerStats, 
+      abandoned: true 
+    });
+  }, [score, events, playerStats, onGameComplete]);
+
+  // Funkce pro zrušení odchodu
+  const handleCancelExit = useCallback(() => {
+    setShowExitConfirm(false);
+  }, []);
 
   // --- Main Render ---
   return (
@@ -1158,8 +1385,16 @@ const OldaHockeyMatch = ({ onBack, onGameComplete, assignedJerseys, playerName =
 
         {/* Header */}
         <div className="flex justify-between items-center p-3 sm:p-4 border-b border-gray-700 flex-shrink-0">
-          <button onClick={onBack} className={clsx("flex items-center gap-2 px-3 py-1.5 sm:px-4 sm:py-2 rounded-lg transition-colors text-sm font-medium", gameState === 'playing' ? "bg-gray-600 text-gray-400 cursor-not-allowed" : "bg-red-600/80 hover:bg-red-600 text-white")} disabled={gameState === 'playing'} title={gameState === 'playing' ? "Nelze opustit během hry" : "Zpět do kabiny"}>
-            <ArrowLeftOnRectangleIcon className="h-5 w-5" /> <span className="hidden sm:inline">Zpět</span>
+          {/* Upravené tlačítko Zpět na tlačítko odchodu ze zápasu */}
+          <button 
+            onClick={handleExit} 
+            className={clsx(
+              "flex items-center gap-2 px-3 py-1.5 sm:px-4 sm:py-2 rounded-lg transition-colors text-sm font-medium",
+              "bg-red-600/80 hover:bg-red-600 text-white"
+            )}
+            title="Opustit zápas a přejít na výsledky"
+          >
+            <ArrowLeftOnRectangleIcon className="h-5 w-5" /> <span className="hidden sm:inline">Opustit zápas</span>
           </button>
           <h2 className="text-xl sm:text-2xl font-bold text-cyan-400 tracking-tight text-center px-2">Lancers Simulátor Zápasu</h2>
           <div className="w-16 sm:w-24 flex justify-end">
@@ -1286,6 +1521,31 @@ const OldaHockeyMatch = ({ onBack, onGameComplete, assignedJerseys, playerName =
             action={specialAction} 
             onOptionSelect={handleSpecialActionResult}
           />
+        )}
+
+        {/* Potvrzovací dialog pro opuštění zápasu */}
+        {showExitConfirm && (
+          <div className="fixed inset-0 flex items-center justify-center z-[60] bg-black/70">
+            <div className="bg-gradient-to-b from-gray-800 to-gray-900 rounded-xl p-5 max-w-md mx-auto border border-red-700 shadow-lg">
+              <h3 className="text-xl text-center font-bold text-red-400 mb-3">Opravdu chceš opustit zápas?</h3>
+              <p className="text-gray-300 mb-5 text-center">Všechen postup v tomto zápase bude ztracen.</p>
+              
+              <div className="flex justify-center gap-4">
+                <button 
+                  onClick={handleCancelExit} 
+                  className="px-5 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg transition-colors"
+                >
+                  Zůstat
+                </button>
+                <button 
+                  onClick={handleConfirmExit} 
+                  className="px-5 py-2 bg-red-600 hover:bg-red-500 text-white rounded-lg transition-colors"
+                >
+                  Opustit zápas
+                </button>
+              </div>
+            </div>
+          </div>
         )}
       </div> {/* Konec hlavního kontejneru zápasu */}
 
