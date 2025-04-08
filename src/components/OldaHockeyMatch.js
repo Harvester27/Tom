@@ -23,15 +23,37 @@ const OldaHockeyMatch = ({ onBack, onGameComplete, assignedJerseys, playerName =
       assignedJerseys?.black?.has(`${p.name} ${p.surname}`)
     );
 
+    // Přidáme hráče do správného týmu
+    const whiteTeam = {
+      name: 'Lancers Bílý',
+      players: whitePlayers
+    };
+
+    const blackTeam = {
+      name: 'Lancers Černý',
+      players: blackPlayers
+    };
+
+    // Přidáme hráče (uživatele) do správného týmu
+    if (assignedJerseys?.white?.has(playerName)) {
+      whiteTeam.players.push({
+        name: playerName,
+        surname: '',
+        position: 'útočník',
+        isPlayer: true
+      });
+    } else if (assignedJerseys?.black?.has(playerName)) {
+      blackTeam.players.push({
+        name: playerName,
+        surname: '',
+        position: 'útočník',
+        isPlayer: true
+      });
+    }
+
     return {
-      white: {
-        name: 'Lancers Bílý',
-        players: whitePlayers
-      },
-      black: {
-        name: 'Lancers Černý',
-        players: blackPlayers
-      }
+      white: whiteTeam,
+      black: blackTeam
     };
   });
 
@@ -75,7 +97,7 @@ const OldaHockeyMatch = ({ onBack, onGameComplete, assignedJerseys, playerName =
       const attackingTeam = Math.random() > 0.5 ? 'white' : 'black';
       const defendingTeam = attackingTeam === 'white' ? 'black' : 'white';
       
-      const isPlayerInAttackingTeam = assignedJerseys?.[attackingTeam]?.has('PLAYER');
+      const isPlayerInAttackingTeam = assignedJerseys?.[attackingTeam]?.has(playerName);
       const isPlayerAttacking = isPlayerInAttackingTeam && Math.random() < 0.2;
       
       let attackingPlayer;

@@ -354,6 +354,13 @@ const OldaGameSimulation = ({ onBack, onGameComplete, playerName }) => {
 
       // Náhodně určíme, do kterého týmu půjde hráč
       const playerTeam = Math.random() > 0.5 ? 'white' : 'black';
+      
+      // Přidáme hráče do týmu
+      if (playerTeam === 'white') {
+        assignedJerseys.white.add(playerName);
+      } else {
+        assignedJerseys.black.add(playerName);
+      }
 
       // Olda postupně oznamuje rozdělení týmů
       const responses = [];
@@ -394,7 +401,7 @@ const OldaGameSimulation = ({ onBack, onGameComplete, playerName }) => {
           onDisplay: () => {
             setAssignedJerseys(prev => ({
               ...prev,
-              white: new Set([...prev.white, 'PLAYER'])
+              white: new Set([...prev.white, playerName])
             }));
           }
         });
@@ -419,7 +426,7 @@ const OldaGameSimulation = ({ onBack, onGameComplete, playerName }) => {
           onDisplay: () => {
             setAssignedJerseys(prev => ({
               ...prev,
-              black: new Set([...prev.black, `${player.name} ${player.surname}`])
+              black: new Set([...prev.black, playerName])
             }));
           }
         });
@@ -436,7 +443,7 @@ const OldaGameSimulation = ({ onBack, onGameComplete, playerName }) => {
           onDisplay: () => {
             setAssignedJerseys(prev => ({
               ...prev,
-              black: new Set([...prev.black, 'PLAYER'])
+              black: new Set([...prev.black, playerName])
             }));
           }
         });
