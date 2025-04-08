@@ -422,26 +422,6 @@ const OldaHockeyMatch = ({ onBack, onGameComplete, assignedJerseys, playerName =
                      newEvent.description = `🚨 GÓÓÓL! ${attacker.name} ${attacker.surname} ${attacker.isPlayer ? '(Ty!)' : ''} (${attackingTeamId === 'white' ? 'Bílí' : 'Černí'}) skóruje${assistant ? ` po přihrávce od ${assistant.name} ${assistant.surname}` : ''}!`;
                      triggerHighlight([attacker.key, assistant?.key].filter(Boolean));
                     
-                     // Aktualizace statistik pro speciálního hráče (pokud existuje)
-                     if (attacker.isPlayer) {
-                       setPlayerStats(prevStats => ({
-                         ...prevStats,
-                         [attacker.key]: {
-                           ...(prevStats[attacker.key] || {}),
-                           goals: ((prevStats[attacker.key]?.goals || 0) + 1),
-                           shots: ((prevStats[attacker.key]?.shots || 0) + 1)
-                         }
-                       }));
-                     }
-                     if (assistant && assistant.isPlayer) {
-                       setPlayerStats(prevStats => ({
-                         ...prevStats,
-                         [assistant.key]: {
-                           ...(prevStats[assistant.key] || {}),
-                           assists: ((prevStats[assistant.key]?.assists || 0) + 1)
-                         }
-                       }));
-                     }
                  } else if (outcomeRoll < goalChance + 0.35 || !goalie) { // ZÁKROK / VEDLE
                      if (goalie) {
                          newEvent.type = 'save';
