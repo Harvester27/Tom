@@ -321,6 +321,7 @@ const OldaGameSimulation = ({ onBack, onGameComplete }) => {
 
     // Pokud jde o rozdělení týmů, připravíme si hráče
     if (question.id === 'teams') {
+      const olda = activePlayers.find(p => p.name === "Oldřich" && p.surname === "Štěpanovský") || { name: 'Oldřich', surname: 'Štěpanovský' };
       const goalies = activePlayers.filter(p => p.position === 'brankář');
       const defenders = activePlayers.filter(p => p.position === 'obránce');
       const forwards = activePlayers.filter(p => p.position === 'útočník');
