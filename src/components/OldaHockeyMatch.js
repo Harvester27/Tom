@@ -303,7 +303,7 @@ const OldaHockeyMatch = ({ onBack, onGameComplete, assignedJerseys, playerName =
         if (newTime > 0 && newTime % EVENT_CHECK_INTERVAL === 0) {
             const attackingTeamId = Math.random() > 0.5 ? 'white' : 'black';
             const defendingTeamId = attackingTeamId === 'white' ? 'black' : 'white';
-            const attackingTeam = teams[attackingTeamId];
+            const attackingTeam = teams[attackingTeam];
             const defendingTeam = teams[defendingTeamId];
 
             // --- Decide Event Type ---
@@ -414,82 +414,89 @@ const OldaHockeyMatch = ({ onBack, onGameComplete, assignedJerseys, playerName =
       // Ověříme, že teamState obsahuje správné údaje
       console.log("🟡 DEBUG: Kompletní teamState před aktualizací:", teamState);
       
-      setTeamState(prev => {
-        // Pro účely debugování získáme celkový stav před změnou
-        console.log("🏃 DEBUG: Aktuální stav únavy - BÍLÝ tým:", prev.white.fatigue);
-        console.log("🏃 DEBUG: Aktuální stav únavy - ČERNÝ tým:", prev.black.fatigue);
-        console.log("🏃 DEBUG: Hráči na ledě - BÍLÝ tým:", prev.white.onIce.map(p => p.key));
-        console.log("🏃 DEBUG: Hráči na ledě - ČERNÝ tým:", prev.black.onIce.map(p => p.key));
+      // Oprava: Použijeme updateTeamState místo setTeamState
+      updateTeamState('white', prevWhite => {
+        const newFatigue = { ...prevWhite.fatigue };
         
-        // Ověříme strukturu objektů hráčů a jejich klíčů
-        console.log("🔍 DEBUG: Struktura hráčů na ledě - BÍLÝ tým:", prev.white.onIce);
-        console.log("🔍 DEBUG: Struktura hráčů na ledě - ČERNÝ tým:", prev.black.onIce);
-        
-        const updateTeamFatigue = (teamState, teamColor) => {
-          // Je důležité vytvořit nový objekt, abychom nevytvářeli referenční problémy
-          const newFatigue = { ...teamState.fatigue };
-          
-          // Zvýšení únavy hráčů na ledě
-          teamState.onIce.forEach(player => {
-            if (!player.key) {
-              console.error(`🔴 DEBUG: Hráč ${player.name} ${player.surname} nemá klíč!`);
-              return;
-            }
-            
-            // Používáme key pro přístup k únavě
-            const oldFatigue = newFatigue[player.key] || 0;
-            newFatigue[player.key] = Math.min(
-              MAX_FATIGUE,
-              oldFatigue + FATIGUE_INCREASE_RATE
-            );
-            
-            console.log(`🏃 DEBUG: ${teamColor} tým - Hráč ${player.name} ${player.surname} (${player.key}) - na ledě - únava: ${oldFatigue} -> ${newFatigue[player.key]}`);
-          });
-
-          // Regenerace hráčů na střídačce
-          teamState.bench.forEach(player => {
-            if (!player.key) {
-              console.error(`🔴 DEBUG: Hráč ${player.name} ${player.surname} nemá klíč!`);
-              return;
-            }
-            
-            const oldFatigue = newFatigue[player.key] || 0;
-            newFatigue[player.key] = Math.max(
-              0,
-              oldFatigue - RECOVERY_RATE
-            );
-            
-            console.log(`🏃 DEBUG: ${teamColor} tým - Hráč ${player.name} ${player.surname} (${player.key}) - na střídačce - únava: ${oldFatigue} -> ${newFatigue[player.key]}`);
-          });
-
-          return {
-            ...teamState,
-            fatigue: newFatigue
-          };
-        };
-
-        const newWhite = updateTeamFatigue(prev.white, "BÍLÝ");
-        const newBlack = updateTeamFatigue(prev.black, "ČERNÝ");
-        
-        console.log("🏃 DEBUG: Nový stav únavy - BÍLÝ tým:", newWhite.fatigue);
-        console.log("🏃 DEBUG: Nový stav únavy - ČERNÝ tým:", newBlack.fatigue);
-        
-        // Vraťme konkrétní nový objekt, abychom zajistili, že React zaregistruje změnu
-        return {
-          white: {
-            ...prev.white,
-            fatigue: { ...newWhite.fatigue } // Zajistíme, že to je skutečně nový objekt
-          },
-          black: {
-            ...prev.black,
-            fatigue: { ...newBlack.fatigue } // Zajistíme, že to je skutečně nový objekt
+        // Zvýšení únavy hráčů na ledě
+        prevWhite.onIce.forEach(player => {
+          if (!player.key) {
+            console.error(`🔴 DEBUG: Hráč ${player.name} ${player.surname} nemá klíč!`);
+            return;
           }
-        };
+          
+          // Používáme key pro přístup k únavě
+          const oldFatigue = newFatigue[player.key] || 0;
+          newFatigue[player.key] = Math.min(
+            MAX_FATIGUE,
+            oldFatigue + FATIGUE_INCREASE_RATE
+          );
+          
+          console.log(`🏃 DEBUG: BÍLÝ tým - Hráč ${player.name} ${player.surname} (${player.key}) - na ledě - únava: ${oldFatigue} -> ${newFatigue[player.key]}`);
+        });
+
+        // Regenerace hráčů na střídačce
+        prevWhite.bench.forEach(player => {
+          if (!player.key) {
+            console.error(`🔴 DEBUG: Hráč ${player.name} ${player.surname} nemá klíč!`);
+            return;
+          }
+          
+          const oldFatigue = newFatigue[player.key] || 0;
+          newFatigue[player.key] = Math.max(
+            0,
+            oldFatigue - RECOVERY_RATE
+          );
+          
+          console.log(`🏃 DEBUG: BÍLÝ tým - Hráč ${player.name} ${player.surname} (${player.key}) - na střídačce - únava: ${oldFatigue} -> ${newFatigue[player.key]}`);
+        });
+
+        return { ...prevWhite, fatigue: newFatigue };
       });
+
+      updateTeamState('black', prevBlack => {
+        const newFatigue = { ...prevBlack.fatigue };
+        
+        // Zvýšení únavy hráčů na ledě
+        prevBlack.onIce.forEach(player => {
+          if (!player.key) {
+            console.error(`🔴 DEBUG: Hráč ${player.name} ${player.surname} nemá klíč!`);
+            return;
+          }
+          
+          // Používáme key pro přístup k únavě
+          const oldFatigue = newFatigue[player.key] || 0;
+          newFatigue[player.key] = Math.min(
+            MAX_FATIGUE,
+            oldFatigue + FATIGUE_INCREASE_RATE
+          );
+          
+          console.log(`🏃 DEBUG: ČERNÝ tým - Hráč ${player.name} ${player.surname} (${player.key}) - na ledě - únava: ${oldFatigue} -> ${newFatigue[player.key]}`);
+        });
+
+        // Regenerace hráčů na střídačce
+        prevBlack.bench.forEach(player => {
+          if (!player.key) {
+            console.error(`🔴 DEBUG: Hráč ${player.name} ${player.surname} nemá klíč!`);
+            return;
+          }
+          
+          const oldFatigue = newFatigue[player.key] || 0;
+          newFatigue[player.key] = Math.max(
+            0,
+            oldFatigue - RECOVERY_RATE
+          );
+          
+          console.log(`🏃 DEBUG: ČERNÝ tým - Hráč ${player.name} ${player.surname} (${player.key}) - na střídačce - únava: ${oldFatigue} -> ${newFatigue[player.key]}`);
+        });
+
+        return { ...prevBlack, fatigue: newFatigue };
+      });
+      
     }, 1000); // Každou sekundu aktualizujeme únavu
 
     return () => clearInterval(interval);
-  }, [gameState]);
+  }, [gameState, teamState, updateTeamState]);
 
   // Efekt pro automatické střídání
   useEffect(() => {
@@ -696,7 +703,7 @@ const OldaHockeyMatch = ({ onBack, onGameComplete, assignedJerseys, playerName =
      const playerTeamColor = teamId === 'white' ? 'border-white/50' : 'border-gray-500/50';
      const highlightClass = isHighlighted ? (teamId === 'white' ? 'bg-white/30 scale-105' : 'bg-gray-600/50 scale-105') : '';
      const playerPhotoUrl = player.isPlayer
-         ? '/assets/images/players/default_player.png' // Cesta k vaší defaultní fotce hráče
+         ? '/Images/players/default_player.png' // Cesta k vaší defaultní fotce hráče
          : litvinovLancers.getPlayerPhotoUrl(`${player.name} ${player.surname}`);
 
      return (
@@ -714,7 +721,7 @@ const OldaHockeyMatch = ({ onBack, onGameComplete, assignedJerseys, playerName =
            height={28}
            className={`rounded-full object-cover border-2 ${playerTeamColor} flex-shrink-0`}
            unoptimized={true} // Pokud nemáš optimalizaci pro externí URL nebo lokální cesty
-           onError={(e) => { e.target.src = '/assets/images/players/default_player.png'; }} // Fallback image
+           onError={(e) => { e.target.src = '/Images/players/default_player.png'; }} // Fallback image
          />
          <div className="flex-grow text-sm truncate">
            {player.name} {player.surname}
@@ -770,13 +777,13 @@ const OldaHockeyMatch = ({ onBack, onGameComplete, assignedJerseys, playerName =
         {/* Player Image */}
         <div className="w-10 h-10 rounded-full overflow-hidden flex-shrink-0 border-2 border-indigo-700">
           <Image
-            src={player.isPlayer ? '/assets/images/players/default_player.png' : litvinovLancers.getPlayerPhotoUrl(`${player.name} ${player.surname}`)}
+            src={player.isPlayer ? '/Images/players/default_player.png' : litvinovLancers.getPlayerPhotoUrl(`${player.name} ${player.surname}`)}
             alt={player.name}
             width={40}
             height={40}
             className="w-full h-full object-cover"
             unoptimized={true}
-            onError={(e) => { e.target.src = '/assets/images/players/default_player.png'; }}
+            onError={(e) => { e.target.src = '/Images/players/default_player.png'; }}
           />
         </div>
         {/* Player Info */}
@@ -860,13 +867,13 @@ const OldaHockeyMatch = ({ onBack, onGameComplete, assignedJerseys, playerName =
             >
               <div className="w-8 h-8 rounded-full overflow-hidden flex-shrink-0 border-2 border-indigo-700"> {/* Přidán rámeček pro konzistenci */}
                 <Image
-                  src={player.isPlayer ? '/assets/images/players/default_player.png' : litvinovLancers.getPlayerPhotoUrl(`${player.name} ${player.surname}`)}
+                  src={player.isPlayer ? '/Images/players/default_player.png' : litvinovLancers.getPlayerPhotoUrl(`${player.name} ${player.surname}`)}
                   alt={player.name}
                   width={32}
                   height={32}
                   className="w-full h-full object-cover"
                   unoptimized={true}
-                  onError={(e) => { e.target.src = '/assets/images/players/default_player.png'; }} // Fallback
+                  onError={(e) => { e.target.src = '/Images/players/default_player.png'; }} // Fallback
                 />
               </div>
               <div className="flex-1 min-w-0">
