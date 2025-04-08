@@ -116,6 +116,7 @@ const OldaHockeyMatch = ({ onBack, onGameComplete, assignedJerseys, playerName =
 
   // --- Team Initialization ---
   useEffect(() => {
+    console.log("🏃 DEBUG: Inicializuji týmy...");
     // Získáme všechny aktivní hráče a zachováme jejich SKUTEČNÝ level
     const activePlayers = litvinovLancers.players.filter(p => p.attendance >= 75).map(player => ({
       ...player,
@@ -235,6 +236,18 @@ const OldaHockeyMatch = ({ onBack, onGameComplete, assignedJerseys, playerName =
 
     updateTeamState('white', initializeTeamState(whiteTeam));
     updateTeamState('black', initializeTeamState(blackTeam));
+
+    // Přidáme na konec inicializace před updateTeamState
+    console.log("🏃 DEBUG: Inicializuji teamState pro BÍLÝ tým...", whiteTeam.players.map(p => `${p.name} ${p.surname} (${p.key})`));
+    console.log("🏃 DEBUG: Inicializuji teamState pro ČERNÝ tým...", blackTeam.players.map(p => `${p.name} ${p.surname} (${p.key})`));
+
+    // Testujeme správné klíče hráčů
+    const allPlayers = [...whiteTeam.players, ...blackTeam.players];
+    allPlayers.forEach(player => {
+      if (!player.key) {
+        console.error(`🔴 DEBUG: Hráč ${player.name} ${player.surname} nemá klíč!`);
+      }
+    });
   }, [updateTeam, updateTeamState]);
 
   // --- Highlight Player ---
@@ -393,26 +406,40 @@ const OldaHockeyMatch = ({ onBack, onGameComplete, assignedJerseys, playerName =
     if (gameState !== 'playing') return;
 
     const interval = setInterval(() => {
+      console.log("🏃 DEBUG: Aktualizuji únavu hráčů...");
+      
       setTeamState(prev => {
-        const updateTeamFatigue = (teamState) => {
+        // Pro účely debugování získáme celkový stav před změnou
+        console.log("🏃 DEBUG: Aktuální stav únavy - BÍLÝ tým:", prev.white.fatigue);
+        console.log("🏃 DEBUG: Aktuální stav únavy - ČERNÝ tým:", prev.black.fatigue);
+        console.log("🏃 DEBUG: Hráči na ledě - BÍLÝ tým:", prev.white.onIce.map(p => p.key));
+        console.log("🏃 DEBUG: Hráči na ledě - ČERNÝ tým:", prev.black.onIce.map(p => p.key));
+        
+        const updateTeamFatigue = (teamState, teamColor) => {
           // Je důležité vytvořit nový objekt, abychom nevytvářeli referenční problémy
           const newFatigue = { ...teamState.fatigue };
           
           // Zvýšení únavy hráčů na ledě
           teamState.onIce.forEach(player => {
             // Používáme key pro přístup k únavě
+            const oldFatigue = newFatigue[player.key] || 0;
             newFatigue[player.key] = Math.min(
               MAX_FATIGUE,
-              (newFatigue[player.key] || 0) + FATIGUE_INCREASE_RATE
+              oldFatigue + FATIGUE_INCREASE_RATE
             );
+            
+            console.log(`🏃 DEBUG: ${teamColor} tým - Hráč ${player.name} ${player.surname} (${player.key}) - na ledě - únava: ${oldFatigue} -> ${newFatigue[player.key]}`);
           });
 
           // Regenerace hráčů na střídačce
           teamState.bench.forEach(player => {
+            const oldFatigue = newFatigue[player.key] || 0;
             newFatigue[player.key] = Math.max(
               0,
-              (newFatigue[player.key] || 0) - RECOVERY_RATE
+              oldFatigue - RECOVERY_RATE
             );
+            
+            console.log(`🏃 DEBUG: ${teamColor} tým - Hráč ${player.name} ${player.surname} (${player.key}) - na střídačce - únava: ${oldFatigue} -> ${newFatigue[player.key]}`);
           });
 
           return {
@@ -421,9 +448,15 @@ const OldaHockeyMatch = ({ onBack, onGameComplete, assignedJerseys, playerName =
           };
         };
 
+        const newWhite = updateTeamFatigue(prev.white, "BÍLÝ");
+        const newBlack = updateTeamFatigue(prev.black, "ČERNÝ");
+        
+        console.log("🏃 DEBUG: Nový stav únavy - BÍLÝ tým:", newWhite.fatigue);
+        console.log("🏃 DEBUG: Nový stav únavy - ČERNÝ tým:", newBlack.fatigue);
+        
         return {
-          white: updateTeamFatigue(prev.white),
-          black: updateTeamFatigue(prev.black)
+          white: newWhite,
+          black: newBlack
         };
       });
     }, 1000); // Každou sekundu aktualizujeme únavu
@@ -669,41 +702,47 @@ const OldaHockeyMatch = ({ onBack, onGameComplete, assignedJerseys, playerName =
   const renderPlayerStatus = (player, teamColor) => {
     // Zajistíme, že teamState a fatigue existují
     const currentTeamState = teamState[teamColor];
-    if (!currentTeamState || !currentTeamState.fatigue) return null; // Nebo vrátit placeholder
+    if (!currentTeamState || !currentTeamState.fatigue) {
+      console.error(`🔴 DEBUG: Chybějící teamState nebo fatigue pro tým ${teamColor}`, { currentTeamState });
+      return null; // Nebo vrátit placeholder
+    }
 
     const fatigue = Math.round(currentTeamState.fatigue[player.key] || 0);
-    const isOnIce = currentTeamState.onIce?.some(p => p.key === player.key); // Přidána kontrola existence onIce
-
+    const isOnIce = currentTeamState.onIce?.some(p => p.key === player.key);
+    
+    // Debug log pro zobrazování únavy
+    console.log(`🔵 DEBUG: Rendering player ${player.name} ${player.surname} (${player.key}) - tým ${teamColor} - únava: ${fatigue}% - ${isOnIce ? 'na ledě' : 'na střídačce'}`);
+    
     return (
       <div className={`flex items-center gap-2 p-2 rounded-lg transition-colors duration-300 ${
-        isOnIce ? 'bg-green-700/30 border border-green-500/40' : 'bg-gray-700/30 border border-transparent' // Zvýraznění na ledě
+        isOnIce ? 'bg-green-700/30 border border-green-500/40' : 'bg-gray-700/30 border border-transparent'
       }`}>
         {/* Player Image */}
         <div className="w-10 h-10 rounded-full overflow-hidden flex-shrink-0 border-2 border-indigo-700">
-             <Image
-                src={player.isPlayer ? '/assets/images/players/default_player.png' : litvinovLancers.getPlayerPhotoUrl(`${player.name} ${player.surname}`)}
-                alt={player.name}
-                width={40}
-                height={40}
-                className="w-full h-full object-cover"
-                unoptimized={true}
-                onError={(e) => { e.target.src = '/assets/images/players/default_player.png'; }}
-             />
+          <Image
+            src={player.isPlayer ? '/assets/images/players/default_player.png' : litvinovLancers.getPlayerPhotoUrl(`${player.name} ${player.surname}`)}
+            alt={player.name}
+            width={40}
+            height={40}
+            className="w-full h-full object-cover"
+            unoptimized={true}
+            onError={(e) => { e.target.src = '/assets/images/players/default_player.png'; }}
+          />
         </div>
         {/* Player Info */}
         <div className="flex-1 min-w-0">
-            <div className="text-sm font-bold truncate">{player.name} {player.surname} {player.isPlayer ? '(Ty)' : ''}</div>
-            <div className="text-xs text-indigo-300">{player.position} - L{player.level || 1}</div>
+          <div className="text-sm font-bold truncate">{player.name} {player.surname} {player.isPlayer ? '(Ty)' : ''}</div>
+          <div className="text-xs text-indigo-300">{player.position} - L{player.level || 1}</div>
         </div>
         {/* Fatigue Bar */}
         <div className="w-20 flex-shrink-0">
           <div className="text-xs text-gray-400 mb-1 text-right">{fatigue}%</div>
-          <div className="h-2.5 bg-gray-600 rounded-full overflow-hidden relative"> {/* Zvětšený pruh */}
+          <div className="h-2.5 bg-gray-600 rounded-full overflow-hidden relative">
             <div
               className={`absolute top-0 left-0 h-full transition-all duration-500 rounded-full ${
-                fatigue > 80 ? 'bg-red-500' : // Červená pro vysokou únavu
-                fatigue > 50 ? 'bg-yellow-500' : // Žlutá pro střední
-                'bg-green-500' // Zelená pro nízkou
+                fatigue > 80 ? 'bg-red-500' : 
+                fatigue > 50 ? 'bg-yellow-500' : 
+                'bg-green-500'
               }`}
               style={{ width: `${fatigue}%` }}
             />
