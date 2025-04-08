@@ -123,11 +123,9 @@ const useTeamState = (initialTeamsData) => {
         } else {
             newState[teamColor] = { ...prev[teamColor], ...updates };
         }
-        // POZNÁMKA: Tato častá aktualizace (např. únavou) způsobuje re-render komponent
-        // a spouští useEffecty závislé na teamState. To je jádro problému se statistikami.
         return newState;
     });
-  }, []);
+  }, [setTeamState]); // <-- Přidána závislost setTeamState
 
   return [teams, updateTeam, teamState, updateTeamState];
 };
