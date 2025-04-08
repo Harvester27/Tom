@@ -1,3 +1,5 @@
+"use client";
+
 // Pomocná funkce pro převod jména na název souboru
 const getPhotoFilename = (name, surname) => {
   // Speciální případ pro Oldřicha Štěpanovského
