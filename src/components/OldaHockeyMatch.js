@@ -13,7 +13,10 @@ const OldaHockeyMatch = ({ onBack, onGameComplete, assignedJerseys, playerName =
   const [lastEvent, setLastEvent] = useState(null);
   const [teams, setTeams] = useState(() => {
     // Získáme všechny aktivní hráče
-    const activePlayers = litvinovLancers.players.filter(p => p.attendance >= 75);
+    const activePlayers = litvinovLancers.players.filter(p => p.attendance >= 75).map(player => ({
+      ...player,
+      level: Math.floor(player.attendance / 10)  // Level 1-10 podle docházky
+    }));
     
     // Rozdělíme je podle dresů
     const whitePlayers = activePlayers.filter(p => 
@@ -44,30 +47,24 @@ const OldaHockeyMatch = ({ onBack, onGameComplete, assignedJerseys, playerName =
     const shuffledPlayers = [...remainingPlayers].sort(() => Math.random() - 0.5);
 
     // Přidáme hráče (uživatele) do týmu s menším počtem hráčů
-    if (assignedJerseys?.white?.has(playerName) || assignedJerseys?.black?.has(playerName)) {
-      const playerTeam = assignedJerseys?.white?.has(playerName) ? whiteTeam : blackTeam;
-      playerTeam.players.push({
-        name: playerName,
-        surname: '',
-        position: 'útočník',
-        isPlayer: true
-      });
+    const playerStats = {
+      name: playerName,
+      surname: '',
+      position: 'útočník',
+      level: 5,  // Střední level pro hráče
+      isPlayer: true
+    };
+
+    if (assignedJerseys?.white?.has(playerName)) {
+      whiteTeam.players.push(playerStats);
+    } else if (assignedJerseys?.black?.has(playerName)) {
+      blackTeam.players.push(playerStats);
     } else {
       // Pokud hráč není přiřazen, dáme ho do týmu s menším počtem hráčů
       if (whiteTeam.players.length <= blackTeam.players.length) {
-        whiteTeam.players.push({
-          name: playerName,
-          surname: '',
-          position: 'útočník',
-          isPlayer: true
-        });
+        whiteTeam.players.push(playerStats);
       } else {
-        blackTeam.players.push({
-          name: playerName,
-          surname: '',
-          position: 'útočník',
-          isPlayer: true
-        });
+        blackTeam.players.push(playerStats);
       }
     }
 
@@ -79,6 +76,34 @@ const OldaHockeyMatch = ({ onBack, onGameComplete, assignedJerseys, playerName =
         blackTeam.players.push(player);
       }
     });
+
+    // Ujistíme se, že každý tým má brankáře
+    const ensureGoalie = (team) => {
+      const hasGoalie = team.players.some(p => p.position === 'brankář');
+      if (!hasGoalie) {
+        // Najdeme brankáře mezi zbývajícími hráči
+        const availableGoalie = activePlayers.find(p => 
+          p.position === 'brankář' && 
+          !whiteTeam.players.includes(p) && 
+          !blackTeam.players.includes(p)
+        );
+        if (availableGoalie) {
+          team.players.push(availableGoalie);
+        } else {
+          // Vytvoříme náhradního brankáře
+          team.players.push({
+            name: 'Náhradní',
+            surname: 'Brankář',
+            position: 'brankář',
+            level: 3,
+            attendance: 75
+          });
+        }
+      }
+    };
+
+    ensureGoalie(whiteTeam);
+    ensureGoalie(blackTeam);
 
     return {
       white: whiteTeam,
@@ -120,65 +145,94 @@ const OldaHockeyMatch = ({ onBack, onGameComplete, assignedJerseys, playerName =
   // Generování událostí
   useEffect(() => {
     if (gameState === 'playing' && gameTime % 30 === 0) {
-      const eventTypes = ['shot', 'save', 'hit', 'penalty'];
+      const eventTypes = ['attack'];  // Zjednodušíme typy událostí na útok
       const randomEvent = eventTypes[Math.floor(Math.random() * eventTypes.length)];
       
       const attackingTeam = Math.random() > 0.5 ? 'white' : 'black';
       const defendingTeam = attackingTeam === 'white' ? 'black' : 'white';
+
+      // Vybereme náhodného útočníka (ne brankáře)
+      const availableAttackers = teams[attackingTeam].players.filter(p => 
+        p.position !== 'brankář' && (p.isPlayer || true)
+      );
       
-      const isPlayerInAttackingTeam = assignedJerseys?.[attackingTeam]?.has(playerName);
-      const isPlayerAttacking = isPlayerInAttackingTeam && Math.random() < 0.2;
+      const attacker = availableAttackers[Math.floor(Math.random() * availableAttackers.length)];
       
-      let attackingPlayer;
-      if (isPlayerAttacking) {
-        attackingPlayer = { 
-          name: playerName,
-          surname: '',
-          isPlayer: true 
-        };
+      // Vybereme náhodného obránce
+      const availableDefenders = teams[defendingTeam].players.filter(p => p.position === 'obránce');
+      const defender = availableDefenders[Math.floor(Math.random() * availableDefenders.length)];
+      
+      // Najdeme brankáře bránícího týmu
+      const goalie = teams[defendingTeam].players.find(p => p.position === 'brankář');
+
+      // Základní šance na gól
+      let goalChance = 0.3;
+
+      // Upravíme šanci podle levelu útočníka
+      if (attacker.isPlayer) {
+        goalChance += 0.1; // Bonus pro hráče
       } else {
-        attackingPlayer = teams[attackingTeam].players[
-          Math.floor(Math.random() * teams[attackingTeam].players.length)
-        ];
+        goalChance += (attacker.level || 1) * 0.05;
       }
-      
-      // Vybereme náhodného brankáře z bránícího týmu
-      const defendingGoalie = teams[defendingTeam].players.find(p => p.position === 'brankář');
-      
+
+      // Snížíme šanci podle levelu obránce (pokud nějaký je)
+      if (defender) {
+        goalChance -= (defender.level || 1) * 0.03;
+      }
+
+      // Snížíme šanci podle levelu brankáře
+      if (goalie) {
+        goalChance -= (goalie.level || 1) * 0.05;
+      }
+
+      // Omezíme šanci na rozumný rozsah
+      goalChance = Math.max(0.1, Math.min(0.8, goalChance));
+
       let newEvent = {
-        type: randomEvent,
+        type: 'attack',
         time: gameTime,
         team: attackingTeam,
-        player: attackingPlayer,
-        description: getEventDescription(randomEvent, attackingPlayer, attackingTeam)
+        player: attacker
       };
 
-      if (randomEvent === 'shot') {
-        // Hráč (uživatel) má vyšší šanci dát gól :)
-        const baseGoalChance = attackingPlayer.isPlayer ? 0.4 : 0.3;
-        const goalChance = Math.random();
-        const isGoal = goalChance > (defendingGoalie ? 0.8 - baseGoalChance : 0.7 - baseGoalChance);
+      // Rozhodnutí o výsledku útoku
+      const roll = Math.random();
+      if (roll < goalChance) {
+        // Gól!
+        setScore(prev => ({
+          ...prev,
+          [attackingTeam]: prev[attackingTeam] + 1
+        }));
+        newEvent.type = 'goal';
         
-        if (isGoal) {
-          setScore(prev => ({
-            ...prev,
-            [attackingTeam]: prev[attackingTeam] + 1
-          }));
-          newEvent.type = 'goal';
-          
-          if (attackingPlayer.isPlayer) {
-            // Speciální zpráva pro hráče
-            newEvent.description = `GÓL! 🚨 SKÓRUJEŠ za tým ${teams[attackingTeam].name}! Skvělá střela! 🔥`;
+        if (attacker.isPlayer) {
+          newEvent.description = `GÓL! 🚨 SKÓRUJEŠ za tým ${teams[attackingTeam].name}! Skvělá střela! 🔥`;
+        } else {
+          newEvent.description = `GÓL! ${attacker.name} ${attacker.surname} skóruje za tým ${teams[attackingTeam].name}! 🚨`;
+        }
+      } else if (roll < goalChance + 0.3) {
+        // Zákrok obránce
+        newEvent.type = 'defense';
+        if (defender) {
+          if (attacker.isPlayer) {
+            newEvent.description = `${defender.name} ${defender.surname} ti skvěle zabránil v průniku! 🛡️`;
           } else {
-            newEvent.description = `GÓL! ${attackingPlayer.name} ${attackingPlayer.surname} skóruje za tým ${teams[attackingTeam].name}! 🚨`;
+            newEvent.description = `${defender.name} ${defender.surname} zastavil útok ${attacker.name}a ${attacker.surname}! 🛡️`;
           }
-        } else if (defendingGoalie) {
-          newEvent.type = 'save';
-          if (attackingPlayer.isPlayer) {
-            newEvent.description = `Škoda! ${defendingGoalie.name} ${defendingGoalie.surname} chytá tvoji střelu! 🧤`;
+        } else {
+          newEvent.description = `Obrana týmu ${teams[defendingTeam].name} odvrací nebezpečí! 🛡️`;
+        }
+      } else {
+        // Zákrok brankáře
+        newEvent.type = 'save';
+        if (goalie) {
+          if (attacker.isPlayer) {
+            newEvent.description = `Výborný zákrok! ${goalie.name} ${goalie.surname} chytá tvoji střelu! 🧤`;
           } else {
-            newEvent.description = `Výborný zákrok! ${defendingGoalie.name} ${defendingGoalie.surname} chytá střelu od ${attackingPlayer.name}a! 🧤`;
+            newEvent.description = `${goalie.name} ${goalie.surname} předvedl skvělý zákrok proti ${attacker.name}ovi! 🧤`;
           }
+        } else {
+          newEvent.description = `Střela mimo bránu! ❌`;
         }
       }
 
@@ -292,6 +346,7 @@ const OldaHockeyMatch = ({ onBack, onGameComplete, assignedJerseys, playerName =
                     </div>
                     <span>{player.name} {player.surname}</span>
                     <span className="text-indigo-400 text-sm">({player.position})</span>
+                    <span className="text-yellow-400 text-sm ml-auto">LVL {player.level || 1}</span>
                   </div>
                 ))}
               </div>
@@ -313,6 +368,7 @@ const OldaHockeyMatch = ({ onBack, onGameComplete, assignedJerseys, playerName =
                     </div>
                     <span>{player.name} {player.surname}</span>
                     <span className="text-indigo-400 text-sm">({player.position})</span>
+                    <span className="text-yellow-400 text-sm ml-auto">LVL {player.level || 1}</span>
                   </div>
                 ))}
               </div>
