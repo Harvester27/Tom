@@ -1043,8 +1043,8 @@ const OldaHockeyMatch = ({ onBack, onGameComplete, assignedJerseys, playerName =
       const currentTime = gameTime; // Aktuální herní čas
 
       console.log(`🔄 Manual SUB attempted for team ${teamColor} at ${currentTime}`);
-      let currentTeamState;
-      setTeamState(ts => { currentTeamState = ts; return ts; });
+      // Použijeme přímo stav teamState bez volání setTeamState
+      const currentTeamState = teamState;
 
       if (!currentTeamState || !currentTeamState[teamColor]) {
           console.error("❌ SUB ERROR: Invalid team state for", teamColor);
@@ -1144,7 +1144,7 @@ const OldaHockeyMatch = ({ onBack, onGameComplete, assignedJerseys, playerName =
       } else {
           console.error("❌ SUB ERROR: Player is neither on ice nor on bench.");
       }
-  }, [gameTime, teams, playerName, triggerHighlight, updateTeamState, setTeamState, setEvents]);
+  }, [gameTime, teams, playerName, triggerHighlight, updateTeamState, teamState, setEvents]);
 
 
    // --- handleExit ---
@@ -1199,12 +1199,8 @@ const OldaHockeyMatch = ({ onBack, onGameComplete, assignedJerseys, playerName =
      if (!player || !player.key) return <div className="flex items-center gap-2 p-2 rounded-lg bg-red-900/50 border border-red-700"><div className="w-10 h-10 bg-gray-600 rounded-full flex-shrink-0"></div><div className="text-xs text-red-300">Chyba: Data hráče</div></div>;
      const fatigue = Math.round(fatigueValue || 0);
      const playerPhotoUrl = player.isPlayer ? '/Images/players/default_player.png' : litvinovLancers.getPlayerPhotoUrl(`${player.name} ${player.surname}`);
-     // Získání aktuálního teamState pro isPlayerOnIce - použití callbacku v setTeamState je bezpečnější
-     let isPlayerOnIce = false;
-     setTeamState(currentTS => {
-         isPlayerOnIce = currentTS[teamColor]?.onIce?.some(p => p.key === playerKey) ?? false;
-         return currentTS; // Neměníme stav
-     });
+     // Použijeme přímo teamState místo setTeamState
+     const isPlayerOnIce = teamState[teamColor]?.onIce?.some(p => p.key === playerKey) ?? false;
 
      return (
       <div className={`flex items-center gap-2 p-2 rounded-lg transition-all duration-300 border ${isPlayerOnIce ? 'bg-green-800/40 border-green-600/50 shadow-md' : 'bg-gray-800/40 border-gray-700/50'} ${highlightedPlayerKey?.[player.key] ? (teamColor === 'white' ? 'bg-white/20 scale-105 ring-2 ring-white' : 'bg-gray-600/30 scale-105 ring-2 ring-gray-400') : ''}`}>
@@ -1385,9 +1381,8 @@ const OldaHockeyMatch = ({ onBack, onGameComplete, assignedJerseys, playerName =
             {/* Manual Substitution Buttons */}
              <div className="flex gap-2 sm:gap-4 justify-center flex-shrink-0">
               {['white', 'black'].map(teamColor => {
-                // Získání aktuálního stavu bez re-renderu celé komponenty
-                let currentTeamState;
-                setTeamState(ts => { currentTeamState = ts; return ts; });
+                // Použijeme přímo stav teamState bez volání setTeamState
+                const currentTeamState = teamState;
                 const player = teams[teamColor]?.players.find(p => p.isPlayer);
 
                 if (!player || !currentTeamState || !currentTeamState[teamColor]) return null; // Hráč nebo stav týmu neexistuje
@@ -1427,14 +1422,9 @@ const OldaHockeyMatch = ({ onBack, onGameComplete, assignedJerseys, playerName =
                     <div className="space-y-1.5 sm:space-y-2 overflow-y-auto flex-grow custom-scrollbar pr-1">
                       {teams.white.players?.map(player => {
                           if (!player?.key) return null;
-                          // Získání aktuálního stavu pro každého hráče
-                          let currentFatigue = 0;
-                          let isPlayerOnIce = false;
-                          setTeamState(currentTS => {
-                             currentFatigue = currentTS.white?.fatigue?.[player.key];
-                             isPlayerOnIce = currentTS.white?.onIce?.some(p => p.key === player.key);
-                             return currentTS;
-                          });
+                          // Použijeme přímo teamState
+                          const currentFatigue = teamState.white?.fatigue?.[player.key] ?? 0;
+                          const isPlayerOnIce = teamState.white?.onIce?.some(p => p.key === player.key) ?? false;
                           return <PlayerStatus key={player.key} player={player} teamColor="white" fatigueValue={currentFatigue} isOnIce={isPlayerOnIce} playerKey={player.key}/>;
                        })}
                       {teams.white.players?.length === 0 && <p className="text-gray-500 text-center italic p-4">Prázdná.</p>}
@@ -1446,13 +1436,9 @@ const OldaHockeyMatch = ({ onBack, onGameComplete, assignedJerseys, playerName =
                     <div className="space-y-1.5 sm:space-y-2 overflow-y-auto flex-grow custom-scrollbar pr-1">
                        {teams.black.players?.map(player => {
                           if (!player?.key) return null;
-                           let currentFatigue = 0;
-                           let isPlayerOnIce = false;
-                           setTeamState(currentTS => {
-                              currentFatigue = currentTS.black?.fatigue?.[player.key];
-                              isPlayerOnIce = currentTS.black?.onIce?.some(p => p.key === player.key);
-                              return currentTS;
-                           });
+                          // Použijeme přímo teamState
+                          const currentFatigue = teamState.black?.fatigue?.[player.key] ?? 0;
+                          const isPlayerOnIce = teamState.black?.onIce?.some(p => p.key === player.key) ?? false;
                           return <PlayerStatus key={player.key} player={player} teamColor="black" fatigueValue={currentFatigue} isOnIce={isPlayerOnIce} playerKey={player.key}/>;
                        })}
                       {teams.black.players?.length === 0 && <p className="text-gray-500 text-center italic p-4">Prázdná.</p>}
