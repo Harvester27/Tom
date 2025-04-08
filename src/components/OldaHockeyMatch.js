@@ -862,6 +862,52 @@ const OldaHockeyMatch = ({ onBack, onGameComplete, assignedJerseys, playerName =
   });
   TeamTable.displayName = 'TeamTable';
 
+  // --- Fatigue Update Effect ---
+  useEffect(() => {
+    if (gameState !== 'playing') return;
+    console.log("🚀 Starting fatigue update interval.");
+    const fatigueInterval = setInterval(() => {
+      updateTeamState('white', prevWhiteState => {
+        if (!prevWhiteState?.fatigue || !prevWhiteState.onIce || !prevWhiteState.bench) return prevWhiteState;
+        const newFatigue = { ...prevWhiteState.fatigue }; let fatigueChanged = false;
+        prevWhiteState.onIce.forEach(player => {
+          if (player?.key) {
+            const currentFatigue = newFatigue[player.key] ?? 0;
+            const updatedFatigue = Math.min(MAX_FATIGUE, currentFatigue + FATIGUE_INCREASE_RATE);
+            if (newFatigue[player.key] !== updatedFatigue) { newFatigue[player.key] = updatedFatigue; fatigueChanged = true; }
+          }
+        });
+        prevWhiteState.bench.forEach(player => {
+          if (player?.key) {
+            const currentFatigue = newFatigue[player.key] ?? 0;
+            const updatedFatigue = Math.max(0, currentFatigue - RECOVERY_RATE);
+             if (newFatigue[player.key] !== updatedFatigue) { newFatigue[player.key] = updatedFatigue; fatigueChanged = true; }
+          }
+        });
+        return fatigueChanged ? { ...prevWhiteState, fatigue: newFatigue } : prevWhiteState;
+      });
+      updateTeamState('black', prevBlackState => {
+         if (!prevBlackState?.fatigue || !prevBlackState.onIce || !prevBlackState.bench) return prevBlackState;
+        const newFatigue = { ...prevBlackState.fatigue }; let fatigueChanged = false;
+        prevBlackState.onIce.forEach(player => {
+           if (player?.key) {
+            const currentFatigue = newFatigue[player.key] ?? 0;
+            const updatedFatigue = Math.min(MAX_FATIGUE, currentFatigue + FATIGUE_INCREASE_RATE);
+            if (newFatigue[player.key] !== updatedFatigue) { newFatigue[player.key] = updatedFatigue; fatigueChanged = true; }
+           }
+        });
+        prevBlackState.bench.forEach(player => {
+           if (player?.key) {
+            const currentFatigue = newFatigue[player.key] ?? 0;
+            const updatedFatigue = Math.max(0, currentFatigue - RECOVERY_RATE);
+            if (newFatigue[player.key] !== updatedFatigue) { newFatigue[player.key] = updatedFatigue; fatigueChanged = true; }
+           }
+        });
+        return fatigueChanged ? { ...prevBlackState, fatigue: newFatigue } : prevBlackState;
+      });
+    }, 1000);
+    return () => { console.log("🛑 Stopping fatigue update interval."); clearInterval(fatigueInterval); };
+  }, [gameState, updateTeamState]); // Závislost pouze na gameState a updateTeamState
 
   // --- Main Render ---
   return (
