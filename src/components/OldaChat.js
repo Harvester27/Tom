@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import Image from 'next/image';
 import { litvinovLancers } from '../data/LitvinovLancers';
 
@@ -228,40 +228,21 @@ const OldaChat = ({ initialMessages, onChatUpdate }) => {
 
   const [showOptions, setShowOptions] = useState(currentSequence !== 'end');
   const [isTyping, setIsTyping] = useState(false);
+  
+  // Přidáme ref pro scrollování
+  const messagesEndRef = useRef(null);
 
-  // Přidáme stav pro sledování použitých odpovědí
-  const [usedResponses, setUsedResponses] = useState(() => {
-    // Zkusíme načíst použité odpovědi z localStorage
-    if (typeof window !== 'undefined') {
-      try {
-        const savedUsedResponses = localStorage.getItem('oldaChatUsedResponses');
-        if (savedUsedResponses) {
-          return JSON.parse(savedUsedResponses);
-        }
-      } catch (error) {
-        console.error('Chyba při načítání použitých odpovědí z localStorage:', error);
-      }
-    }
-    return [];
-  });
-
-  // Funkce pro ukládání použitých odpovědí do localStorage
-  const saveUsedResponsesToLocalStorage = (responses) => {
-    if (typeof window !== 'undefined') {
-      try {
-        localStorage.setItem('oldaChatUsedResponses', JSON.stringify(responses));
-      } catch (error) {
-        console.error('Chyba při ukládání použitých odpovědí do localStorage:', error);
-      }
-    }
+  // Funkce pro scrollování na konec chatu
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   };
 
-  const handleOptionSelect = (option) => {
-    // Přidáme odpověď do seznamu použitých
-    const newUsedResponses = [...usedResponses, option.text];
-    setUsedResponses(newUsedResponses);
-    saveUsedResponsesToLocalStorage(newUsedResponses);
+  // Effect pro scrollování při nových zprávách
+  useEffect(() => {
+    scrollToBottom();
+  }, [messages]);
 
+  const handleOptionSelect = (option) => {
     const playerMessage = {
       id: Date.now(),
       sender: 'Player',
@@ -271,13 +252,10 @@ const OldaChat = ({ initialMessages, onChatUpdate }) => {
     };
 
     const updatedMessagesAfterPlayer = [...messages, playerMessage];
-    // Okamžitě aktualizujeme stav, aby se zobrazila zpráva hráče
     setMessages(updatedMessagesAfterPlayer);
     
-    // Ukládáme zprávy do localStorage
     saveMessagesToLocalStorage(updatedMessagesAfterPlayer);
     
-    // Informujeme PlayerCareer o změně
     if (onChatUpdate) {
         onChatUpdate(updatedMessagesAfterPlayer);
     }
@@ -285,37 +263,31 @@ const OldaChat = ({ initialMessages, onChatUpdate }) => {
     setShowOptions(false);
     setIsTyping(true);
 
-    // Simulace psaní Oldy
     setTimeout(() => {
       setIsTyping(false);
       
       const nextSequenceKey = option.next;
       const nextDialog = dialogSequences[nextSequenceKey];
 
-      // Přidáme Oldovu odpověď, pouze pokud sekvence není 'end'
       let updatedMessagesAfterOlda = updatedMessagesAfterPlayer;
       if (nextSequenceKey !== 'end' && nextDialog && nextDialog.message) {
           const oldaMessage = {
-              id: Date.now() + 1, // Zajistí unikátní ID
+              id: Date.now() + 1,
               sender: 'Olda',
               text: nextDialog.message,
               time: new Date().toLocaleTimeString('cs-CZ', { hour: '2-digit', minute: '2-digit' }),
               read: false
           };
           updatedMessagesAfterOlda = [...updatedMessagesAfterPlayer, oldaMessage];
-          // Aktualizujeme lokální stav pro zobrazení
           setMessages(updatedMessagesAfterOlda);
           
-          // Ukládáme aktualizované zprávy do localStorage
           saveMessagesToLocalStorage(updatedMessagesAfterOlda);
           
-          // Informujeme PlayerCareer o druhé změně
           if (onChatUpdate) {
               onChatUpdate(updatedMessagesAfterOlda);
           }
       }
 
-      // Aktualizujeme sekvenci a zobrazení možností
       setCurrentSequence(nextSequenceKey);
       setShowOptions(nextSequenceKey !== 'end');
 
@@ -325,7 +297,7 @@ const OldaChat = ({ initialMessages, onChatUpdate }) => {
   return (
     <div className="h-full flex flex-col">
       {/* Messages */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-4">
+      <div className="flex-1 overflow-y-auto p-4 space-y-4 scrollbar-thin scrollbar-thumb-indigo-600 scrollbar-track-indigo-900/50">
         {messages.map(message => (
           <div 
             key={message.id}
@@ -373,28 +345,22 @@ const OldaChat = ({ initialMessages, onChatUpdate }) => {
             </div>
           </div>
         )}
+        {/* Přidáme neviditelný element pro scrollování */}
+        <div ref={messagesEndRef} />
       </div>
 
-      {/* Updated Response options section */}
+      {/* Response options section */}
       {showOptions && currentSequence !== 'end' && dialogSequences[currentSequence] && (
-        <div className="p-4 bg-indigo-950/50 space-y-2">
-          {dialogSequences[currentSequence].options.map((option, index) => {
-            const isUsed = usedResponses.includes(option.text);
-            return (
-              <button
-                key={index}
-                onClick={() => !isUsed && handleOptionSelect(option)}
-                disabled={isUsed}
-                className={`w-full text-left px-4 py-2 rounded-xl transition-colors
-                  ${isUsed 
-                    ? 'bg-gray-500/20 text-gray-400 cursor-not-allowed' 
-                    : 'bg-white/10 hover:bg-white/20 text-white'}`}
-              >
-                {option.text}
-                {isUsed && <span className="ml-2 text-gray-500">(již použito)</span>}
-              </button>
-            );
-          })}
+        <div className="p-4 bg-indigo-950/50 space-y-2 flex-shrink-0">
+          {dialogSequences[currentSequence].options.map((option, index) => (
+            <button
+              key={index}
+              onClick={() => handleOptionSelect(option)}
+              className="w-full text-left px-4 py-2 rounded-xl transition-colors bg-white/10 hover:bg-white/20 text-white"
+            >
+              {option.text}
+            </button>
+          ))}
         </div>
       )}
     </div>
