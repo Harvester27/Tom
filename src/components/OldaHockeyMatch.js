@@ -34,23 +34,6 @@ const OldaHockeyMatch = ({ onBack, onGameComplete, assignedJerseys, playerName =
       players: blackPlayers
     };
 
-    // Přidáme hráče (uživatele) do správného týmu
-    if (assignedJerseys?.white?.has(playerName)) {
-      whiteTeam.players.push({
-        name: playerName,
-        surname: '',
-        position: 'útočník',
-        isPlayer: true
-      });
-    } else if (assignedJerseys?.black?.has(playerName)) {
-      blackTeam.players.push({
-        name: playerName,
-        surname: '',
-        position: 'útočník',
-        isPlayer: true
-      });
-    }
-
     // Rozdělíme zbytek hráčů náhodně do týmů
     const remainingPlayers = activePlayers.filter(p => 
       !assignedJerseys?.white?.has(`${p.name} ${p.surname}`) &&
@@ -60,11 +43,35 @@ const OldaHockeyMatch = ({ onBack, onGameComplete, assignedJerseys, playerName =
     // Náhodně zamícháme zbývající hráče
     const shuffledPlayers = [...remainingPlayers].sort(() => Math.random() - 0.5);
 
-    // Spočítáme aktuální počet hráčů v každém týmu
-    const whiteCount = whiteTeam.players.length;
-    const blackCount = blackTeam.players.length;
+    // Přidáme hráče (uživatele) do týmu s menším počtem hráčů
+    if (assignedJerseys?.white?.has(playerName) || assignedJerseys?.black?.has(playerName)) {
+      const playerTeam = assignedJerseys?.white?.has(playerName) ? whiteTeam : blackTeam;
+      playerTeam.players.push({
+        name: playerName,
+        surname: '',
+        position: 'útočník',
+        isPlayer: true
+      });
+    } else {
+      // Pokud hráč není přiřazen, dáme ho do týmu s menším počtem hráčů
+      if (whiteTeam.players.length <= blackTeam.players.length) {
+        whiteTeam.players.push({
+          name: playerName,
+          surname: '',
+          position: 'útočník',
+          isPlayer: true
+        });
+      } else {
+        blackTeam.players.push({
+          name: playerName,
+          surname: '',
+          position: 'útočník',
+          isPlayer: true
+        });
+      }
+    }
 
-    // Rozdělíme hráče tak, aby byly týmy vyrovnané
+    // Rozdělíme zbývající hráče tak, aby byly týmy vyrovnané
     shuffledPlayers.forEach((player) => {
       if (whiteTeam.players.length <= blackTeam.players.length) {
         whiteTeam.players.push(player);
