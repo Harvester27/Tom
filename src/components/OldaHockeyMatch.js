@@ -51,6 +51,24 @@ const OldaHockeyMatch = ({ onBack, onGameComplete, assignedJerseys, playerName =
       });
     }
 
+    // Rozdělíme zbytek hráčů náhodně do týmů
+    const remainingPlayers = activePlayers.filter(p => 
+      !assignedJerseys?.white?.has(`${p.name} ${p.surname}`) &&
+      !assignedJerseys?.black?.has(`${p.name} ${p.surname}`)
+    );
+
+    // Náhodně zamícháme zbývající hráče
+    const shuffledPlayers = [...remainingPlayers].sort(() => Math.random() - 0.5);
+
+    // Rozdělíme je rovnoměrně do týmů
+    shuffledPlayers.forEach((player, index) => {
+      if (index % 2 === 0) {
+        whiteTeam.players.push(player);
+      } else {
+        blackTeam.players.push(player);
+      }
+    });
+
     return {
       white: whiteTeam,
       black: blackTeam
