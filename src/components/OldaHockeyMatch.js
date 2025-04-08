@@ -33,8 +33,8 @@ const EVENT_CHECK_INTERVAL = 15; // V sekundách herního času
 
 // Konstanty pro střídání
 const SHIFT_DURATION = 45; // Délka střídání v sekundách
-const FATIGUE_INCREASE_RATE = 0.8; // Zvýšeno z 0.1 na 0.8 - rychlejší únava (plná únava za cca 2 minuty)
-const RECOVERY_RATE = 0.4; // Zvýšeno z 0.2 na 0.4 - rychlejší regenerace
+const FATIGUE_INCREASE_RATE = 2.5; // Zvýšeno z 0.8 na 2.5 - rychlejší únava
+const RECOVERY_RATE = 1.5; // Zvýšeno z 0.4 na 1.5 - rychlejší regenerace
 const MAX_FATIGUE = 100;
 const FATIGUE_PERFORMANCE_IMPACT = 0.5; // Jak moc únava ovlivňuje výkon (0-1)
 
@@ -116,11 +116,11 @@ const OldaHockeyMatch = ({ onBack, onGameComplete, assignedJerseys, playerName =
 
   // --- Team Initialization ---
   useEffect(() => {
-    // (Logika pro inicializaci týmů zůstává stejná jako v původním kódu)
-    // Získáme všechny aktivní hráče
+    // Získáme všechny aktivní hráče a zachováme jejich SKUTEČNÝ level
     const activePlayers = litvinovLancers.players.filter(p => p.attendance >= 75).map(player => ({
       ...player,
-      level: Math.floor(player.attendance / 10) || 1 // Level 1-10, zajistíme min 1
+      // Použijeme přímo level z LitvinovLancers, bez přepočtu
+      key: getPlayerKey(player)
     }));
 
     // Rozdělíme je podle dresů
@@ -395,13 +395,15 @@ const OldaHockeyMatch = ({ onBack, onGameComplete, assignedJerseys, playerName =
     const interval = setInterval(() => {
       setTeamState(prev => {
         const updateTeamFatigue = (teamState) => {
+          // Je důležité vytvořit nový objekt, abychom nevytvářeli referenční problémy
           const newFatigue = { ...teamState.fatigue };
           
           // Zvýšení únavy hráčů na ledě
           teamState.onIce.forEach(player => {
+            // Používáme key pro přístup k únavě
             newFatigue[player.key] = Math.min(
               MAX_FATIGUE,
-              newFatigue[player.key] + FATIGUE_INCREASE_RATE
+              (newFatigue[player.key] || 0) + FATIGUE_INCREASE_RATE
             );
           });
 
@@ -409,7 +411,7 @@ const OldaHockeyMatch = ({ onBack, onGameComplete, assignedJerseys, playerName =
           teamState.bench.forEach(player => {
             newFatigue[player.key] = Math.max(
               0,
-              newFatigue[player.key] - RECOVERY_RATE
+              (newFatigue[player.key] || 0) - RECOVERY_RATE
             );
           });
 
@@ -424,7 +426,7 @@ const OldaHockeyMatch = ({ onBack, onGameComplete, assignedJerseys, playerName =
           black: updateTeamFatigue(prev.black)
         };
       });
-    }, 1000);
+    }, 1000); // Každou sekundu aktualizujeme únavu
 
     return () => clearInterval(interval);
   }, [gameState]);
