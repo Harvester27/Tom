@@ -97,7 +97,13 @@ const PlayerCareer = ({ onBack, money, xp, level, getXpToNextLevel, getLevelProg
   const [currentHour, setCurrentHour] = useState(8);
   const [hoveredLocation, setHoveredLocation] = useState(null);
   const [currentDate, setCurrentDate] = useState(new Date());
-  const [playerName, setPlayerName] = useState('Nový hráč');
+  const [playerName, setPlayerName] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const savedName = localStorage.getItem('playerName');
+      return savedName || 'Nový hráč';
+    }
+    return 'Nový hráč';
+  });
   const [showNameModal, setShowNameModal] = useState(false);
   const [tempFirstName, setTempFirstName] = useState('');
   const [tempLastName, setTempLastName] = useState('');
@@ -361,7 +367,10 @@ const PlayerCareer = ({ onBack, money, xp, level, getXpToNextLevel, getLevelProg
   // Funkce pro uložení jména hráče
   const savePlayerName = () => {
     if (tempFirstName && tempLastName) {
-      setPlayerName(`${tempFirstName} ${tempLastName}`);
+      const newPlayerName = `${tempFirstName} ${tempLastName}`;
+      setPlayerName(newPlayerName);
+      // Uložíme jméno do localStorage
+      localStorage.setItem('playerName', newPlayerName);
       setShowNameModal(false);
       setTempFirstName('');
       setTempLastName('');
@@ -1004,6 +1013,7 @@ const PlayerCareer = ({ onBack, money, xp, level, getXpToNextLevel, getLevelProg
         <OldaGameSimulation
           onBack={() => setShowOldaGame(false)}
           onGameComplete={handleOldaGameComplete}
+          playerName={playerName}
         />
       )}
 

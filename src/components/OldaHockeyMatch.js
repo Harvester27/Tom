@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react';
 import Image from 'next/image';
 import { litvinovLancers } from '../data/LitvinovLancers';
 
-const OldaHockeyMatch = ({ onBack, onGameComplete, assignedJerseys }) => {
+const OldaHockeyMatch = ({ onBack, onGameComplete, assignedJerseys, playerName = 'Nový hráč' }) => {
   const [gameState, setGameState] = useState('warmup'); // 'warmup', 'playing', 'end'
   const [score, setScore] = useState({ white: 0, black: 0 });
   const [gameTime, setGameTime] = useState(0); // čas v sekundách
@@ -68,26 +68,21 @@ const OldaHockeyMatch = ({ onBack, onGameComplete, assignedJerseys }) => {
 
   // Generování událostí
   useEffect(() => {
-    if (gameState === 'playing' && gameTime % 30 === 0) { // Každých 30 sekund
+    if (gameState === 'playing' && gameTime % 30 === 0) {
       const eventTypes = ['shot', 'save', 'hit', 'penalty'];
       const randomEvent = eventTypes[Math.floor(Math.random() * eventTypes.length)];
       
-      // Náhodně vybereme tým
       const attackingTeam = Math.random() > 0.5 ? 'white' : 'black';
       const defendingTeam = attackingTeam === 'white' ? 'black' : 'white';
       
-      // Zjistíme, jestli hráč je v útočícím týmu
       const isPlayerInAttackingTeam = assignedJerseys?.[attackingTeam]?.has('PLAYER');
-      
-      // S 20% šancí vybereme jako útočníka hráče, pokud je v útočícím týmu
       const isPlayerAttacking = isPlayerInAttackingTeam && Math.random() < 0.2;
       
-      // Vybereme náhodného hráče z útočícího týmu nebo použijeme hráče (uživatele)
       let attackingPlayer;
       if (isPlayerAttacking) {
         attackingPlayer = { 
-          name: 'Ty', 
-          surname: '', 
+          name: playerName,
+          surname: '',
           isPlayer: true 
         };
       } else {
@@ -251,9 +246,9 @@ const OldaHockeyMatch = ({ onBack, onGameComplete, assignedJerseys }) => {
                 {assignedJerseys?.white?.has('PLAYER') && (
                   <div className="flex items-center gap-2 bg-white/20 p-2 rounded-lg animate-pulse">
                     <div className="w-8 h-8 rounded-full bg-indigo-600 flex items-center justify-center">
-                      <span className="text-white font-bold">TY</span>
+                      <span className="text-white font-bold">{playerName.charAt(0)}</span>
                     </div>
-                    <span className="font-bold">Ty (hráč)</span>
+                    <span className="font-bold">{playerName}</span>
                     <span className="text-indigo-400 text-sm">(útočník)</span>
                   </div>
                 )}
@@ -281,9 +276,9 @@ const OldaHockeyMatch = ({ onBack, onGameComplete, assignedJerseys }) => {
                 {assignedJerseys?.black?.has('PLAYER') && (
                   <div className="flex items-center gap-2 bg-white/10 p-2 rounded-lg animate-pulse">
                     <div className="w-8 h-8 rounded-full bg-indigo-600 flex items-center justify-center">
-                      <span className="text-white font-bold">TY</span>
+                      <span className="text-white font-bold">{playerName.charAt(0)}</span>
                     </div>
-                    <span className="font-bold">Ty (hráč)</span>
+                    <span className="font-bold">{playerName}</span>
                     <span className="text-indigo-400 text-sm">(útočník)</span>
                   </div>
                 )}

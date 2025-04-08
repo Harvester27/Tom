@@ -65,7 +65,7 @@ const ConversationWindow = ({ history }) => {
 // --- Konec komponenty ConversationWindow ---
 
 
-const OldaGameSimulation = ({ onBack, onGameComplete }) => {
+const OldaGameSimulation = ({ onBack, onGameComplete, playerName }) => {
   const [gameState, setGameState] = useState('enter'); // 'enter', 'greeting', 'locker_room', 'game'
   const [currentTime, setCurrentTime] = useState(16 * 60 + 30); // 16:30 v minutách
   const [gameSpeed, setGameSpeed] = useState(1);
@@ -858,6 +858,7 @@ const OldaGameSimulation = ({ onBack, onGameComplete }) => {
             }
           }}
           assignedJerseys={assignedJerseys}
+          playerName={playerName}
         />
       )}
     </div>
