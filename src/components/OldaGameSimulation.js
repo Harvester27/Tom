@@ -822,6 +822,7 @@ const OldaGameSimulation = ({ onBack, onGameComplete }) => {
               onGameComplete(result);
             }
           }}
+          assignedJerseys={assignedJerseys}
         />
       )}
     </div>
