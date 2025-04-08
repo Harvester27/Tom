@@ -32,9 +32,9 @@ const MAX_SPEED = 8;
 const EVENT_CHECK_INTERVAL = 15; // V sekundách herního času
 
 // Konstanty pro střídání a únavu
-const SHIFT_DURATION = 45; // Délka střídání v sekundách (pro AI)
-const FATIGUE_INCREASE_RATE = 2.5; // Rychlejší únava na ledě
-const RECOVERY_RATE = 1.5; // Rychlejší regenerace na střídačce
+const SHIFT_DURATION = 60; // Délka střídání v sekundách (pro AI) - změněno na 1 minutu
+const BASE_FATIGUE_INCREASE_RATE = 2.5; // Základní únava na ledě (bez zrychlení)
+const BASE_RECOVERY_RATE = 1.5; // Základní regenerace na střídačce (bez zrychlení)
 const MAX_FATIGUE = 100;
 // const FATIGUE_PERFORMANCE_IMPACT = 0.5; // Původní konstanta, nahrazena FATIGUE_IMPACT_FACTOR
 // NOVÉ: Faktor vlivu únavy na šanci na gól (0.001 = 0.1% změna šance za 1% rozdílu průměrné únavy)
@@ -400,25 +400,29 @@ const OldaHockeyMatch = ({ onBack, onGameComplete, assignedJerseys, playerName =
     return () => clearInterval(timerInterval);
   }, [gameState, gameSpeed, teams, score, currentPeriod, onGameComplete, triggerHighlight, teamState, updateTeamState]); // teamState je potřeba pro přístup k onIce a fatigue
 
-   // --- Fatigue Update Effect --- (Beze změny v logice)
+   // --- Fatigue Update Effect --- 
    useEffect(() => {
     if (gameState !== 'playing') return;
     console.log("🚀 Starting fatigue update interval.");
     const fatigueInterval = setInterval(() => {
+      // Upravíme rychlost únavy podle rychlosti hry
+      const fatigueIncreaseRate = BASE_FATIGUE_INCREASE_RATE * gameSpeed;
+      const recoveryRate = BASE_RECOVERY_RATE * gameSpeed;
+      
       updateTeamState('white', prevWhiteState => {
         if (!prevWhiteState?.fatigue || !prevWhiteState.onIce || !prevWhiteState.bench) return prevWhiteState;
         const newFatigue = { ...prevWhiteState.fatigue }; let fatigueChanged = false;
         prevWhiteState.onIce.forEach(player => {
           if (player?.key) {
             const currentFatigue = newFatigue[player.key] ?? 0;
-            const updatedFatigue = Math.min(MAX_FATIGUE, currentFatigue + FATIGUE_INCREASE_RATE);
+            const updatedFatigue = Math.min(MAX_FATIGUE, currentFatigue + fatigueIncreaseRate);
             if (newFatigue[player.key] !== updatedFatigue) { newFatigue[player.key] = updatedFatigue; fatigueChanged = true; }
           }
         });
         prevWhiteState.bench.forEach(player => {
           if (player?.key) {
             const currentFatigue = newFatigue[player.key] ?? 0;
-            const updatedFatigue = Math.max(0, currentFatigue - RECOVERY_RATE);
+            const updatedFatigue = Math.max(0, currentFatigue - recoveryRate);
              if (newFatigue[player.key] !== updatedFatigue) { newFatigue[player.key] = updatedFatigue; fatigueChanged = true; }
           }
         });
@@ -430,14 +434,14 @@ const OldaHockeyMatch = ({ onBack, onGameComplete, assignedJerseys, playerName =
         prevBlackState.onIce.forEach(player => {
            if (player?.key) {
             const currentFatigue = newFatigue[player.key] ?? 0;
-            const updatedFatigue = Math.min(MAX_FATIGUE, currentFatigue + FATIGUE_INCREASE_RATE);
+            const updatedFatigue = Math.min(MAX_FATIGUE, currentFatigue + fatigueIncreaseRate);
             if (newFatigue[player.key] !== updatedFatigue) { newFatigue[player.key] = updatedFatigue; fatigueChanged = true; }
            }
         });
         prevBlackState.bench.forEach(player => {
            if (player?.key) {
             const currentFatigue = newFatigue[player.key] ?? 0;
-            const updatedFatigue = Math.max(0, currentFatigue - RECOVERY_RATE);
+            const updatedFatigue = Math.max(0, currentFatigue - recoveryRate);
             if (newFatigue[player.key] !== updatedFatigue) { newFatigue[player.key] = updatedFatigue; fatigueChanged = true; }
            }
         });
@@ -445,13 +449,13 @@ const OldaHockeyMatch = ({ onBack, onGameComplete, assignedJerseys, playerName =
       });
     }, 1000);
     return () => { console.log("🛑 Stopping fatigue update interval."); clearInterval(fatigueInterval); };
-  }, [gameState, updateTeamState]); // Závislost pouze na gameState a updateTeamState
+  }, [gameState, updateTeamState, gameSpeed]); // Přidána závislost na gameSpeed
 
   // --- Automatic Substitution Effect ---
   useEffect(() => {
     if (gameState !== 'playing') return;
 
-    console.log("🚀 Starting automatic substitution interval."); // Log startu
+    console.log("🚀 Starting automatic substitution interval.");
     const substitutionInterval = setInterval(() => {
         const currentTime = gameTime;
 
@@ -459,21 +463,24 @@ const OldaHockeyMatch = ({ onBack, onGameComplete, assignedJerseys, playerName =
             updateTeamState(teamColor, prevTeamState => {
                 if (!prevTeamState || !prevTeamState.onIce || !prevTeamState.bench || !prevTeamState.fatigue) {
                     console.error(`🔄 SUB ERROR (${teamColor}): Missing team state data.`);
-                    return prevTeamState; // Chyba dat, bez změny
+                    return prevTeamState;
                 }
 
                 // Časová kontrola
                 const timeSinceLastChange = currentTime - prevTeamState.lastShiftChange;
-                if (timeSinceLastChange < SHIFT_DURATION) {
-                    // Ještě není čas na střídání pro tento tým
-                    // console.log(`🔄 SUB SKIP (${teamColor}): Too soon (${timeSinceLastChange.toFixed(0)}s < ${SHIFT_DURATION}s)`);
-                    return prevTeamState;
-                }
-
-                // Hráči na ledě (AI, ne G) seřazení dle únavy
+                
+                // Přidáno: Vždy vystřídat hráče, kteří mají únavu nad 80%
                 const tiredOnIce = prevTeamState.onIce
                     .filter(p => p && p.key && p.position !== 'brankář' && !p.isPlayer)
                     .sort((a, b) => (prevTeamState.fatigue[b.key] ?? 0) - (prevTeamState.fatigue[a.key] ?? 0));
+                
+                // Má někdo z hráčů na ledě únavu nad 80%?
+                const hasHighlyTiredPlayer = tiredOnIce.length > 0 && (prevTeamState.fatigue[tiredOnIce[0].key] ?? 0) > 80;
+                
+                // Střídat když uplynul čas nebo když má někdo vysokou únavu
+                if (timeSinceLastChange < SHIFT_DURATION && !hasHighlyTiredPlayer) {
+                    return prevTeamState;
+                }
 
                 // Hráči na lavičce (AI, ne G) seřazení dle odpočinku
                 const restedOnBench = prevTeamState.bench
@@ -481,15 +488,17 @@ const OldaHockeyMatch = ({ onBack, onGameComplete, assignedJerseys, playerName =
                     .sort((a, b) => (prevTeamState.fatigue[a.key] ?? 100) - (prevTeamState.fatigue[b.key] ?? 100));
 
                 // Kolik hráčů můžeme reálně vyměnit (max 3 najednou)
-                const numToChange = Math.min(tiredOnIce.length, restedOnBench.length, 3);
+                // Přidáno: Pokud je někdo hodně unavený, střídat alespoň jednoho
+                const numToChange = Math.min(
+                    tiredOnIce.length, 
+                    restedOnBench.length, 
+                    hasHighlyTiredPlayer ? Math.max(1, Math.min(3, tiredOnIce.length)) : 3
+                );
 
-                // UPRAVENO: Přidáno logování pro ladění
-                console.log(`🔄 CHECK SUB (${teamColor}): Time=${currentTime}, LastChange=${prevTeamState.lastShiftChange}, Tired=${tiredOnIce.length}, Rested=${restedOnBench.length}, NumToChange=${numToChange}`);
+                console.log(`🔄 CHECK SUB (${teamColor}): Time=${currentTime}, LastChange=${prevTeamState.lastShiftChange}, Tired=${tiredOnIce.length}, Rested=${restedOnBench.length}, NumToChange=${numToChange}, HasHighlyTired=${hasHighlyTiredPlayer}`);
 
                 if (numToChange <= 0) {
-                    // Není koho střídat nebo kam střídat
-                    // Aktualizujeme čas posledního *pokusu* o střídání, aby se to nezkoušelo hned znovu dokola
-                     console.log(`🔄 SUB NO CHANGE (${teamColor}): No valid players to swap.`);
+                    console.log(`🔄 SUB NO CHANGE (${teamColor}): No valid players to swap.`);
                     return { ...prevTeamState, lastShiftChange: currentTime };
                 }
 
@@ -512,27 +521,27 @@ const OldaHockeyMatch = ({ onBack, onGameComplete, assignedJerseys, playerName =
                  // Logování a událost
                  const playersInNames = playersIn.map(p => p.surname).join(", ");
                  const playersOutNames = playersOut.map(p => p.surname).join(", ");
-                 console.log(`✅ AUTO SUB EXECUTED (${teamColor}): ${playersInNames} IN <-> ${playersOutNames} OUT`); // Log úspěšného střídání
+                 console.log(`✅ AUTO SUB EXECUTED (${teamColor}): ${playersInNames} IN <-> ${playersOutNames} OUT`);
                  const subEvent = {
                    time: currentTime, type: 'substitution', team: teamColor,
                    description: `Střídání (${teamColor === 'white' ? 'Bílí' : 'Černí'}): ${playersInNames} ↔️ ${playersOutNames}`
                  };
                  setEvents(prev => [subEvent, ...prev]);
-                 triggerHighlight([...playersInKeys, ...playersOutKeys]); // Zvýrazníme střídající hráče
+                 triggerHighlight([...playersInKeys, ...playersOutKeys]);
 
                 // Vrátíme nový stav
                 return {
                     ...prevTeamState,
                     onIce: newOnIce,
                     bench: newBench,
-                    lastShiftChange: currentTime // Aktualizujeme čas posledního úspěšného střídání
+                    lastShiftChange: currentTime
                 };
             });
         });
-    }, 5000); // Kontrola každých 5 sekund
+    }, 3000); // Zkráceno z 5000 na 3000 ms pro častější kontrolu
 
      return () => { console.log("🛑 Stopping automatic substitution interval."); clearInterval(substitutionInterval); };
-  }, [gameState, gameTime, updateTeamState, triggerHighlight]); // Přidána závislost triggerHighlight
+  }, [gameState, gameTime, updateTeamState, triggerHighlight]);
 
    // --- Manuální střídání hráče --- (Logika beze změny, jen triggerHighlight přidán pro konzistenci)
    const handlePlayerSubstitution = useCallback((teamColor) => {
@@ -629,6 +638,12 @@ const OldaHockeyMatch = ({ onBack, onGameComplete, assignedJerseys, playerName =
   // --- Render Helper: TeamTable --- (Beze změny)
   const TeamTable = React.memo(({ teamData, teamColor }) => {
     const [selectedTeamColor, setSelectedTeamColor] = useState(teamColor);
+    
+    // Přidáme useEffect, který aktualizuje selectedTeamColor když se změní teamColor
+    useEffect(() => {
+      setSelectedTeamColor(teamColor);
+    }, [teamColor]);
+
     const currentTeam = teamData[selectedTeamColor];
     if (!currentTeam || !currentTeam.players) return <div className="w-full bg-black/50 rounded-lg p-4 text-center text-gray-500 flex items-center justify-center h-full">Načítání...</div>;
     if (currentTeam.players.length === 0) return <div className="w-full bg-black/50 rounded-lg p-4 text-center text-gray-500 flex items-center justify-center h-full">Žádní hráči.</div>;
