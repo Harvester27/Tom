@@ -33,8 +33,8 @@ const EVENT_CHECK_INTERVAL = 15; // V sekundách herního času
 
 // Konstanty pro střídání
 const SHIFT_DURATION = 45; // Délka střídání v sekundách
-const FATIGUE_INCREASE_RATE = 0.1; // Rychlost únavy během hry
-const RECOVERY_RATE = 0.2; // Rychlost regenerace na střídačce
+const FATIGUE_INCREASE_RATE = 0.8; // Zvýšeno z 0.1 na 0.8 - rychlejší únava (plná únava za cca 2 minuty)
+const RECOVERY_RATE = 0.4; // Zvýšeno z 0.2 na 0.4 - rychlejší regenerace
 const MAX_FATIGUE = 100;
 const FATIGUE_PERFORMANCE_IMPACT = 0.5; // Jak moc únava ovlivňuje výkon (0-1)
 
@@ -637,9 +637,9 @@ const OldaHockeyMatch = ({ onBack, onGameComplete, assignedJerseys, playerName =
      );
   };
 
-  // Přidání UI pro zobrazení únavy a střídání
+  // Upravím renderPlayerStatus pro lepší zobrazení únavy
   const renderPlayerStatus = (player, teamColor) => {
-    const fatigue = teamState[teamColor].fatigue[player.key] || 0;
+    const fatigue = Math.round(teamState[teamColor].fatigue[player.key] || 0);
     const isOnIce = teamState[teamColor].onIce.some(p => p.key === player.key);
     
     return (
@@ -650,8 +650,8 @@ const OldaHockeyMatch = ({ onBack, onGameComplete, assignedJerseys, playerName =
           <div className="text-sm font-bold">{player.name}</div>
           <div className="text-xs text-gray-400">{player.position}</div>
         </div>
-        <div className="w-20">
-          <div className="text-xs text-gray-400">Únava</div>
+        <div className="w-24">
+          <div className="text-xs text-gray-400 mb-1">Únava: {fatigue}%</div>
           <div className="h-2 bg-gray-700 rounded-full overflow-hidden">
             <div 
               className={`h-full transition-all duration-300 ${
@@ -664,21 +664,42 @@ const OldaHockeyMatch = ({ onBack, onGameComplete, assignedJerseys, playerName =
           </div>
         </div>
         {isOnIce && (
-          <span className="text-xs text-green-500">Na ledě</span>
+          <span className="text-xs text-green-500 whitespace-nowrap">Na ledě</span>
         )}
       </div>
     );
   };
 
   // Optimalizovaná komponenta pro tabulku hráčů
-  const TeamTable = React.memo(({ players, title, isHomeTeam }) => {
+  const TeamTable = React.memo(({ whiteTeam, blackTeam }) => {
+    const [selectedTeam, setSelectedTeam] = useState('white'); // 'white' nebo 'black'
+    
+    const currentTeam = selectedTeam === 'white' ? 
+      { players: whiteTeam.players, title: whiteTeam.name } : 
+      { players: blackTeam.players, title: blackTeam.name };
+
     return (
       <div className="w-[200px] bg-black/50 rounded-lg overflow-hidden">
-        <div className="bg-indigo-900/50 p-2 text-center font-bold text-sm">
-          {title}
+        <div className="bg-indigo-900/50 p-2 flex justify-between items-center">
+          <button 
+            onClick={() => setSelectedTeam('white')}
+            className={`px-3 py-1 rounded-lg text-sm font-bold transition-colors ${
+              selectedTeam === 'white' ? 'bg-white text-black' : 'text-white hover:bg-white/20'
+            }`}
+          >
+            Bílí
+          </button>
+          <button 
+            onClick={() => setSelectedTeam('black')}
+            className={`px-3 py-1 rounded-lg text-sm font-bold transition-colors ${
+              selectedTeam === 'black' ? 'bg-gray-800 text-white' : 'text-gray-300 hover:bg-gray-800/20'
+            }`}
+          >
+            Černí
+          </button>
         </div>
         <div className="max-h-[300px] overflow-y-auto scrollbar-thin scrollbar-thumb-indigo-600 scrollbar-track-indigo-900/50">
-          {players.map((player, index) => (
+          {currentTeam.players.map((player, index) => (
             <div 
               key={`${player.name}-${player.surname}`}
               className={`p-2 text-sm ${index % 2 === 0 ? 'bg-black/30' : 'bg-black/20'} 
@@ -733,11 +754,11 @@ const OldaHockeyMatch = ({ onBack, onGameComplete, assignedJerseys, playerName =
           {/* Left Column: Teams & Controls */}
           <div className="w-full lg:w-1/3 flex flex-col gap-4">
              {/* Teams */}
-             <div className="flex gap-4 flex-grow min-h-[200px]">
-                {/* White Team */}
-                <TeamTable players={teams.white.players} title={teams.white.name} isHomeTeam={true} />
-                {/* Black Team */}
-                <TeamTable players={teams.black.players} title={teams.black.name} isHomeTeam={false} />
+             <div className="flex justify-center flex-grow min-h-[200px]">
+                <TeamTable 
+                  whiteTeam={{ players: teams.white.players, name: teams.white.name }}
+                  blackTeam={{ players: teams.black.players, name: teams.black.name }}
+                />
             </div>
 
             {/* Game Controls */}
