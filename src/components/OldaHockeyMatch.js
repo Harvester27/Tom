@@ -60,9 +60,13 @@ const OldaHockeyMatch = ({ onBack, onGameComplete, assignedJerseys, playerName =
     // Náhodně zamícháme zbývající hráče
     const shuffledPlayers = [...remainingPlayers].sort(() => Math.random() - 0.5);
 
-    // Rozdělíme je rovnoměrně do týmů
-    shuffledPlayers.forEach((player, index) => {
-      if (index % 2 === 0) {
+    // Spočítáme aktuální počet hráčů v každém týmu
+    const whiteCount = whiteTeam.players.length;
+    const blackCount = blackTeam.players.length;
+
+    // Rozdělíme hráče tak, aby byly týmy vyrovnané
+    shuffledPlayers.forEach((player) => {
+      if (whiteTeam.players.length <= blackTeam.players.length) {
         whiteTeam.players.push(player);
       } else {
         blackTeam.players.push(player);
