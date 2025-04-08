@@ -49,6 +49,23 @@ const formatGameTime = (totalSeconds, periodDuration) => {
 
 const getPlayerKey = (player) => `${player.name}-${player.surname}-${player.position}`;
 
+// Optimalizace aktualizace stavu
+const useTeamState = (initialTeams) => {
+  const [teams, setTeams] = useState(initialTeams);
+  
+  const updateTeam = useCallback((teamColor, updates) => {
+    setTeams(prev => ({
+      ...prev,
+      [teamColor]: {
+        ...prev[teamColor],
+        ...updates
+      }
+    }));
+  }, []);
+
+  return [teams, updateTeam];
+};
+
 // --- Component ---
 const OldaHockeyMatch = ({ onBack, onGameComplete, assignedJerseys, playerName = 'Nový hráč', playerLevel = 1 }) => {
   const [gameState, setGameState] = useState('warmup'); // 'warmup', 'playing', 'paused', 'finished'
@@ -62,9 +79,23 @@ const OldaHockeyMatch = ({ onBack, onGameComplete, assignedJerseys, playerName =
   const eventLogRef = useRef(null);
   const lastEventRef = useRef(null);
 
+  // Použijeme optimalizovaný hook pro práci s týmy
+  const [teams, updateTeam] = useTeamState({
+    white: {
+      name: 'Bílý tým',
+      players: [],
+      score: 0
+    },
+    black: {
+      name: 'Černý tým',
+      players: [],
+      score: 0
+    }
+  });
+
   // --- Team Initialization ---
-  const [teams, setTeams] = useState(() => {
-     // (Logika pro inicializaci týmů zůstává stejná jako v původním kódu)
+  useEffect(() => {
+    // (Logika pro inicializaci týmů zůstává stejná jako v původním kódu)
     // Získáme všechny aktivní hráče
     const activePlayers = litvinovLancers.players.filter(p => p.attendance >= 75).map(player => ({
       ...player,
@@ -167,9 +198,9 @@ const OldaHockeyMatch = ({ onBack, onGameComplete, assignedJerseys, playerName =
     whiteTeam.players = sortPlayers(whiteTeam.players);
     blackTeam.players = sortPlayers(blackTeam.players);
 
-
-    return { white: whiteTeam, black: blackTeam };
-  });
+    updateTeam('white', { players: whiteTeam.players });
+    updateTeam('black', { players: blackTeam.players });
+  }, [updateTeam]);
 
   // Rozšíření stavu týmů o únavu a střídání
   const [teamState, setTeamState] = useState(() => {
@@ -383,61 +414,150 @@ const OldaHockeyMatch = ({ onBack, onGameComplete, assignedJerseys, playerName =
     return () => clearInterval(interval);
   }, [gameState]);
 
-  // Funkce pro automatické střídání
-  const handleLineChange = (team) => {
+  // Efekt pro automatické střídání
+  useEffect(() => {
+    if (gameState !== 'playing') return;
+
+    const interval = setInterval(() => {
+      // Automatické střídání pro oba týmy
+      ['white', 'black'].forEach(teamColor => {
+        setTeamState(prev => {
+          const teamState = prev[teamColor];
+          const now = gameTime;
+
+          // Kontrola, zda je vhodný čas na střídání
+          if (now - teamState.lastShiftChange < SHIFT_DURATION) {
+            return prev;
+          }
+
+          // Seřazení hráčů na ledě podle únavy (nejvíc unavení první)
+          const sortedOnIce = [...teamState.onIce].sort((a, b) => 
+            teamState.fatigue[b.key] - teamState.fatigue[a.key]
+          );
+
+          // Seřazení hráčů na střídačce podle odpočinku (nejvíc odpočatí první)
+          const sortedBench = [...teamState.bench].sort((a, b) => 
+            teamState.fatigue[a.key] - teamState.fatigue[b.key]
+          );
+
+          // Najdeme hráče (uživatele) v týmu
+          const playerInTeam = [...sortedOnIce, ...sortedBench].find(p => p.isPlayer);
+          
+          // Pokud je hráč v tomto týmu, nebudeme ho automaticky střídat
+          const playersToChange = sortedOnIce.filter(p => !p.isPlayer);
+          const availableBench = sortedBench.filter(p => !p.isPlayer);
+
+          // Výměna nejvíce unavených hráčů za odpočaté
+          const numToChange = Math.min(2, Math.floor(playersToChange.length / 2));
+          
+          // Vytvoříme nové sestavy
+          let newOnIce = [...sortedOnIce];
+          let newBench = [...sortedBench];
+
+          // Pokud máme hráče ke střídání
+          if (numToChange > 0) {
+            // Odstraníme unavené hráče (kromě uživatele)
+            const toRemove = playersToChange.slice(0, numToChange);
+            newOnIce = newOnIce.filter(p => !toRemove.includes(p));
+            
+            // Přidáme odpočaté hráče
+            const toAdd = availableBench.slice(0, numToChange);
+            newOnIce = [...newOnIce, ...toAdd];
+            
+            // Aktualizujeme lavičku
+            newBench = [
+              ...sortedBench.filter(p => !toAdd.includes(p)),
+              ...toRemove
+            ];
+
+            // Přidáme událost o střídání
+            const playersIn = toAdd.map(p => p.name).join(", ");
+            const playersOut = toRemove.map(p => p.name).join(", ");
+            
+            setEvents(prev => [{
+              time: gameTime,
+              type: 'substitution',
+              team: teamColor,
+              description: `Střídání v týmu ${teamColor === 'white' ? 'Bílých' : 'Černých'}: ${playersIn} ↔️ ${playersOut}`
+            }, ...prev]);
+          }
+
+          return {
+            ...prev,
+            [teamColor]: {
+              ...teamState,
+              onIce: newOnIce,
+              bench: newBench,
+              lastShiftChange: now
+            }
+          };
+        });
+      });
+    }, 5000); // Kontrola každých 5 sekund
+
+    return () => clearInterval(interval);
+  }, [gameState, gameTime]);
+
+  // Funkce pro manuální střídání hráče
+  const handlePlayerSubstitution = (teamColor) => {
     setTeamState(prev => {
-      const teamState = prev[team];
+      const teamState = prev[teamColor];
       const now = gameTime;
 
-      // Kontrola, zda je vhodný čas na střídání
-      if (now - teamState.lastShiftChange < SHIFT_DURATION) {
-        return prev;
+      // Najdeme hráče v týmu
+      const playerOnIce = teamState.onIce.find(p => p.isPlayer);
+      const playerOnBench = teamState.bench.find(p => p.isPlayer);
+
+      // Pokud hráč není v tomto týmu, nic neděláme
+      if (!playerOnIce && !playerOnBench) return prev;
+
+      // Pokud je hráč na ledě, přesuneme ho na lavičku
+      if (playerOnIce) {
+        const newOnIce = teamState.onIce.filter(p => !p.isPlayer);
+        const newBench = [...teamState.bench, playerOnIce];
+        
+        setEvents(prev => [{
+          time: gameTime,
+          type: 'substitution',
+          team: teamColor,
+          description: `${playerName} jde na střídačku! 🔄`
+        }, ...prev]);
+
+        return {
+          ...prev,
+          [teamColor]: {
+            ...teamState,
+            onIce: newOnIce,
+            bench: newBench,
+            lastShiftChange: now
+          }
+        };
       }
 
-      // Seřazení hráčů na ledě podle únavy (nejvíc unavení první)
-      const sortedOnIce = [...teamState.onIce].sort((a, b) => 
-        teamState.fatigue[b.key] - teamState.fatigue[a.key]
-      );
+      // Pokud je hráč na lavičce, přesuneme ho na led
+      if (playerOnBench) {
+        const newBench = teamState.bench.filter(p => !p.isPlayer);
+        const newOnIce = [...teamState.onIce, playerOnBench];
+        
+        setEvents(prev => [{
+          time: gameTime,
+          type: 'substitution',
+          team: teamColor,
+          description: `${playerName} naskakuje na led! 🏃‍♂️`
+        }, ...prev]);
 
-      // Seřazení hráčů na střídačce podle odpočinku (nejvíc odpočatí první)
-      const sortedBench = [...teamState.bench].sort((a, b) => 
-        teamState.fatigue[a.key] - teamState.fatigue[b.key]
-      );
+        return {
+          ...prev,
+          [teamColor]: {
+            ...teamState,
+            onIce: newOnIce,
+            bench: newBench,
+            lastShiftChange: now
+          }
+        };
+      }
 
-      // Výměna nejvíce unavených hráčů za odpočaté
-      const numToChange = Math.min(2, Math.floor(sortedOnIce.length / 2));
-      const newOnIce = [
-        ...sortedOnIce.slice(numToChange),
-        ...sortedBench.slice(0, numToChange)
-      ];
-      const newBench = [
-        ...sortedBench.slice(numToChange),
-        ...sortedOnIce.slice(0, numToChange)
-      ];
-
-      // Zajistíme, že máme správný počet hráčů v každé kategorii
-      const result = {
-        ...prev,
-        [team]: {
-          ...teamState,
-          onIce: newOnIce,
-          bench: newBench,
-          lastShiftChange: now
-        }
-      };
-
-      // Přidáme událost o střídání
-      const playersIn = sortedBench.slice(0, numToChange).map(p => p.name).join(", ");
-      const playersOut = sortedOnIce.slice(0, numToChange).map(p => p.name).join(", ");
-      
-      setEvents(prev => [...prev, {
-        time: gameTime,
-        type: 'substitution',
-        team,
-        description: `Střídání v týmu ${team === 'white' ? 'Bílých' : 'Černých'}: ${playersIn} ↔️ ${playersOut}`
-      }]);
-
-      return result;
+      return prev;
     });
   };
 
@@ -535,6 +655,43 @@ const OldaHockeyMatch = ({ onBack, onGameComplete, assignedJerseys, playerName =
     );
   };
 
+  // Optimalizovaná komponenta pro tabulku hráčů
+  const TeamTable = React.memo(({ players, title, isHomeTeam }) => {
+    return (
+      <div className="w-[200px] bg-black/50 rounded-lg overflow-hidden">
+        <div className="bg-indigo-900/50 p-2 text-center font-bold text-sm">
+          {title}
+        </div>
+        <div className="max-h-[300px] overflow-y-auto scrollbar-thin scrollbar-thumb-indigo-600 scrollbar-track-indigo-900/50">
+          {players.map((player, index) => (
+            <div 
+              key={`${player.name}-${player.surname}`}
+              className={`p-2 text-sm ${index % 2 === 0 ? 'bg-black/30' : 'bg-black/20'} 
+                         hover:bg-indigo-900/30 transition-colors flex items-center gap-2`}
+            >
+              <div className="w-8 h-8 rounded-full overflow-hidden flex-shrink-0">
+                <Image
+                  src={litvinovLancers.getPlayerPhotoUrl(`${player.name} ${player.surname}`)}
+                  alt={player.name}
+                  width={32}
+                  height={32}
+                  className="w-full h-full object-cover"
+                  unoptimized={true}
+                />
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="truncate font-medium">{player.name} {player.surname}</div>
+                <div className="text-xs text-indigo-300">{player.position}</div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  });
+
+  TeamTable.displayName = 'TeamTable';
+
   // --- Main Render ---
   return (
     <div className="fixed inset-0 bg-black/95 text-gray-200 z-50 flex items-center justify-center p-4 overflow-hidden">
@@ -563,23 +720,9 @@ const OldaHockeyMatch = ({ onBack, onGameComplete, assignedJerseys, playerName =
              {/* Teams */}
              <div className="flex gap-4 flex-grow min-h-[200px]">
                 {/* White Team */}
-                <div className="w-1/2 bg-gray-800/50 border border-gray-700 rounded-lg p-3 flex flex-col">
-                  <h3 className="text-lg font-semibold text-white mb-2 text-center border-b border-gray-600 pb-1">
-                    {teams.white.name}
-                  </h3>
-                  <div className="space-y-1 overflow-y-auto custom-scrollbar flex-grow">
-                    {teams.white.players.map(p => renderPlayer(p, 'white'))}
-                  </div>
-                </div>
+                <TeamTable players={teams.white.players} title={teams.white.name} isHomeTeam={true} />
                 {/* Black Team */}
-                <div className="w-1/2 bg-gray-800/50 border border-gray-700 rounded-lg p-3 flex flex-col">
-                  <h3 className="text-lg font-semibold text-gray-400 mb-2 text-center border-b border-gray-600 pb-1">
-                    {teams.black.name}
-                  </h3>
-                  <div className="space-y-1 overflow-y-auto custom-scrollbar flex-grow">
-                    {teams.black.players.map(p => renderPlayer(p, 'black'))}
-                  </div>
-                </div>
+                <TeamTable players={teams.black.players} title={teams.black.name} isHomeTeam={false} />
             </div>
 
             {/* Game Controls */}
@@ -676,19 +819,33 @@ const OldaHockeyMatch = ({ onBack, onGameComplete, assignedJerseys, playerName =
             </div>
 
             {/* Přidání tlačítek pro střídání */}
-            <div className="flex gap-4 mb-4">
-              <button
-                onClick={() => handleLineChange('white')}
-                className="px-4 py-2 bg-white/10 hover:bg-white/20 rounded-lg"
-              >
-                Střídat bílé
-              </button>
-              <button
-                onClick={() => handleLineChange('black')}
-                className="px-4 py-2 bg-white/10 hover:bg-white/20 rounded-lg"
-              >
-                Střídat černé
-              </button>
+            <div className="flex gap-4 mb-4 justify-center">
+              {['white', 'black'].map(teamColor => {
+                const teamState = teamState[teamColor];
+                const playerInTeam = [...teamState.onIce, ...teamState.bench].find(p => p.isPlayer);
+                
+                if (!playerInTeam) return null;
+
+                const isOnIce = teamState.onIce.some(p => p.isPlayer);
+                const fatigue = teamState.fatigue[playerInTeam.key] || 0;
+                
+                return (
+                  <button
+                    key={teamColor}
+                    onClick={() => handlePlayerSubstitution(teamColor)}
+                    className={`px-6 py-3 rounded-lg font-bold transition-all transform hover:scale-105 flex items-center gap-2 ${
+                      isOnIce 
+                        ? 'bg-red-600 hover:bg-red-700 text-white' 
+                        : 'bg-green-600 hover:bg-green-700 text-white'
+                    }`}
+                  >
+                    {isOnIce ? '⬇️ Jít na střídačku' : '⬆️ Naskočit na led'}
+                    <div className="text-xs bg-black/30 px-2 py-1 rounded">
+                      Únava: {Math.round(fatigue)}%
+                    </div>
+                  </button>
+                );
+              })}
             </div>
 
             {/* Přidání zobrazení hráčů a jejich stavu */}
