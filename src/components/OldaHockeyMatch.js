@@ -403,10 +403,16 @@ const OldaHockeyMatch = ({ onBack, onGameComplete, assignedJerseys, playerName =
 
   // Efekt pro aktualizaci únavy
   useEffect(() => {
-    if (gameState !== 'playing') return;
+    if (gameState !== 'playing') {
+      console.log("🔴 DEBUG: Hra není ve stavu 'playing', aktuální stav:", gameState);
+      return;
+    }
 
     const interval = setInterval(() => {
       console.log("🏃 DEBUG: Aktualizuji únavu hráčů...");
+      
+      // Ověříme, že teamState obsahuje správné údaje
+      console.log("🟡 DEBUG: Kompletní teamState před aktualizací:", teamState);
       
       setTeamState(prev => {
         // Pro účely debugování získáme celkový stav před změnou
@@ -415,12 +421,21 @@ const OldaHockeyMatch = ({ onBack, onGameComplete, assignedJerseys, playerName =
         console.log("🏃 DEBUG: Hráči na ledě - BÍLÝ tým:", prev.white.onIce.map(p => p.key));
         console.log("🏃 DEBUG: Hráči na ledě - ČERNÝ tým:", prev.black.onIce.map(p => p.key));
         
+        // Ověříme strukturu objektů hráčů a jejich klíčů
+        console.log("🔍 DEBUG: Struktura hráčů na ledě - BÍLÝ tým:", prev.white.onIce);
+        console.log("🔍 DEBUG: Struktura hráčů na ledě - ČERNÝ tým:", prev.black.onIce);
+        
         const updateTeamFatigue = (teamState, teamColor) => {
           // Je důležité vytvořit nový objekt, abychom nevytvářeli referenční problémy
           const newFatigue = { ...teamState.fatigue };
           
           // Zvýšení únavy hráčů na ledě
           teamState.onIce.forEach(player => {
+            if (!player.key) {
+              console.error(`🔴 DEBUG: Hráč ${player.name} ${player.surname} nemá klíč!`);
+              return;
+            }
+            
             // Používáme key pro přístup k únavě
             const oldFatigue = newFatigue[player.key] || 0;
             newFatigue[player.key] = Math.min(
@@ -433,6 +448,11 @@ const OldaHockeyMatch = ({ onBack, onGameComplete, assignedJerseys, playerName =
 
           // Regenerace hráčů na střídačce
           teamState.bench.forEach(player => {
+            if (!player.key) {
+              console.error(`🔴 DEBUG: Hráč ${player.name} ${player.surname} nemá klíč!`);
+              return;
+            }
+            
             const oldFatigue = newFatigue[player.key] || 0;
             newFatigue[player.key] = Math.max(
               0,
@@ -454,9 +474,16 @@ const OldaHockeyMatch = ({ onBack, onGameComplete, assignedJerseys, playerName =
         console.log("🏃 DEBUG: Nový stav únavy - BÍLÝ tým:", newWhite.fatigue);
         console.log("🏃 DEBUG: Nový stav únavy - ČERNÝ tým:", newBlack.fatigue);
         
+        // Vraťme konkrétní nový objekt, abychom zajistili, že React zaregistruje změnu
         return {
-          white: newWhite,
-          black: newBlack
+          white: {
+            ...prev.white,
+            fatigue: { ...newWhite.fatigue } // Zajistíme, že to je skutečně nový objekt
+          },
+          black: {
+            ...prev.black,
+            fatigue: { ...newBlack.fatigue } // Zajistíme, že to je skutečně nový objekt
+          }
         };
       });
     }, 1000); // Každou sekundu aktualizujeme únavu
@@ -640,8 +667,10 @@ const OldaHockeyMatch = ({ onBack, onGameComplete, assignedJerseys, playerName =
   // --- Event Handlers ---
   const handleStartPause = () => {
     if (gameState === 'playing') {
+      console.log("🎮 DEBUG: Pauzuji hru");
       setGameState('paused');
     } else {
+      console.log("🎮 DEBUG: Spouštím hru, předchozí stav:", gameState);
       setGameState('playing');
     }
   };
@@ -707,7 +736,28 @@ const OldaHockeyMatch = ({ onBack, onGameComplete, assignedJerseys, playerName =
       return null; // Nebo vrátit placeholder
     }
 
-    const fatigue = Math.round(currentTeamState.fatigue[player.key] || 0);
+    // Kontrola klíče hráče
+    if (!player.key) {
+      console.error(`🔴 DEBUG: Hráč ${player.name} ${player.surname} nemá klíč!`);
+      const generatedKey = getPlayerKey(player);
+      console.log(`🟢 DEBUG: Generuji náhradní klíč pro hráče: ${generatedKey}`);
+      player.key = generatedKey;
+    }
+
+    // Kontrola, zda existuje fatigue pro hráče
+    let fatigue = 0;
+    if (player.key in currentTeamState.fatigue) {
+      fatigue = Math.round(currentTeamState.fatigue[player.key] || 0);
+    } else {
+      console.error(`🔴 DEBUG: Hráč ${player.name} ${player.surname} (${player.key}) nemá záznam o únavě!`);
+      // Inicializace únavy pro hráče, pokud neexistuje
+      setTeamState(prev => {
+        const newState = { ...prev };
+        newState[teamColor].fatigue[player.key] = 0;
+        return newState;
+      });
+    }
+
     const isOnIce = currentTeamState.onIce?.some(p => p.key === player.key);
     
     // Debug log pro zobrazování únavy
@@ -733,6 +783,7 @@ const OldaHockeyMatch = ({ onBack, onGameComplete, assignedJerseys, playerName =
         <div className="flex-1 min-w-0">
           <div className="text-sm font-bold truncate">{player.name} {player.surname} {player.isPlayer ? '(Ty)' : ''}</div>
           <div className="text-xs text-indigo-300">{player.position} - L{player.level || 1}</div>
+          <div className="text-xs text-red-300">Únava: {fatigue}% {player.key && player.key.substring(0, 5)}</div>
         </div>
         {/* Fatigue Bar */}
         <div className="w-20 flex-shrink-0">
@@ -752,6 +803,8 @@ const OldaHockeyMatch = ({ onBack, onGameComplete, assignedJerseys, playerName =
         {isOnIce && (
           <div className="w-3 h-3 bg-green-400 rounded-full animate-pulse flex-shrink-0" title="Na ledě"></div>
         )}
+        {/* Status indikátor */}
+        <div className="w-3 h-3 rounded-full" style={{ backgroundColor: player.key in currentTeamState.fatigue ? 'green' : 'red' }}></div>
       </div>
     );
   };
@@ -884,6 +937,10 @@ const OldaHockeyMatch = ({ onBack, onGameComplete, assignedJerseys, playerName =
 
                    <div className="text-sm text-gray-400 ml-4">
                      Rychlost: {gameSpeed}x
+                   </div>
+
+                   <div className="text-sm text-gray-400 ml-4">
+                     Hra: {gameState}
                    </div>
                  </>
               )}
