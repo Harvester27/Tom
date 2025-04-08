@@ -24,6 +24,7 @@ import {
 } from '@heroicons/react/24/solid';
 import { InformationCircleIcon } from '@heroicons/react/24/outline';
 import clsx from 'clsx';
+import PlayerSpecialAction from './PlayerSpecialAction'; // Import nové komponenty pro speciální akce
 
 // --- Constants ---
 const GAME_DURATION_SECONDS = 60 * 90; // 90 minut (od 16:30 do 18:00)
@@ -39,6 +40,11 @@ const MAX_FATIGUE = 100;
 // const FATIGUE_PERFORMANCE_IMPACT = 0.5; // Původní konstanta, nahrazena FATIGUE_IMPACT_FACTOR
 // NOVÉ: Faktor vlivu únavy na šanci na gól (0.001 = 0.1% změna šance za 1% rozdílu průměrné únavy)
 const FATIGUE_IMPACT_FACTOR = 0.0015; // 0.15% změna za 1% rozdílu únavy
+
+// Nové konstanty pro speciální akce
+const SPECIAL_ACTION_CHANCE = 0.1; // 10% šance na speciální akci v každém intervalu kontroly
+const SPECIAL_ACTION_INTERVAL = 30; // Interval kontroly pro speciální akce (v sekundách herního času)
+const MIN_TIME_BETWEEN_ACTIONS = 120; // Minimální čas mezi speciálními akcemi (v sekundách)
 
 // --- Helper Functions ---
 const formatGameTime = (totalSeconds, periodDuration) => {
@@ -129,6 +135,11 @@ const OldaHockeyMatch = ({ onBack, onGameComplete, assignedJerseys, playerName =
   const [events, setEvents] = useState([]);
   const [lastEvent, setLastEvent] = useState(null);
   const [highlightedPlayerKey, setHighlightedPlayerKey] = useState(null);
+  
+  // Nové stavy pro speciální akce
+  const [specialAction, setSpecialAction] = useState(null);
+  const [lastSpecialActionTime, setLastSpecialActionTime] = useState(0);
+  
   const eventLogRef = useRef(null);
   const lastEventRef = useRef(null);
 
@@ -491,110 +502,278 @@ const OldaHockeyMatch = ({ onBack, onGameComplete, assignedJerseys, playerName =
             });
         });
         
+        // --- Kontrola speciálních akcí pro hráče ---
+        if (newTime > 0 && newTime % SPECIAL_ACTION_INTERVAL === 0 && newTime - lastSpecialActionTime >= MIN_TIME_BETWEEN_ACTIONS) {
+          const playerTeamColor = findPlayerTeamColor();
+          
+          if (playerTeamColor && Math.random() < SPECIAL_ACTION_CHANCE) {
+            // Hráč musí být na ledě pro speciální akci
+            const playerOnIce = isPlayerOnIce(playerTeamColor);
+            
+            if (playerOnIce) {
+              generateSpecialAction(playerTeamColor, newTime);
+              setLastSpecialActionTime(newTime);
+              // Pozastavíme hru, když se objeví speciální akce
+              setGameState('paused');
+            }
+          }
+        }
+        
         return newTime;
       });
     }, 1000 / gameSpeed);
 
     return () => clearInterval(timerInterval);
-  }, [gameState, gameSpeed, teams, score, currentPeriod, onGameComplete, triggerHighlight, teamState, updateTeamState]); // teamState je potřeba pro přístup k onIce a fatigue
+  }, [gameState, gameSpeed, teams, score, currentPeriod, onGameComplete, triggerHighlight, teamState, updateTeamState, lastSpecialActionTime]); // Přidáno lastSpecialActionTime
 
-   // --- Fatigue Update Effect --- 
-   useEffect(() => {
-    if (gameState !== 'playing') return;
-    console.log("🚀 Starting fatigue update interval.");
-    const fatigueInterval = setInterval(() => {
-      // Upravíme rychlost únavy podle rychlosti hry
-      const fatigueIncreaseRate = BASE_FATIGUE_INCREASE_RATE * gameSpeed;
-      const recoveryRate = BASE_RECOVERY_RATE * gameSpeed;
-      
-      updateTeamState('white', prevWhiteState => {
-        if (!prevWhiteState?.fatigue || !prevWhiteState.onIce || !prevWhiteState.bench) return prevWhiteState;
-        const newFatigue = { ...prevWhiteState.fatigue }; let fatigueChanged = false;
-        prevWhiteState.onIce.forEach(player => {
-          if (player?.key) {
-            const currentFatigue = newFatigue[player.key] ?? 0;
-            const updatedFatigue = Math.min(MAX_FATIGUE, currentFatigue + fatigueIncreaseRate);
-            if (newFatigue[player.key] !== updatedFatigue) { newFatigue[player.key] = updatedFatigue; fatigueChanged = true; }
+  // Pomocná funkce pro zjištění, ve kterém týmu je hráč
+  const findPlayerTeamColor = useCallback(() => {
+    if (teams.white.players?.some(p => p.isPlayer)) return 'white';
+    if (teams.black.players?.some(p => p.isPlayer)) return 'black';
+    return null;
+  }, [teams]);
+  
+  // Pomocná funkce pro kontrolu, zda je hráč na ledě
+  const isPlayerOnIce = useCallback((teamColor) => {
+    if (!teamColor || !teamState[teamColor]?.onIce) return false;
+    return teamState[teamColor].onIce.some(p => p.isPlayer);
+  }, [teamState]);
+  
+  // Generování speciální akce
+  const generateSpecialAction = useCallback((playerTeamColor, currentTime) => {
+    const opposingTeamColor = playerTeamColor === 'white' ? 'black' : 'white';
+    
+    // Získáme hráče a jeho data
+    const player = teamState[playerTeamColor].onIce.find(p => p.isPlayer);
+    const playerFatigue = teamState[playerTeamColor].fatigue[player.key] || 0;
+    
+    // Získáme nejblíže stojící protihráče
+    const opposingGoalie = teamState[opposingTeamColor].onIce.find(p => p.position === 'brankář');
+    const opposingDefenders = teamState[opposingTeamColor].onIce.filter(p => p.position === 'obránce');
+    const opposingDefender = opposingDefenders.length > 0 
+      ? opposingDefenders[Math.floor(Math.random() * opposingDefenders.length)]
+      : null;
+    
+    // Získáme spoluhráče
+    const teammates = teamState[playerTeamColor].onIce.filter(p => p.position !== 'brankář' && !p.isPlayer);
+    const teammate = teammates.length > 0 
+      ? teammates[Math.floor(Math.random() * teammates.length)]
+      : null;
+    
+    // Typy speciálních akcí
+    const actionTypes = [
+      {
+        type: 'shot_opportunity',
+        description: 'Máš šanci na přímou střelu!',
+        options: [
+          { id: 'shoot', text: 'Vystřelit', difficulty: 'medium' },
+          { id: 'pass', text: 'Přihrát spoluhráči', difficulty: 'easy' },
+          { id: 'deke', text: 'Kličkovat a zkusit obejít', difficulty: 'hard' }
+        ]
+      },
+      {
+        type: 'one_on_one',
+        description: 'Jsi sám před brankářem!',
+        options: [
+          { id: 'shoot_high', text: 'Vystřelit nahoru', difficulty: 'medium' },
+          { id: 'shoot_low', text: 'Vystřelit dolů', difficulty: 'medium' },
+          { id: 'deke', text: 'Kličkovat brankáři', difficulty: 'hard' }
+        ]
+      },
+      {
+        type: 'defensive_challenge',
+        description: 'Protihráč se blíží k bráně a ty ho můžeš zastavit!',
+        options: [
+          { id: 'stick_check', text: 'Zkusit hokejkou vypíchnout puk', difficulty: 'medium' },
+          { id: 'body_check', text: 'Zkusit bodyček', difficulty: 'hard' },
+          { id: 'position', text: 'Zaujmout dobrou pozici', difficulty: 'easy' }
+        ]
+      },
+      {
+        type: 'rebound_opportunity',
+        description: 'Puk se odrazil od brankáře!',
+        options: [
+          { id: 'quick_shot', text: 'Rychlá dorážka', difficulty: 'hard' },
+          { id: 'control', text: 'Zkontrolovat puk', difficulty: 'medium' },
+          { id: 'pass', text: 'Přihrát lépe postavenému', difficulty: 'easy' }
+        ]
+      }
+    ];
+    
+    // Výběr náhodné akce
+    const selectedAction = actionTypes[Math.floor(Math.random() * actionTypes.length)];
+    
+    // Vytvoření kompletní speciální akce
+    const fullAction = {
+      ...selectedAction,
+      time: currentTime,
+      player,
+      playerTeamColor,
+      playerFatigue,
+      opposingGoalie,
+      opposingDefender,
+      teammate,
+      gameContext: {
+        score,
+        period: currentPeriod,
+        timeRemaining: GAME_DURATION_SECONDS - currentTime
+      }
+    };
+    
+    setSpecialAction(fullAction);
+    
+  }, [teamState, score, currentPeriod]);
+  
+  // Zpracování výsledku speciální akce
+  const handleSpecialActionResult = useCallback((option) => {
+    if (!specialAction) return;
+    
+    // Vyhodnocení úspěšnosti akce
+    const player = specialAction.player;
+    const playerLevel = player.level || 1;
+    const playerFatigue = specialAction.playerFatigue;
+    const fatigueImpact = playerFatigue / 100; // 0-1, vyšší hodnota znamená negativní dopad
+    
+    // Základní pravděpodobnost úspěchu podle obtížnosti
+    let successChance;
+    switch (option.difficulty) {
+      case 'easy': successChance = 0.8; break;
+      case 'medium': successChance = 0.6; break;
+      case 'hard': successChance = 0.4; break;
+      default: successChance = 0.5;
+    }
+    
+    // Úprava šance podle úrovně hráče (každá úroveň +5%)
+    successChance += (playerLevel - 1) * 0.05;
+    
+    // Úprava šance podle únavy (při 100% únavě -30%)
+    successChance -= fatigueImpact * 0.3;
+    
+    // Zajistíme, že šance je v rozmezí 10-90%
+    successChance = Math.max(0.1, Math.min(0.9, successChance));
+    
+    // Určení výsledku
+    const isSuccess = Math.random() < successChance;
+    
+    // Vytvoření zprávy o výsledku
+    let resultMessage, eventDescription, eventType;
+    const teamName = specialAction.playerTeamColor === 'white' ? 'Bílí' : 'Černí';
+    
+    if (isSuccess) {
+      // Zpracování úspěchu podle typu akce a zvolené možnosti
+      switch (specialAction.type) {
+        case 'shot_opportunity':
+        case 'one_on_one':
+        case 'rebound_opportunity':
+          if (option.id.includes('shoot') || option.id === 'quick_shot' || option.id === 'deke') {
+            // Šance na gól při úspěšné střelbě
+            const goalChance = option.id === 'deke' ? 0.7 : 0.5;
+            const isGoal = Math.random() < goalChance;
+            
+            if (isGoal) {
+              // Gól!
+              resultMessage = `Výborně! Tvoje akce skončila gólem!`;
+              eventDescription = `🚨 GÓÓÓL! ${player.name} ${player.surname} (Ty!) (${teamName}) skóruje po speciální akci!`;
+              eventType = 'goal';
+              // Přidáme skóre
+              setScore(prev => ({ 
+                ...prev, 
+                [specialAction.playerTeamColor]: prev[specialAction.playerTeamColor] + 1 
+              }));
+            } else {
+              resultMessage = `Dobrá střela, ale brankář ji chytil.`;
+              eventDescription = `🧤 Zákrok! ${specialAction.opposingGoalie.name} ${specialAction.opposingGoalie.surname} chytá tvoji střelu po speciální akci.`;
+              eventType = 'save';
+            }
+          } else if (option.id === 'pass') {
+            resultMessage = `Tvoje přihrávka byla přesná.`;
+            eventDescription = `${player.name} ${player.surname} (Ty!) přesně přihrává na ${specialAction.teammate.name} ${specialAction.teammate.surname} po speciální akci.`;
+            eventType = 'pass';
+          } else {
+            resultMessage = `Akce se podařila!`;
+            eventDescription = `${player.name} ${player.surname} (Ty!) úspěšně zvládl speciální akci.`;
+            eventType = 'success';
           }
-        });
-        prevWhiteState.bench.forEach(player => {
-          if (player?.key) {
-            const currentFatigue = newFatigue[player.key] ?? 0;
-            const updatedFatigue = Math.max(0, currentFatigue - recoveryRate);
-             if (newFatigue[player.key] !== updatedFatigue) { newFatigue[player.key] = updatedFatigue; fatigueChanged = true; }
+          break;
+        case 'defensive_challenge':
+          resultMessage = `Úspěšně jsi zastavil útok soupeře!`;
+          eventDescription = `🛡️ Dobrá obrana! ${player.name} ${player.surname} (Ty!) (${teamName}) zastavil útok soupeře po speciální akci.`;
+          eventType = 'defense';
+          break;
+        default:
+          resultMessage = `Akce byla úspěšná!`;
+          eventDescription = `${player.name} ${player.surname} (Ty!) úspěšně zvládl speciální akci.`;
+          eventType = 'success';
+      }
+    } else {
+      // Neúspěch
+      switch (specialAction.type) {
+        case 'shot_opportunity':
+        case 'one_on_one':
+        case 'rebound_opportunity':
+          resultMessage = `Bohužel, akce se nepovedla podle plánu.`;
+          eventDescription = `${player.name} ${player.surname} (Ty!) neuspěl se speciální akcí.`;
+          eventType = 'miss';
+          break;
+        case 'defensive_challenge':
+          // Při neúspěšné obraně může být šance na gól soupeře
+          const opponentGoalChance = option.id === 'body_check' ? 0.4 : 0.2;
+          const isOpponentGoal = Math.random() < opponentGoalChance;
+          
+          if (isOpponentGoal) {
+            resultMessage = `Nepodařilo se ti zastavit útok a soupeř skóroval!`;
+            eventDescription = `🚨 Gól soupeře! ${player.name} ${player.surname} (Ty!) nedokázal zastavit útok a soupeř skóroval.`;
+            eventType = 'goal';
+            // Přidáme skóre soupeři
+            const opposingTeamColor = specialAction.playerTeamColor === 'white' ? 'black' : 'white';
+            setScore(prev => ({ 
+              ...prev, 
+              [opposingTeamColor]: prev[opposingTeamColor] + 1 
+            }));
+          } else {
+            resultMessage = `Nepodařilo se ti zastavit útok, ale naštěstí soupeř neskóroval.`;
+            eventDescription = `${player.name} ${player.surname} (Ty!) neuspěl s obranou při speciální akci.`;
+            eventType = 'turnover';
           }
-        });
-        return fatigueChanged ? { ...prevWhiteState, fatigue: newFatigue } : prevWhiteState;
-      });
-      updateTeamState('black', prevBlackState => {
-         if (!prevBlackState?.fatigue || !prevBlackState.onIce || !prevBlackState.bench) return prevBlackState;
-        const newFatigue = { ...prevBlackState.fatigue }; let fatigueChanged = false;
-        prevBlackState.onIce.forEach(player => {
-           if (player?.key) {
-            const currentFatigue = newFatigue[player.key] ?? 0;
-            const updatedFatigue = Math.min(MAX_FATIGUE, currentFatigue + fatigueIncreaseRate);
-            if (newFatigue[player.key] !== updatedFatigue) { newFatigue[player.key] = updatedFatigue; fatigueChanged = true; }
-           }
-        });
-        prevBlackState.bench.forEach(player => {
-           if (player?.key) {
-            const currentFatigue = newFatigue[player.key] ?? 0;
-            const updatedFatigue = Math.max(0, currentFatigue - recoveryRate);
-            if (newFatigue[player.key] !== updatedFatigue) { newFatigue[player.key] = updatedFatigue; fatigueChanged = true; }
-           }
-        });
-        return fatigueChanged ? { ...prevBlackState, fatigue: newFatigue } : prevBlackState;
-      });
-    }, 1000);
-    return () => { console.log("🛑 Stopping fatigue update interval."); clearInterval(fatigueInterval); };
-  }, [gameState, updateTeamState, gameSpeed]); // Přidána závislost na gameSpeed
-
-  // --- Automatic Substitution Effect ---
-  // Odstraníme samostatný interval pro střídání, protože nyní to řešíme v hlavním herním intervalu
-  // useEffect(() => {
-  //   // ... removed substitution interval ...
-  // }, [gameState, gameTime, updateTeamState, triggerHighlight]);
-
-   // --- Manuální střídání hráče --- (Logika beze změny, jen triggerHighlight přidán pro konzistenci)
-   const handlePlayerSubstitution = useCallback((teamColor) => {
-      const currentTime = gameTime;
-      updateTeamState(teamColor, prevTeamState => {
-          if (!prevTeamState || !prevTeamState.onIce || !prevTeamState.bench || !prevTeamState.fatigue) return prevTeamState;
-          const playerOnIce = prevTeamState.onIce.find(p => p.isPlayer);
-          const playerOnBench = prevTeamState.bench.find(p => p.isPlayer);
-          if (!playerOnIce && !playerOnBench) return prevTeamState;
-
-          if (playerOnIce) { // Hráč jde z ledu
-              const restedBenchPlayer = [...prevTeamState.bench]
-                  .filter(p => p.position !== 'brankář' && !p.isPlayer)
-                  .sort((a, b) => (prevTeamState.fatigue[a.key] ?? 100) - (prevTeamState.fatigue[b.key] ?? 100))[0];
-              if (!restedBenchPlayer) return prevTeamState;
-
-              const newOnIce = prevTeamState.onIce.filter(p => !p.isPlayer); newOnIce.push(restedBenchPlayer);
-              const newBench = prevTeamState.bench.filter(p => p.key !== restedBenchPlayer.key); newBench.push(playerOnIce);
-              const subEvent = { time: currentTime, type: 'substitution', team: teamColor, description: `Střídání (${teamColor === 'white' ? 'Bílí' : 'Černí'}): ${playerName} (Ty) ⬇️, ${restedBenchPlayer.name} ${restedBenchPlayer.surname} ⬆️` };
-              setEvents(prev => [subEvent, ...prev]);
-              triggerHighlight([playerOnIce.key, restedBenchPlayer.key]); // Zvýraznění
-              return { ...prevTeamState, onIce: newOnIce, bench: newBench, lastShiftChange: currentTime };
-          }
-
-          if (playerOnBench) { // Hráč jde z lavičky
-              const tiredOnIcePlayer = [...prevTeamState.onIce]
-                  .filter(p => p.position !== 'brankář' && !p.isPlayer)
-                  .sort((a, b) => (prevTeamState.fatigue[b.key] ?? 0) - (prevTeamState.fatigue[a.key] ?? 0))[0];
-              if (!tiredOnIcePlayer) return prevTeamState;
-
-              const newBench = prevTeamState.bench.filter(p => !p.isPlayer); newBench.push(tiredOnIcePlayer);
-              const newOnIce = prevTeamState.onIce.filter(p => p.key !== tiredOnIcePlayer.key); newOnIce.push(playerOnBench);
-              const subEvent = { time: currentTime, type: 'substitution', team: teamColor, description: `Střídání (${teamColor === 'white' ? 'Bílí' : 'Černí'}): ${playerName} (Ty) ⬆️, ${tiredOnIcePlayer.name} ${tiredOnIcePlayer.surname} ⬇️` };
-              setEvents(prev => [subEvent, ...prev]);
-              triggerHighlight([playerOnBench.key, tiredOnIcePlayer.key]); // Zvýraznění
-              return { ...prevTeamState, onIce: newOnIce, bench: newBench, lastShiftChange: currentTime };
-          }
-          return prevTeamState;
-      });
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [gameTime, updateTeamState, playerName, triggerHighlight]);
+          break;
+        default:
+          resultMessage = `Akce nebyla úspěšná.`;
+          eventDescription = `${player.name} ${player.surname} (Ty!) neuspěl se speciální akcí.`;
+          eventType = 'miss';
+      }
+    }
+    
+    // Přidáme událost
+    const newEvent = {
+      type: eventType,
+      time: specialAction.time,
+      player: specialAction.player,
+      team: specialAction.playerTeamColor,
+      description: eventDescription
+    };
+    
+    setEvents(prev => [newEvent, ...prev]);
+    setLastEvent(newEvent);
+    
+    // Zvýrazníme hráče
+    triggerHighlight(specialAction.player.key);
+    
+    // Vytvoříme výsledek akce a vrátíme ho
+    const actionResult = {
+      success: isSuccess,
+      message: resultMessage,
+      eventType
+    };
+    
+    // Zavřeme speciální akci
+    setTimeout(() => {
+      setSpecialAction(null);
+      // Pokračujeme ve hře
+      setGameState('playing');
+    }, 2000);
+    
+    return actionResult;
+  }, [specialAction, triggerHighlight]);
 
   // --- Event Handlers --- (Beze změny)
   const handleStartPause = () => {
@@ -812,6 +991,14 @@ const OldaHockeyMatch = ({ onBack, onGameComplete, assignedJerseys, playerName =
             </div>
           </div> {/* Konec pravého sloupce */}
         </div> {/* Konec hlavní obsahové oblasti */}
+
+        {/* Special Action Dialog */}
+        {specialAction && (
+          <PlayerSpecialAction 
+            action={specialAction} 
+            onOptionSelect={handleSpecialActionResult}
+          />
+        )}
       </div> {/* Konec hlavního kontejneru zápasu */}
 
       {/* Styles (Beze změny) */}
