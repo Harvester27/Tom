@@ -1,0 +1,104 @@
+[
+    {
+        "id": "d20b336f-81e2-496e-af8d-5d94cfda6aea",
+        "name": "Jaromír Jágr",
+        "position": "Útočník",
+        "stats": {
+            "skating": 85,
+            "shooting": 95,
+            "passing": 90,
+            "defense": 70,
+            "goalie": 10
+        },
+        "level": 10,
+        "potential": "A",
+        "morale": 90,
+        "contract_value": 50000,
+        "photo": null
+    },
+    {
+        "id": "456c5d64-b2d1-453e-8499-4cb011c14f18",
+        "name": "Dominik Hašek",
+        "position": "Brankář",
+        "stats": {
+            "skating": 60,
+            "shooting": 40,
+            "passing": 50,
+            "defense": 60,
+            "goalie": 99
+        },
+        "level": 10,
+        "potential": "A",
+        "morale": 85,
+        "contract_value": 45000,
+        "photo": null
+    },
+    {
+        "id": "8dfb6ba8-4b07-473d-9e8c-787c6515d9e1",
+        "name": "David Pastrňák",
+        "position": "Útočník",
+        "stats": {
+            "skating": 92,
+            "shooting": 96,
+            "passing": 88,
+            "defense": 65,
+            "goalie": 15
+        },
+        "level": 9,
+        "potential": "A+",
+        "morale": 95,
+        "contract_value": 60000,
+        "photo": null
+    },
+    {
+        "id": "d2ae9438-6981-4a38-a087-53c261460578",
+        "name": "Oldřich Štěpanovský",
+        "position": "Obránce",
+        "stats": {
+            "skating": 75,
+            "shooting": 60,
+            "passing": 70,
+            "defense": 85,
+            "goalie": 10
+        },
+        "level": 7,
+        "potential": "B",
+        "morale": 80,
+        "contract_value": 15000,
+        "photo": null
+    },
+    {
+        "id": "8abb65ed-b215-48ac-99b2-46cd3342a8a4",
+        "name": "Vlastimil Nistor",
+        "position": "Brankář",
+        "stats": {
+            "skating": 55,
+            "shooting": 30,
+            "passing": 45,
+            "defense": 50,
+            "goalie": 88
+        },
+        "level": 8,
+        "potential": "B+",
+        "morale": 82,
+        "contract_value": 18000,
+        "photo": null
+    },
+    {
+        "id": "630f1862-069b-4fb5-9397-5c1ee0e0d2d3",
+        "name": "Jan Novák",
+        "position": "Útočník",
+        "stats": {
+            "skating": 60,
+            "shooting": 65,
+            "passing": 55,
+            "defense": 40,
+            "goalie": 5
+        },
+        "level": 4,
+        "potential": "C",
+        "morale": 70,
+        "contract_value": 5000,
+        "photo": null
+    }
+]
