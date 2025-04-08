@@ -52,6 +52,19 @@ const getPlayerKey = (player) => `${player.name}-${player.surname}-${player.posi
 // Optimalizace aktualizace stavu
 const useTeamState = (initialTeams) => {
   const [teams, setTeams] = useState(initialTeams);
+  const [teamState, setTeamState] = useState(() => {
+    const initializeTeamState = (team) => ({
+      onIce: [],
+      bench: [],
+      fatigue: {},
+      lastShiftChange: 0
+    });
+
+    return {
+      white: initializeTeamState(initialTeams.white),
+      black: initializeTeamState(initialTeams.black)
+    };
+  });
   
   const updateTeam = useCallback((teamColor, updates) => {
     setTeams(prev => ({
@@ -63,7 +76,17 @@ const useTeamState = (initialTeams) => {
     }));
   }, []);
 
-  return [teams, updateTeam];
+  const updateTeamState = useCallback((teamColor, updates) => {
+    setTeamState(prev => ({
+      ...prev,
+      [teamColor]: {
+        ...prev[teamColor],
+        ...updates
+      }
+    }));
+  }, []);
+
+  return [teams, updateTeam, teamState, updateTeamState];
 };
 
 // --- Component ---
@@ -80,16 +103,14 @@ const OldaHockeyMatch = ({ onBack, onGameComplete, assignedJerseys, playerName =
   const lastEventRef = useRef(null);
 
   // Použijeme optimalizovaný hook pro práci s týmy
-  const [teams, updateTeam] = useTeamState({
+  const [teams, updateTeam, teamState, updateTeamState] = useTeamState({
     white: {
       name: 'Bílý tým',
-      players: [],
-      score: 0
+      players: []
     },
     black: {
       name: 'Černý tým',
-      players: [],
-      score: 0
+      players: []
     }
   });
 
@@ -200,27 +221,21 @@ const OldaHockeyMatch = ({ onBack, onGameComplete, assignedJerseys, playerName =
 
     updateTeam('white', { players: whiteTeam.players });
     updateTeam('black', { players: blackTeam.players });
-  }, [updateTeam]);
 
-  // Rozšíření stavu týmů o únavu a střídání
-  const [teamState, setTeamState] = useState(() => {
-    const initializeTeamState = (team) => {
-      return {
-        onIce: team.players.slice(0, 5), // První pětka na ledě
-        bench: team.players.slice(5), // Zbytek na střídačce
-        fatigue: team.players.reduce((acc, player) => {
-          acc[player.key] = 0; // Počáteční únava 0
-          return acc;
-        }, {}),
-        lastShiftChange: 0, // Čas posledního střídání
-      };
-    };
+    // Aktualizujeme teamState po inicializaci týmů
+    const initializeTeamState = (team) => ({
+      onIce: team.players.slice(0, 5),
+      bench: team.players.slice(5),
+      fatigue: team.players.reduce((acc, player) => {
+        acc[player.key] = 0;
+        return acc;
+      }, {}),
+      lastShiftChange: 0
+    });
 
-    return {
-      white: initializeTeamState(teams.white),
-      black: initializeTeamState(teams.black)
-    };
-  });
+    updateTeamState('white', initializeTeamState(whiteTeam));
+    updateTeamState('black', initializeTeamState(blackTeam));
+  }, [updateTeam, updateTeamState]);
 
   // --- Highlight Player ---
   const triggerHighlight = useCallback((playerKeys) => {
@@ -821,13 +836,13 @@ const OldaHockeyMatch = ({ onBack, onGameComplete, assignedJerseys, playerName =
             {/* Přidání tlačítek pro střídání */}
             <div className="flex gap-4 mb-4 justify-center">
               {['white', 'black'].map(teamColor => {
-                const teamState = teamState[teamColor];
-                const playerInTeam = [...teamState.onIce, ...teamState.bench].find(p => p.isPlayer);
+                const team = teamState[teamColor];
+                const playerInTeam = [...(team.onIce || []), ...(team.bench || [])].find(p => p.isPlayer);
                 
                 if (!playerInTeam) return null;
 
-                const isOnIce = teamState.onIce.some(p => p.isPlayer);
-                const fatigue = teamState.fatigue[playerInTeam.key] || 0;
+                const isOnIce = team.onIce.some(p => p.isPlayer);
+                const fatigue = team.fatigue[playerInTeam.key] || 0;
                 
                 return (
                   <button
