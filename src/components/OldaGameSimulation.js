@@ -352,6 +352,9 @@ const OldaGameSimulation = ({ onBack, onGameComplete }) => {
         else blackTeam.push(forward);
       });
 
+      // Náhodně určíme, do kterého týmu půjde hráč
+      const playerTeam = Math.random() > 0.5 ? 'white' : 'black';
+
       // Olda postupně oznamuje rozdělení týmů
       const responses = [];
       let currentDelay = 500;
@@ -381,6 +384,22 @@ const OldaGameSimulation = ({ onBack, onGameComplete }) => {
         currentDelay += 800;
       });
 
+      // Přidání hráče do bílého týmu, pokud byl vybrán
+      if (playerTeam === 'white') {
+        currentDelay += 800;
+        responses.push({
+          playerId: `${olda.name} ${olda.surname}`,
+          text: `A ty budeš hrát taky za bílé! 👕`,
+          delay: currentDelay,
+          onDisplay: () => {
+            setAssignedJerseys(prev => ({
+              ...prev,
+              white: new Set([...prev.white, 'PLAYER'])
+            }));
+          }
+        });
+      }
+
       // Přechod k černému týmu
       currentDelay += 1500;
       responses.push({
@@ -406,6 +425,22 @@ const OldaGameSimulation = ({ onBack, onGameComplete }) => {
         });
         currentDelay += 800;
       });
+
+      // Přidání hráče do černého týmu, pokud byl vybrán
+      if (playerTeam === 'black') {
+        currentDelay += 800;
+        responses.push({
+          playerId: `${olda.name} ${olda.surname}`,
+          text: `A ty budeš hrát za černé! 🏒`,
+          delay: currentDelay,
+          onDisplay: () => {
+            setAssignedJerseys(prev => ({
+              ...prev,
+              black: new Set([...prev.black, 'PLAYER'])
+            }));
+          }
+        });
+      }
 
       // Závěrečná zpráva
       currentDelay += 1500;
