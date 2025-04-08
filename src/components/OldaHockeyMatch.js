@@ -287,15 +287,6 @@ const OldaHockeyMatch = ({ onBack, onGameComplete, assignedJerseys, playerName =
                     <span className="text-indigo-400 text-sm">({player.position})</span>
                   </div>
                 ))}
-                {assignedJerseys?.white?.has(playerName) && (
-                  <div className="flex items-center gap-2 bg-white/20 p-2 rounded-lg animate-pulse">
-                    <div className="w-8 h-8 rounded-full bg-indigo-600 flex items-center justify-center">
-                      <span className="text-white font-bold">{playerName.charAt(0)}</span>
-                    </div>
-                    <span className="font-bold">{playerName}</span>
-                    <span className="text-indigo-400 text-sm">(útočník)</span>
-                  </div>
-                )}
               </div>
             </div>
             <div className="bg-black/30 p-4 rounded-xl">
@@ -317,15 +308,6 @@ const OldaHockeyMatch = ({ onBack, onGameComplete, assignedJerseys, playerName =
                     <span className="text-indigo-400 text-sm">({player.position})</span>
                   </div>
                 ))}
-                {assignedJerseys?.black?.has(playerName) && (
-                  <div className="flex items-center gap-2 bg-white/10 p-2 rounded-lg animate-pulse">
-                    <div className="w-8 h-8 rounded-full bg-indigo-600 flex items-center justify-center">
-                      <span className="text-white font-bold">{playerName.charAt(0)}</span>
-                    </div>
-                    <span className="font-bold">{playerName}</span>
-                    <span className="text-indigo-400 text-sm">(útočník)</span>
-                  </div>
-                )}
               </div>
             </div>
           </div>
