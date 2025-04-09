@@ -579,7 +579,7 @@ const litvinovLancers = {
       "Luboš Coufal": "Lubos_Coufal.png",
       "Marian Dlugopolsky": "Marian_Dlugopolsky.png",
       "Michaela Nováková": "Michaela_Novakova.png",
-      "Oldřich Štěpanovský": "Oldrich_Stepanovsky.png",
+      "Oldřich Štěpanovský": "Olda21.png",
       "Ondřej Hrubý": "Ondrej_Hruby.png",
       "Pavel Novák": "Pavel_Novak.png",
       "Petra Volmutová": "Petra_Berankova.png"  // Pravděpodobně se jedná o stejnou osobu pod jiným příjmením
@@ -604,6 +604,7 @@ const litvinovLancers = {
       "Lubos_Coufal.png",
       "Marian_Dlugopolsky.png",
       "Michaela_Novakova.png",
+      "Olda21.png",
       "Oldrich_Stepanovsky.png",
       "Ondrej_Hruby.png",
       "Pavel_Novak.png",
