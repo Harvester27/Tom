@@ -569,22 +569,55 @@ const litvinovLancers = {
       "Aleš Kuřitka": "Ales_Kuritka.png",
       "Roman Beneš": "Roman_Benes.png",
       "Jan Švarc": "Jan_Svarc.png",
-      "Pavel Schubada St.": "Pavel_Schubada st.png"
+      "Pavel Schubada St.": "Pavel_Schubada st.png",
+      "Pavel Schubada ml.": "Pavel_Schubada ml.png",
+      "Jiří Belinger": "Jiri_Belinger.png",
+      "Jiří Koláček": "Jiri_Kolacek.png",
+      "Jiří Šalanda": "Jiri_Salanda.png",
+      "Kateřina Schubadová": "Katerina_Schubadovaj.png",
+      "Ladislav Černý": "Ladislav_Cerny.png",
+      "Luboš Coufal": "Lubos_Coufal.png",
+      "Marian Dlugopolsky": "Marian_Dlugopolsky.png",
+      "Michaela Nováková": "Michaela_Novakova.png",
+      "Oldřich Štěpanovský": "Oldrich_Stepanovsky.png",
+      "Ondřej Hrubý": "Ondrej_Hruby.png",
+      "Pavel Novák": "Pavel_Novak.png",
+      "Petra Volmutová": "Petra_Berankova.png"  // Pravděpodobně se jedná o stejnou osobu pod jiným příjmením
     };
 
-    // Seznam hráčů bez fotek (aktualizovaný podle obsahu složky)
-    const playersWithoutPhotos = [
-      "Ladislav Černý",
-      "Petra Volmutová", // Možná by měla být Petra_Berankova.png?
-      "Jaroslav Volmut", // Má fotku Jaroslav_Volmut.png ale je nejspíš poškozená nebo chybná
-      "Kateřina Schubadová",
-      "Jiří Šalanda",
-      "Pavel Novák",
-      "Ondřej Hrubý",
-      "Marian Dlugopolsky",
-      "Luboš Coufal",
-      "Jiří Koláček",
-      "Michaela Nováková"
+    // Seznam hráčů s ověřenými fotkami (podle výpisu ze složky)
+    const verifiedPhotos = [
+      "Adam_Schubada.png",
+      "Ales_Kuritka.png",
+      "Gustav_Toman.png",
+      "Jakub_Seidler.png",
+      "Jan_Hanus.png",
+      "Jan_Schubada.png",
+      "Jan_Svarc.png",
+      "Jaroslav_Volmut.png",
+      "Jindrich_Belinger.png",
+      "Jiri_Belinger.png",
+      "Jiri_Kolacek.png",
+      "Jiri_Salanda.png",
+      "Katerina_Schubadovaj.png",
+      "Ladislav_Cerny.png",
+      "Lubos_Coufal.png",
+      "Marian_Dlugopolsky.png",
+      "Michaela_Novakova.png",
+      "Oldrich_Stepanovsky.png",
+      "Ondrej_Hruby.png",
+      "Pavel_Novak.png",
+      "Pavel_Schubada ml.png",
+      "Pavel_Schubada st.png",
+      "Petra_Berankova.png",
+      "Petr_Stepanovsky.png",
+      "Roman_Benes.png",
+      "Roman_Simek.png",
+      "Standa_Svarc.png",
+      "Tomas_Turecek.png",
+      "Vaclav_Matejovic.png",
+      "Vasek_Materna.png",
+      "Vlastimil_Nistor.png"
     ];
 
     // Pokud je speciální případ, použijeme namapovaný název souboru
@@ -599,13 +632,27 @@ const litvinovLancers = {
       return photoUrl;
     }
     
-    // Pokud hráč nemá fotku, vrátíme defaultní obrázek
-    if (playersWithoutPhotos.includes(playerFullName)) {
+    // Standardní cesta k fotce hráče
+    const standardFileName = `${removeDiacritics(player.name)}_${removeDiacritics(player.surname)}.png`;
+    const photoUrl = `/Images/players/${standardFileName}`;
+    
+    // Kontrola, jestli je soubor v seznamu ověřených fotek
+    const fileExists = verifiedPhotos.includes(standardFileName);
+    
+    if (fileExists) {
+      console.log('🖼️ Using standard photo for player:', {
+        name: playerFullName,
+        photo: standardFileName,
+        url: photoUrl
+      });
+      return photoUrl;
+    } else {
+      // Pokud soubor neexistuje, vrátíme výchozí obrázek
       const defaultImage = player.position === 'brankář' 
         ? '/Images/default_goalie.png'
         : '/Images/default_player.png';
       
-      console.log('🖼️ Using default photo for player:', {
+      console.log('🖼️ No photo found for player, using default:', {
         name: playerFullName,
         position: player.position,
         defaultImage
@@ -613,18 +660,6 @@ const litvinovLancers = {
       
       return defaultImage;
     }
-    
-    // Standardní cesta k fotce hráče
-    const playerPhoto = player.photo || `${removeDiacritics(player.name)}_${removeDiacritics(player.surname)}.png`;
-    const photoUrl = `/Images/players/${playerPhoto}`;
-    
-    console.log('🖼️ Getting standard photo URL for player:', {
-      name: playerFullName,
-      photo: playerPhoto,
-      url: photoUrl
-    });
-    
-    return photoUrl;
   }
 };
 
