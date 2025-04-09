@@ -1263,14 +1263,14 @@ const OldaHockeyMatch = ({ onBack, onGameComplete, assignedJerseys, playerName =
   const PlayerStatus = React.memo(({ player, teamColor, fatigueValue, isOnIce, playerKey }) => {
      if (!player || !player.key) return <div className="flex items-center gap-2 p-2 rounded-lg bg-red-900/50 border border-red-700"><div className="w-10 h-10 bg-gray-600 rounded-full flex-shrink-0"></div><div className="text-xs text-red-300">Chyba: Data hráče</div></div>;
      const fatigue = Math.round(fatigueValue || 0);
-     const playerPhotoUrl = player.isPlayer ? '/Images/players/default_player.png' : litvinovLancers.getPlayerPhotoUrl(`${player.name} ${player.surname}`);
+     const playerPhotoUrl = player.isPlayer ? '/Images/default_player.png' : litvinovLancers.getPlayerPhotoUrl(`${player.name} ${player.surname}`);
      // Použijeme přímo teamState místo setTeamState
      const isPlayerOnIce = teamState[teamColor]?.onIce?.some(p => p.key === playerKey) ?? false;
 
      return (
       <div className={`flex items-center gap-2 p-2 rounded-lg transition-all duration-300 border ${isPlayerOnIce ? 'bg-green-800/40 border-green-600/50 shadow-md' : 'bg-gray-800/40 border-gray-700/50'} ${highlightedPlayerKey?.[player.key] ? (teamColor === 'white' ? 'bg-white/20 scale-105 ring-2 ring-white' : 'bg-gray-600/30 scale-105 ring-2 ring-gray-400') : ''}`}>
         <div className="w-10 h-10 rounded-full overflow-hidden flex-shrink-0 border-2 border-indigo-700 relative">
-          <Image src={playerPhotoUrl} alt={`${player.name} ${player.surname}`} width={40} height={40} className="w-full h-full object-cover" unoptimized={true} onError={(e) => { e.currentTarget.src = '/Images/players/default_player.png'; }} />
+          <Image src={playerPhotoUrl} alt={`${player.name} ${player.surname}`} width={40} height={40} className="w-full h-full object-cover" unoptimized={true} onError={(e) => { e.currentTarget.src = '/Images/default_player.png'; }} />
            {isPlayerOnIce && <div className="absolute bottom-0 right-0 w-3 h-3 bg-green-400 rounded-full border-2 border-gray-800" title="Na ledě"></div>}
         </div>
         <div className="flex-1 min-w-0">
@@ -1370,10 +1370,10 @@ const OldaHockeyMatch = ({ onBack, onGameComplete, assignedJerseys, playerName =
             // Standardní zobrazení hráčů
             currentTeam.players.map((player, index) => {
               if (!player || !player.key) return null;
-              const playerPhotoUrl = player.isPlayer ? '/Images/players/default_player.png' : litvinovLancers.getPlayerPhotoUrl(`${player.name} ${player.surname}`);
+              const playerPhotoUrl = player.isPlayer ? '/Images/default_player.png' : litvinovLancers.getPlayerPhotoUrl(`${player.name} ${player.surname}`);
               return (
                 <div key={player.key} className={`p-2 text-sm ${index % 2 === 0 ? 'bg-black/30' : 'bg-black/20'} hover:bg-indigo-900/40 transition-colors flex items-center gap-2 border-b border-gray-700/30 last:border-b-0`}>
-                  <div className="w-8 h-8 rounded-full overflow-hidden flex-shrink-0 border border-indigo-600"><Image src={playerPhotoUrl} alt={player.name} width={32} height={32} className="w-full h-full object-cover" unoptimized={true} onError={(e) => { e.currentTarget.src = '/Images/players/default_player.png'; }} /></div>
+                  <div className="w-8 h-8 rounded-full overflow-hidden flex-shrink-0 border border-indigo-600"><Image src={playerPhotoUrl} alt={player.name} width={32} height={32} className="w-full h-full object-cover" unoptimized={true} onError={(e) => { e.currentTarget.src = '/Images/default_player.png'; }} /></div>
                   <div className="flex-1 min-w-0"><div className={`truncate font-medium ${player.isPlayer ? 'text-cyan-300' : 'text-gray-200'}`}>{player.name} {player.surname} {player.isPlayer ? '(Ty)' : ''}</div><div className="text-xs text-indigo-300">{player.position}</div></div>
                   <span className="text-xs font-semibold text-yellow-400 px-1.5 py-0.5 bg-black/30 rounded-md">L{player.level || 1}</span>
                 </div>
