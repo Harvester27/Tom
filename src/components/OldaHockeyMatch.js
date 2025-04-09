@@ -1279,19 +1279,6 @@ const OldaHockeyMatch = ({ onBack, onGameComplete, assignedJerseys, playerName =
        img.onerror = () => console.error(`❌ Image failed to load: ${url}`);
        img.src = url;
      };
-     
-     // DEBUG: Zkusíme ověřit, jestli obrázek existuje
-     React.useEffect(() => {
-       if (playerPhotoUrl) {
-         checkImageExists(playerPhotoUrl);
-         // Pro každého hráče také zkontrolujeme existenci fallback obrázku
-         if (player.isPlayer) {
-           checkImageExists('/Images/default_player.png');
-           // Otestujeme i alternativní cestu pro případ, že by to byl problém
-           checkImageExists('/public/Images/default_player.png');
-         }
-       }
-     }, [playerPhotoUrl, player.isPlayer]);
 
      return (
       <div className={`flex items-center gap-2 p-2 rounded-lg transition-all duration-300 border ${isPlayerOnIce ? 'bg-green-800/40 border-green-600/50 shadow-md' : 'bg-gray-800/40 border-gray-700/50'} ${highlightedPlayerKey?.[player.key] ? (teamColor === 'white' ? 'bg-white/20 scale-105 ring-2 ring-white' : 'bg-gray-600/30 scale-105 ring-2 ring-gray-400') : ''}`}>
