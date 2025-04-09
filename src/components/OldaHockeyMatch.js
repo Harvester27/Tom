@@ -125,7 +125,7 @@ const useTeamState = (initialTeamsData) => {
         }
         return newState;
     });
-  }, [setTeamState]); // <-- Přidána závislost setTeamState
+  }, []); // Odstraněna závislost setTeamState, není potřeba
 
   return [teams, updateTeam, teamState, updateTeamState];
 };
@@ -587,7 +587,7 @@ const OldaHockeyMatch = ({ onBack, onGameComplete, assignedJerseys, playerName =
     return () => clearInterval(intervalId);
 
   // ZÁVISLOSTI: Spustí se znovu jen když se změní gameState, gameSpeed, nebo klíčové callbacky/data
-  }, [gameState, gameSpeed, teams, score, currentPeriod, GAME_DURATION_SECONDS, PERIOD_DURATION_SECONDS, EVENT_CHECK_INTERVAL, SHIFT_DURATION, SPECIAL_ACTION_INTERVAL, MIN_TIME_BETWEEN_ACTIONS, onGameComplete, triggerHighlight, updateTeamState, setTeamState, lastSpecialActionTime, playerStats, events]); // Přidány konstanty, které ovlivňují logiku
+  }, [gameState, gameSpeed, teams, score, currentPeriod, GAME_DURATION_SECONDS, PERIOD_DURATION_SECONDS, EVENT_CHECK_INTERVAL, SHIFT_DURATION, SPECIAL_ACTION_INTERVAL, MIN_TIME_BETWEEN_ACTIONS, onGameComplete, triggerHighlight, updateTeamState, lastSpecialActionTime, playerStats, events]); // Odstraněna závislost setTeamState
 
   // --- Aktualizace statistik POUZE na základě lastEvent ---
   useEffect(() => {
