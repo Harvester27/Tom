@@ -32,6 +32,7 @@ const PERIOD_DURATION_SECONDS = GAME_DURATION_SECONDS / 3;
 const MAX_SPEED = 64;
 const EVENT_CHECK_INTERVAL = 15; // V sekundách herního času
 
+
 // Konstanty pro střídání a únavu
 const SHIFT_DURATION = 60;
 const BASE_FATIGUE_INCREASE_RATE = 1.25;
@@ -149,6 +150,7 @@ const OldaHockeyMatch = ({ onBack, onGameComplete, assignedJerseys, playerName =
   const lastEventRef = useRef(null);
   // Ref pro sledování, zda už byla statistika pro daný event započítána
   const processedEventRef = useRef(null);
+  const processedEventIdsRef = useRef(new Set());
 
   const [teams, updateTeam, teamState, updateTeamState] = useTeamState({
     white: { name: 'Bílý tým' },
@@ -593,134 +595,101 @@ const OldaHockeyMatch = ({ onBack, onGameComplete, assignedJerseys, playerName =
   // ZÁVISLOSTI: Spustí se znovu jen když se změní gameState, gameSpeed, nebo klíčové callbacky/data
   }, [gameState, gameSpeed, teams, score, currentPeriod, GAME_DURATION_SECONDS, PERIOD_DURATION_SECONDS, EVENT_CHECK_INTERVAL, SHIFT_DURATION, SPECIAL_ACTION_INTERVAL, MIN_TIME_BETWEEN_ACTIONS, onGameComplete, triggerHighlight, updateTeamState, lastSpecialActionTime, playerStats, events]); // Odstraněna závislost setTeamState
 
-  // --- Aktualizace statistik POUZE na základě lastEvent ---
   useEffect(() => {
-    // Pokud není nová událost nebo už byla zpracována, nic neděláme
-    if (!lastEvent || !lastEvent.id || lastEvent.id === processedEventRef.current) {
-        //console.log(`Skipping stats update for event: ${lastEvent?.id} (already processed or null)`);
-        return;
-    }
-
-    // Označíme událost jako zpracovanou
-    processedEventRef.current = lastEvent.id;
-    console.log(`🏒 Processing stats for event: ${lastEvent.id}, type: ${lastEvent.type}`, lastEvent);
-
-    setPlayerStats(prevStats => {
-        const newStats = JSON.parse(JSON.stringify(prevStats)); // Hluboká kopie pro jistotu
-
-        const updateStat = (playerKey, statName, value = 1) => {
+    events.forEach((ev) => {
+      if (ev.id && !processedEventIdsRef.current.has(ev.id)) {
+        processedEventIdsRef.current.add(ev.id);
+  
+        setPlayerStats(prevStats => {
+          // Provádíme hlubokou kopii stávajících statistik
+          const newStats = JSON.parse(JSON.stringify(prevStats));
+  
+          // Pomocná funkce pro aktualizaci statistiky
+          const updateStat = (playerKey, statName, value = 1) => {
             if (playerKey && newStats[playerKey]) {
-                newStats[playerKey][statName] = (newStats[playerKey][statName] || 0) + value;
-                console.log(`🔹 Updated stat ${statName} for ${playerKey} to ${newStats[playerKey][statName]}`);
+              newStats[playerKey][statName] = (newStats[playerKey][statName] || 0) + value;
+              console.log(`🔹 Updated stat ${statName} for ${playerKey} to ${newStats[playerKey][statName]}`);
             } else if (playerKey) {
-                console.warn(`⚠️ Player key ${playerKey} not found in stats for event type ${lastEvent.type}`);
+              console.warn(`⚠️ Player key ${playerKey} not found in stats for event type ${ev.type}`);
             }
-        };
-
-        const updateGoalieStats = (goalieKey, isGoal) => {
+          };
+  
+          // Pomocná funkce pro aktualizaci statistik brankáře
+          const updateGoalieStats = (goalieKey, isGoal) => {
             if (goalieKey && newStats[goalieKey]) {
-                const goalieStat = newStats[goalieKey];
-                goalieStat.shotsAgainst = (goalieStat.shotsAgainst || 0) + 1;
-                if (!isGoal) {
-                    goalieStat.saves = (goalieStat.saves || 0) + 1;
-                }
-                // Přepočet úspěšnosti
-                goalieStat.savePercentage = goalieStat.shotsAgainst > 0
-                    ? Math.round((goalieStat.saves / goalieStat.shotsAgainst) * 100)
-                    : 0; // Pokud nejsou střely, úspěšnost je 0% (ne 100%)
-                console.log(`🧤 Updated goalie ${goalieKey}: SA=${goalieStat.shotsAgainst}, S=${goalieStat.saves}, %=${goalieStat.savePercentage}, isGoal=${isGoal}`);
+              newStats[goalieKey].shotsAgainst = (newStats[goalieKey].shotsAgainst || 0) + 1;
+              if (!isGoal) {
+                newStats[goalieKey].saves = (newStats[goalieKey].saves || 0) + 1;
+              }
+              newStats[goalieKey].savePercentage = newStats[goalieKey].shotsAgainst > 0
+                  ? Math.round((newStats[goalieKey].saves / newStats[goalieKey].shotsAgainst) * 100)
+                  : 0;
+              console.log(`🧤 Updated goalie ${goalieKey}: SA=${newStats[goalieKey].shotsAgainst}, S=${newStats[goalieKey].saves}, %=${newStats[goalieKey].savePercentage}, isGoal=${isGoal}`);
             } else if (goalieKey) {
-                console.warn(`⚠️ Goalie key ${goalieKey} not found in stats for goal/save event`);
-            } else {
-                console.warn(`⚠️ No goalieKey provided for updateGoalieStats, isGoal=${isGoal}`);
+              console.warn(`⚠️ Goalie key ${goalieKey} not found in stats for event type ${ev.type}`);
             }
-        };
-
-        switch (lastEvent.type) {
+          };
+  
+          // Na základě typu události aktualizujeme statistiky
+          switch (ev.type) {
             case 'goal':
-                // Góly a asistence se přičítají vždy +1
-                if (lastEvent.player?.key) {
-                    updateStat(lastEvent.player.key, 'goals', 1);
-                    updateStat(lastEvent.player.key, 'shots', 1); // Gól je také střela
-                } else {
-                    console.warn(`⚠️ Goal event missing player key:`, lastEvent);
-                }
-                if (lastEvent.assistant?.key) {
-                    updateStat(lastEvent.assistant.key, 'assists', 1);
-                } else {
-                    console.log(`ℹ️ Goal without assist`);
-                }
-                // Aktualizace pro inkasujícího brankáře (pokud byl zadán v události)
-                if(lastEvent.goalieKey) {
-                    updateGoalieStats(lastEvent.goalieKey, true); // true = byl to gól
-                } else {
-                    console.warn(`⚠️ Goal event missing goalieKey:`, lastEvent);
-                }
-                break;
-
+              if (ev.player?.key) {
+                updateStat(ev.player.key, 'goals', 1);
+                updateStat(ev.player.key, 'shots', 1);
+              }
+              if (ev.assistant?.key) {
+                updateStat(ev.assistant.key, 'assists', 1);
+              }
+              if (ev.goalieKey) {
+                updateGoalieStats(ev.goalieKey, true);
+              }
+              break;
+  
             case 'save':
-                // Zákrok brankáře a střela útočníka
-                if (lastEvent.player?.key) { // Brankář
-                    updateGoalieStats(lastEvent.player.key, false); // false = nebyl to gól
-                } else {
-                    console.warn(`⚠️ Save event missing player (goalie) key:`, lastEvent);
-                }
-                if (lastEvent.shooter?.key) { // Střelec
-                    updateStat(lastEvent.shooter.key, 'shots', 1);
-                } else {
-                    console.warn(`⚠️ Save event missing shooter key:`, lastEvent);
-                }
-                break;
-
+              if (ev.player?.key) {
+                updateGoalieStats(ev.player.key, false);
+              }
+              if (ev.shooter?.key) {
+                updateStat(ev.shooter.key, 'shots', 1);
+              }
+              break;
+  
             case 'miss':
-                // Pouze střela pro útočníka
-                if (lastEvent.player?.key) {
-                    updateStat(lastEvent.player.key, 'shots', 1);
-                } else {
-                    console.warn(`⚠️ Miss event missing player key:`, lastEvent);
+              if (ev.player?.key) {
+                updateStat(ev.player.key, 'shots', 1);
+              }
+              break;
+  
+            case 'defense':
+              if (ev.attacker?.key) {
+                updateStat(ev.attacker.key, 'shots', 1);
+              }
+              if (ev.player?.key) {
+                // Obránci mají vyšší šanci na zapsání bloku
+                const blockChance = ev.player.position === 'obránce' ? 0.6 : 0.3;
+                if (Math.random() < blockChance) {
+                  updateStat(ev.player.key, 'blocks', 1);
                 }
-                break;
-
-            case 'defense': // Blok
-                // Střela pro útočníka a možný blok pro obránce
-                if (lastEvent.attacker?.key) {
-                    updateStat(lastEvent.attacker.key, 'shots', 1);
-                } else {
-                    console.warn(`⚠️ Defense event missing attacker key:`, lastEvent);
-                }
-                if (lastEvent.player?.key) { // Hráč, který blokoval
-                    // Náhodná šance na započítání bloku pro realističnost
-                    const blockChance = (lastEvent.player.position === 'obránce') ? 0.6 : 0.3; // Obránci mají vyšší šanci
-                    if (Math.random() < blockChance) {
-                        updateStat(lastEvent.player.key, 'blocks', 1);
-                    }
-                } else {
-                    console.warn(`⚠️ Defense event missing defender key:`, lastEvent);
-                }
-                break;
-
+              }
+              break;
+  
             case 'penalty':
-                // Přičtení trestných minut
-                if (lastEvent.player?.key && lastEvent.penaltyMinutes) {
-                    updateStat(lastEvent.player.key, 'penalties', lastEvent.penaltyMinutes);
-                } else {
-                    console.warn(`⚠️ Penalty event missing player key or minutes:`, lastEvent);
-                }
-                break;
-
+              if (ev.player?.key && ev.penaltyMinutes) {
+                updateStat(ev.player.key, 'penalties', ev.penaltyMinutes);
+              }
+              break;
+  
             default:
-                // Pro ostatní typy událostí (turnover, period_change, substitution) se statistiky nemění
-                break;
-        }
-
-        return newStats; // Vracíme aktualizovaný stav statistik
+              // Pro ostatní typy událostí se statistiky nezpracovávají
+              break;
+          }
+  
+          return newStats;
+        });
+      }
     });
-
-  // ZÁVISLOST POUZE NA lastEvent!
-  // Tím zajistíme, že se statistiky aktualizují POUZE jednou pro každou novou událost.
-  }, [lastEvent]);
-
-
+  }, [events]);
+  
   // --- Fatigue Update Effect --- (Používá vlastní interval, nezávislý na hlavním)
   useEffect(() => {
     if (gameState !== 'playing') return;
