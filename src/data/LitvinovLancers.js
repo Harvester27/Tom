@@ -1,16 +1,16 @@
 "use client";
 
+// Pomocná funkce pro odstranění diakritiky - vytaženo jako globální funkce
+const removeDiacritics = (str) => {
+  return str.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+};
+
 // Pomocná funkce pro převod jména na název souboru
 const getPhotoFilename = (name, surname) => {
   // Speciální případ pro Oldřicha Štěpanovského
   if (name === "Oldřich" && surname === "Štěpanovský") {
     return "oldrich_stepanovsky.png";
   }
-
-  // Odstranění diakritiky
-  const removeDiacritics = (str) => {
-    return str.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
-  };
 
   // Převod jména a příjmení na formát pro soubor
   const cleanName = removeDiacritics(name);
