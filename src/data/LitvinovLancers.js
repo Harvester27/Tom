@@ -629,6 +629,23 @@ const litvinovLancers = {
       "Vlastimil_Nistor.png"
     ];
 
+    // SPECIÁLNÍ PŘÍPAD PRO OLDŘICHA - zkusíme přímo oba soubory
+    if (player.name === "Oldřich" && player.surname === "Štěpanovský") {
+      // Zkusíme oba názvy souborů, pokud je problém s detekcí
+      console.log("🔎 SPECIÁLNÍ PŘÍPAD: Oldřich Štěpanovský - zkusíme oba soubory");
+      const oldaPhotoUrl = `/Images/players/Olda21.png`;
+      const standardPhotoUrl = `/Images/players/Oldrich_Stepanovsky.png`;
+      
+      // Pro účely debugování zkusíme poslat Olda21.png
+      console.log("🖼️ Using Oldřich's photo:", {
+        name: `${player.name} ${player.surname}`,
+        preferredFile: "Olda21.png",
+        url: oldaPhotoUrl
+      });
+      
+      return oldaPhotoUrl;
+    }
+
     // Pokud je speciální případ, použijeme namapovaný název souboru
     const playerFullName = `${player.name} ${player.surname}`;
     console.log(`📸 DEBUG: Plné jméno hráče: "${playerFullName}"`);
