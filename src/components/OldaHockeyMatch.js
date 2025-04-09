@@ -436,6 +436,7 @@ const OldaHockeyMatch = ({ onBack, onGameComplete, assignedJerseys, playerName =
                         newEvent.assistant = assistant;
                         newEvent.goalieKey = goalie?.key; // Přidáme klíč brankáře pro statistiky
                         newEvent.description = `🚨 GÓÓÓL! ${attacker.name} ${attacker.surname} ${attacker.isPlayer ? '(Ty!)' : ''} (${attackingTeamId === 'white' ? 'Bílí' : 'Černí'}) skóruje${assistant ? ` po přihrávce od ${assistant.name} ${assistant.surname}${assistant.isPlayer ? ' (Tvoje asistence!)' : ''}` : ''}!`;
+                        console.log(`🚨 Generated GOAL event with goalieKey=${goalie?.key}:`, attacker.key, assistant?.key);
                         triggerHighlight([attacker.key, assistant?.key].filter(Boolean));
                         // ******** STATISTIKY SE NEPŘIDÁVAJÍ ZDE ********
 
@@ -445,11 +446,13 @@ const OldaHockeyMatch = ({ onBack, onGameComplete, assignedJerseys, playerName =
                             newEvent.player = goalie;
                             newEvent.shooter = attacker;
                             newEvent.description = `🧤 Zákrok! ${goalie.name} ${goalie.surname} (${defendingTeamId === 'white' ? 'Bílí' : 'Černí'}) chytá střelu ${attacker.name} ${attacker.surname}${attacker.isPlayer ? ' (Tvoje střela!)' : ''}.`;
+                            console.log(`🧤 Generated SAVE event:`, goalie.key, attacker.key);
                             triggerHighlight([goalie.key, attacker.key]);
                         } else {
                             newEvent.type = 'miss';
                             newEvent.player = attacker;
                             newEvent.description = `💨 Střela vedle od ${attacker.name} ${attacker.surname}${attacker.isPlayer ? ' (Ty!)' : ''} (${attackingTeamId === 'white' ? 'Bílí' : 'Černí'}).`;
+                            console.log(`💨 Generated MISS event:`, attacker.key);
                             triggerHighlight(attacker.key);
                         }
                         // ******** STATISTIKY SE NEPŘIDÁVAJÍ ZDE ********
@@ -459,6 +462,7 @@ const OldaHockeyMatch = ({ onBack, onGameComplete, assignedJerseys, playerName =
                         newEvent.player = defender;
                         newEvent.attacker = attacker;
                         newEvent.description = `🛡️ Blok! ${defender.name} ${defender.surname} (${defendingTeamId === 'white' ? 'Bílí' : 'Černí'}) zastavil střelu ${attacker.name} ${attacker.surname}${attacker.isPlayer ? ' (Tebe!)' : ''}!`;
+                        console.log(`🛡️ Generated DEFENSE event:`, defender.key, attacker.key);
                         triggerHighlight([defender.key, attacker.key]);
                         // ******** STATISTIKY SE NEPŘIDÁVAJÍ ZDE ********
 
@@ -599,7 +603,7 @@ const OldaHockeyMatch = ({ onBack, onGameComplete, assignedJerseys, playerName =
 
     // Označíme událost jako zpracovanou
     processedEventRef.current = lastEvent.id;
-    //console.log(`Processing stats for event: ${lastEvent.id}, type: ${lastEvent.type}`);
+    console.log(`🏒 Processing stats for event: ${lastEvent.id}, type: ${lastEvent.type}`, lastEvent);
 
     setPlayerStats(prevStats => {
         const newStats = JSON.parse(JSON.stringify(prevStats)); // Hluboká kopie pro jistotu
@@ -607,9 +611,9 @@ const OldaHockeyMatch = ({ onBack, onGameComplete, assignedJerseys, playerName =
         const updateStat = (playerKey, statName, value = 1) => {
             if (playerKey && newStats[playerKey]) {
                 newStats[playerKey][statName] = (newStats[playerKey][statName] || 0) + value;
-                //console.log(`Updated stat ${statName} for ${playerKey} to ${newStats[playerKey][statName]}`);
+                console.log(`🔹 Updated stat ${statName} for ${playerKey} to ${newStats[playerKey][statName]}`);
             } else if (playerKey) {
-                // console.warn(`Player key ${playerKey} not found in stats for event type ${lastEvent.type}`);
+                console.warn(`⚠️ Player key ${playerKey} not found in stats for event type ${lastEvent.type}`);
             }
         };
 
@@ -624,9 +628,11 @@ const OldaHockeyMatch = ({ onBack, onGameComplete, assignedJerseys, playerName =
                 goalieStat.savePercentage = goalieStat.shotsAgainst > 0
                     ? Math.round((goalieStat.saves / goalieStat.shotsAgainst) * 100)
                     : 0; // Pokud nejsou střely, úspěšnost je 0% (ne 100%)
-                //console.log(`Updated goalie ${goalieKey}: SA=${goalieStat.shotsAgainst}, S=${goalieStat.saves}, %=${goalieStat.savePercentage}`);
+                console.log(`🧤 Updated goalie ${goalieKey}: SA=${goalieStat.shotsAgainst}, S=${goalieStat.saves}, %=${goalieStat.savePercentage}, isGoal=${isGoal}`);
             } else if (goalieKey) {
-                // console.warn(`Goalie key ${goalieKey} not found in stats for goal/save event`);
+                console.warn(`⚠️ Goalie key ${goalieKey} not found in stats for goal/save event`);
+            } else {
+                console.warn(`⚠️ No goalieKey provided for updateGoalieStats, isGoal=${isGoal}`);
             }
         };
 
@@ -636,13 +642,19 @@ const OldaHockeyMatch = ({ onBack, onGameComplete, assignedJerseys, playerName =
                 if (lastEvent.player?.key) {
                     updateStat(lastEvent.player.key, 'goals', 1);
                     updateStat(lastEvent.player.key, 'shots', 1); // Gól je také střela
+                } else {
+                    console.warn(`⚠️ Goal event missing player key:`, lastEvent);
                 }
                 if (lastEvent.assistant?.key) {
                     updateStat(lastEvent.assistant.key, 'assists', 1);
+                } else {
+                    console.log(`ℹ️ Goal without assist`);
                 }
                 // Aktualizace pro inkasujícího brankáře (pokud byl zadán v události)
                 if(lastEvent.goalieKey) {
                     updateGoalieStats(lastEvent.goalieKey, true); // true = byl to gól
+                } else {
+                    console.warn(`⚠️ Goal event missing goalieKey:`, lastEvent);
                 }
                 break;
 
@@ -650,9 +662,13 @@ const OldaHockeyMatch = ({ onBack, onGameComplete, assignedJerseys, playerName =
                 // Zákrok brankáře a střela útočníka
                 if (lastEvent.player?.key) { // Brankář
                     updateGoalieStats(lastEvent.player.key, false); // false = nebyl to gól
+                } else {
+                    console.warn(`⚠️ Save event missing player (goalie) key:`, lastEvent);
                 }
                 if (lastEvent.shooter?.key) { // Střelec
                     updateStat(lastEvent.shooter.key, 'shots', 1);
+                } else {
+                    console.warn(`⚠️ Save event missing shooter key:`, lastEvent);
                 }
                 break;
 
@@ -660,6 +676,8 @@ const OldaHockeyMatch = ({ onBack, onGameComplete, assignedJerseys, playerName =
                 // Pouze střela pro útočníka
                 if (lastEvent.player?.key) {
                     updateStat(lastEvent.player.key, 'shots', 1);
+                } else {
+                    console.warn(`⚠️ Miss event missing player key:`, lastEvent);
                 }
                 break;
 
@@ -667,6 +685,8 @@ const OldaHockeyMatch = ({ onBack, onGameComplete, assignedJerseys, playerName =
                 // Střela pro útočníka a možný blok pro obránce
                 if (lastEvent.attacker?.key) {
                     updateStat(lastEvent.attacker.key, 'shots', 1);
+                } else {
+                    console.warn(`⚠️ Defense event missing attacker key:`, lastEvent);
                 }
                 if (lastEvent.player?.key) { // Hráč, který blokoval
                     // Náhodná šance na započítání bloku pro realističnost
@@ -674,6 +694,8 @@ const OldaHockeyMatch = ({ onBack, onGameComplete, assignedJerseys, playerName =
                     if (Math.random() < blockChance) {
                         updateStat(lastEvent.player.key, 'blocks', 1);
                     }
+                } else {
+                    console.warn(`⚠️ Defense event missing defender key:`, lastEvent);
                 }
                 break;
 
@@ -681,6 +703,8 @@ const OldaHockeyMatch = ({ onBack, onGameComplete, assignedJerseys, playerName =
                 // Přičtení trestných minut
                 if (lastEvent.player?.key && lastEvent.penaltyMinutes) {
                     updateStat(lastEvent.player.key, 'penalties', lastEvent.penaltyMinutes);
+                } else {
+                    console.warn(`⚠️ Penalty event missing player key or minutes:`, lastEvent);
                 }
                 break;
 
@@ -895,12 +919,27 @@ const OldaHockeyMatch = ({ onBack, onGameComplete, assignedJerseys, playerName =
               eventDescription = `🚨 GÓÓÓL! ${player.name} ${player.surname} (Ty!) (${teamName}) skóruje po speciální akci!`;
               eventType = 'goal';
               setScore(prev => ({ ...prev, [specialAction.playerTeamColor]: prev[specialAction.playerTeamColor] + 1 }));
-              generatedEvent = { type: 'goal', player: player, assistant: null, goalieKey: specialAction.opposingGoalie?.key, team: specialAction.playerTeamColor }; // Vytvoříme event pro statistiky
+              generatedEvent = { 
+                type: 'goal', 
+                player: player, 
+                assistant: null, 
+                goalieKey: specialAction.opposingGoalie?.key, 
+                team: specialAction.playerTeamColor,
+                id: `${specialAction.time}-special-goal-${player.key}-${Math.random()}`
+              }; // Vytvoříme event pro statistiky
+              console.log(`🥅 Special Action created GOAL event:`, generatedEvent);
             } else {
               resultMessage = `Dobrá střela, ale ${specialAction.opposingGoalie ? specialAction.opposingGoalie.surname : 'brankář'} ji chytil.`;
               eventDescription = `🧤 Zákrok! ${specialAction.opposingGoalie ? specialAction.opposingGoalie.name + ' ' + specialAction.opposingGoalie.surname : 'Brankář'} chytá tvoji střelu po speciální akci.`;
               eventType = 'save';
-              generatedEvent = { type: 'save', player: specialAction.opposingGoalie, shooter: player, team: opposingTeamColor };
+              generatedEvent = { 
+                type: 'save', 
+                player: specialAction.opposingGoalie, 
+                shooter: player, 
+                team: opposingTeamColor,
+                id: `${specialAction.time}-special-save-${player.key}-${Math.random()}`
+              };
+              console.log(`🧤 Special Action created SAVE event:`, generatedEvent);
             }
           } else if (option.id === 'pass' && specialAction.teammate) {
             resultMessage = `Tvoje přihrávka byla přesná.`;
@@ -916,7 +955,14 @@ const OldaHockeyMatch = ({ onBack, onGameComplete, assignedJerseys, playerName =
           resultMessage = `Úspěšně jsi zastavil útok soupeře!`;
           eventDescription = `🛡️ Dobrá obrana! ${player.name} ${player.surname} (Ty!) (${teamName}) zastavil útok soupeře po speciální akci.`;
           eventType = 'defense';
-          generatedEvent = { type: 'defense', player: player, attacker: null, team: specialAction.playerTeamColor }; // Započítáme blok? Možná.
+          generatedEvent = { 
+            type: 'defense', 
+            player: player, 
+            attacker: null, 
+            team: specialAction.playerTeamColor,
+            id: `${specialAction.time}-special-defense-${player.key}-${Math.random()}`
+          }; // Započítáme blok? Možná.
+          console.log(`🛡️ Special Action created DEFENSE event:`, generatedEvent);
           break;
         default:
           resultMessage = `Akce byla úspěšná!`;
@@ -933,7 +979,13 @@ const OldaHockeyMatch = ({ onBack, onGameComplete, assignedJerseys, playerName =
           eventDescription = `${player.name} ${player.surname} (Ty!) neuspěl se speciální akcí (${option.text}).`;
           eventType = 'miss'; // Nebo 'turnover'
           if (option.id.includes('shoot') || option.id === 'quick_shot') {
-             generatedEvent = { type: 'miss', player: player, team: specialAction.playerTeamColor }; // Počítáme jako střelu mimo
+             generatedEvent = { 
+               type: 'miss', 
+               player: player, 
+               team: specialAction.playerTeamColor,
+               id: `${specialAction.time}-special-miss-${player.key}-${Math.random()}`
+              }; // Počítáme jako střelu mimo
+             console.log(`💨 Special Action created MISS event:`, generatedEvent);
           } else {
              eventType = 'turnover';
           }
@@ -949,10 +1001,13 @@ const OldaHockeyMatch = ({ onBack, onGameComplete, assignedJerseys, playerName =
              // Zde nemáme info o střelci soupeře, takže nemůžeme vytvořit plný event pro statistiky
              // Ale můžeme vytvořit event pro log
              const opponentEvent = {
-                time: specialAction.time, type: 'goal', team: opposingTeamColor,
+                time: specialAction.time, 
+                type: 'goal', 
+                team: opposingTeamColor,
                 description: `Gól soupeře po neúspěšné obraně hráče ${player.name} ${player.surname}.`,
                 id: `${specialAction.time}-goal-${opposingTeamColor}-${Math.random()}`
              };
+             console.log(`🚨 Special Action created OPPONENT GOAL event:`, opponentEvent);
              setEvents(prev => [opponentEvent, ...prev]);
              setLastEvent(opponentEvent); // Nastavíme i jako poslední event
              processedEventRef.current = null; // Umožníme zpracování statistik tohoto gólu, pokud efekt zachytí tento event
@@ -979,6 +1034,19 @@ const OldaHockeyMatch = ({ onBack, onGameComplete, assignedJerseys, playerName =
           description: eventDescription, // Popis výsledku akce
           id: `${specialAction.time}-${eventType}-${player.key}-${Math.random()}` // Unikátní ID
         };
+        
+        // Přidáme další vlastnosti pro správné statistiky podle typu události
+        if (eventType === 'goal') {
+            actionEvent.goalieKey = specialAction.opposingGoalie?.key;
+            console.log(`🥅 Adding goalieKey to actionEvent:`, actionEvent.goalieKey);
+        } else if (eventType === 'save') {
+            actionEvent.shooter = player;
+            console.log(`🧤 Adding shooter to actionEvent:`, actionEvent.shooter);
+        } else if (eventType === 'defense') {
+            actionEvent.attacker = null; // Nemáme konkrétního útočníka
+        }
+        
+        console.log(`🎮 Special Action created user action event:`, actionEvent);
         setEvents(prev => [actionEvent, ...prev]);
         setLastEvent(actionEvent); // Nastavíme jako poslední událost pro zobrazení a případné statistiky
         processedEventRef.current = null; // Umožníme zpracování statistik této nové události
