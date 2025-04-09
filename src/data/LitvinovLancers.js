@@ -560,27 +560,53 @@ const litvinovLancers = {
       return '/Images/Litvinov_Lancers.png';
     }
 
-    // Seznam hráčů bez fotek
+    // Mapování speciálních případů fotek podle skutečných souborů
+    const specialPhotoMap = {
+      "Stanislav Švarc": "Standa_Svarc.png",
+      "Petr Štěpanovský": "Petr_Stepanovsky.png",
+      "Roman Šimek": "Roman_Simek.png",
+      "Václav Matějovič": "Vaclav_Matejovic.png",
+      "Aleš Kuřitka": "Ales_Kuritka.png",
+      "Roman Beneš": "Roman_Benes.png",
+      "Jan Švarc": "Jan_Svarc.png",
+      "Pavel Schubada St.": "Pavel_Schubada st.png"
+    };
+
+    // Seznam hráčů bez fotek (aktualizovaný podle obsahu složky)
     const playersWithoutPhotos = [
-      "Stanislav Švarc",
       "Ladislav Černý",
-      "Roman Šimek",
-      "Václav Matějovič",
-      "Petr Štěpanovský",
-      "Aleš Kuřitka",
-      "Roman Beneš",
-      "Petra Volmutová",
-      "Jaroslav Volmut"
+      "Petra Volmutová", // Možná by měla být Petra_Berankova.png?
+      "Jaroslav Volmut", // Má fotku Jaroslav_Volmut.png ale je nejspíš poškozená nebo chybná
+      "Kateřina Schubadová",
+      "Jiří Šalanda",
+      "Pavel Novák",
+      "Ondřej Hrubý",
+      "Marian Dlugopolsky",
+      "Luboš Coufal",
+      "Jiří Koláček",
+      "Michaela Nováková"
     ];
 
+    // Pokud je speciální případ, použijeme namapovaný název souboru
+    const playerFullName = `${player.name} ${player.surname}`;
+    if (specialPhotoMap[playerFullName]) {
+      const photoUrl = `/Images/players/${specialPhotoMap[playerFullName]}`;
+      console.log('🖼️ Using special mapped photo for player:', {
+        name: playerFullName,
+        photoFile: specialPhotoMap[playerFullName],
+        url: photoUrl
+      });
+      return photoUrl;
+    }
+    
     // Pokud hráč nemá fotku, vrátíme defaultní obrázek
-    if (playersWithoutPhotos.includes(`${player.name} ${player.surname}`)) {
+    if (playersWithoutPhotos.includes(playerFullName)) {
       const defaultImage = player.position === 'brankář' 
         ? '/Images/default_goalie.png'
         : '/Images/default_player.png';
       
       console.log('🖼️ Using default photo for player:', {
-        name: `${player.name} ${player.surname}`,
+        name: playerFullName,
         position: player.position,
         defaultImage
       });
@@ -588,12 +614,13 @@ const litvinovLancers = {
       return defaultImage;
     }
     
-    // Vrátíme cestu k fotce hráče
-    const photoUrl = `/Images/players/${player.photo}`;
+    // Standardní cesta k fotce hráče
+    const playerPhoto = player.photo || `${removeDiacritics(player.name)}_${removeDiacritics(player.surname)}.png`;
+    const photoUrl = `/Images/players/${playerPhoto}`;
     
-    console.log('🖼️ Getting photo URL for player:', {
-      name: `${player.name} ${player.surname}`,
-      photo: player.photo,
+    console.log('🖼️ Getting standard photo URL for player:', {
+      name: playerFullName,
+      photo: playerPhoto,
       url: photoUrl
     });
     
