@@ -564,8 +564,7 @@ const OldaHockeyMatch = ({ onBack, onGameComplete, assignedJerseys, playerName =
             else {
                 const playerTeamColor = findPlayerTeamColor();
                 if (playerTeamColor && Math.random() < SPECIAL_ACTION_CHANCE) {
-                    let currentTeamState;
-                    setTeamState(ts => { currentTeamState = ts; return ts; });
+                    const currentTeamState = teamState; // Použijeme přímo existující teamState
                     const playerOnIce = currentTeamState && currentTeamState[playerTeamColor]?.onIce.some(p => p.isPlayer);
 
                     if (playerOnIce) {
