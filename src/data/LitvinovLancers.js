@@ -568,6 +568,21 @@ const litvinovLancers = {
       return '/Images/Litvinov_Lancers.png';
     }
 
+    // SPECIÁLNÍ PŘÍPAD PRO OLDŘICHA - zkusíme jednodušší název souboru
+    if (player.name === "Oldřich" && player.surname === "Štěpanovský") {
+      console.log("🔎 SPECIÁLNÍ PŘÍPAD: Oldřich Štěpanovský - použijeme jednodušší název souboru");
+      // Použijeme jednodušší název souboru pro řešení problému s Vercelem
+      const photoUrl = `/Images/players/olda.png`;
+      
+      console.log("🖼️ Using Oldřich's photo:", {
+        name: `${player.name} ${player.surname}`,
+        simplifiedFile: "olda.png",
+        url: photoUrl
+      });
+      
+      return photoUrl;
+    }
+
     // Mapování speciálních případů fotek podle skutečných souborů
     const specialPhotoMap = {
       "Stanislav Švarc": "Standa_Svarc.png",
@@ -587,7 +602,7 @@ const litvinovLancers = {
       "Luboš Coufal": "Lubos_Coufal.png",
       "Marian Dlugopolsky": "Marian_Dlugopolsky.png",
       "Michaela Nováková": "Michaela_Novakova.png",
-      "Oldřich Štěpanovský": "Olda21.png",
+      "Oldřich Štěpanovský": "Olda21.png",  // Ponecháme pro zachování konzistence, ale primárně použijeme speciální případ výše
       "Ondřej Hrubý": "Ondrej_Hruby.png",
       "Pavel Novák": "Pavel_Novak.png",
       "Petra Volmutová": "Petra_Berankova.png"  // Pravděpodobně se jedná o stejnou osobu pod jiným příjmením
@@ -628,23 +643,6 @@ const litvinovLancers = {
       "Vasek_Materna.png",
       "Vlastimil_Nistor.png"
     ];
-
-    // SPECIÁLNÍ PŘÍPAD PRO OLDŘICHA - zkusíme přímo oba soubory
-    if (player.name === "Oldřich" && player.surname === "Štěpanovský") {
-      // Zkusíme oba názvy souborů, pokud je problém s detekcí
-      console.log("🔎 SPECIÁLNÍ PŘÍPAD: Oldřich Štěpanovský - zkusíme oba soubory");
-      const oldaPhotoUrl = `/Images/players/Olda21.png`;
-      const standardPhotoUrl = `/Images/players/Oldrich_Stepanovsky.png`;
-      
-      // Pro účely debugování zkusíme poslat Olda21.png
-      console.log("🖼️ Using Oldřich's photo:", {
-        name: `${player.name} ${player.surname}`,
-        preferredFile: "Olda21.png",
-        url: oldaPhotoUrl
-      });
-      
-      return oldaPhotoUrl;
-    }
 
     // Pokud je speciální případ, použijeme namapovaný název souboru
     const playerFullName = `${player.name} ${player.surname}`;
