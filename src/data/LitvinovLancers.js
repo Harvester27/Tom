@@ -538,6 +538,8 @@ const litvinovLancers = {
 
   // Nová funkce pro získání URL fotky hráče
   getPlayerPhotoUrl: function(playerId) {
+    console.log(`📸 DEBUG: Hledám fotku pro hráče: "${playerId}"`);
+    
     // Odstranění diakritiky a normalizace jména
     const normalizeString = (str) => {
       return str.normalize('NFD')
@@ -547,9 +549,15 @@ const litvinovLancers = {
 
     // Najdeme hráče podle jména
     const normalizedPlayerId = normalizeString(playerId);
+    console.log(`📸 DEBUG: Normalizované jméno hráče: "${normalizedPlayerId}"`);
+    
     const player = this.players.find(p => {
       const normalizedName = normalizeString(`${p.name}${p.surname}`);
-      return normalizedName === normalizedPlayerId;
+      const match = normalizedName === normalizedPlayerId;
+      if (match) {
+        console.log(`📸 DEBUG: Nalezen hráč v databázi: ${p.name} ${p.surname}`);
+      }
+      return match;
     });
     
     if (!player) {
@@ -623,24 +631,33 @@ const litvinovLancers = {
 
     // Pokud je speciální případ, použijeme namapovaný název souboru
     const playerFullName = `${player.name} ${player.surname}`;
+    console.log(`📸 DEBUG: Plné jméno hráče: "${playerFullName}"`);
+    console.log(`📸 DEBUG: Kontrola speciálního mapování pro: "${playerFullName}"`);
+    
     if (specialPhotoMap[playerFullName]) {
       const photoUrl = `/Images/players/${specialPhotoMap[playerFullName]}`;
+      console.log(`✅ DEBUG: Nalezeno speciální mapování! Soubor: ${specialPhotoMap[playerFullName]}`);
       console.log('🖼️ Using special mapped photo for player:', {
         name: playerFullName,
         photoFile: specialPhotoMap[playerFullName],
         url: photoUrl
       });
       return photoUrl;
+    } else {
+      console.log(`❌ DEBUG: Žádné speciální mapování nenalezeno pro hráče: "${playerFullName}"`);
     }
     
     // Standardní cesta k fotce hráče
     const standardFileName = `${removeDiacritics(player.name)}_${removeDiacritics(player.surname)}.png`;
+    console.log(`📸 DEBUG: Standardní název souboru: "${standardFileName}"`);
     const photoUrl = `/Images/players/${standardFileName}`;
     
     // Kontrola, jestli je soubor v seznamu ověřených fotek
     const fileExists = verifiedPhotos.includes(standardFileName);
+    console.log(`📸 DEBUG: Kontrola existence souboru v seznamu: "${standardFileName}" - ${fileExists ? 'NALEZENO' : 'NENALEZENO'}`);
     
     if (fileExists) {
+      console.log(`✅ DEBUG: Standardní fotka nalezena: ${standardFileName}`);
       console.log('🖼️ Using standard photo for player:', {
         name: playerFullName,
         photo: standardFileName,
@@ -653,6 +670,7 @@ const litvinovLancers = {
         ? '/Images/default_goalie.png'
         : '/Images/default_player.png';
       
+      console.log(`⚠️ DEBUG: Žádná fotka nenalezena! Použije se výchozí obrázek: ${defaultImage}`);
       console.log('🖼️ No photo found for player, using default:', {
         name: playerFullName,
         position: player.position,
