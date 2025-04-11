@@ -1211,123 +1211,33 @@ const HockeyMatch = ({ onBack, onGameComplete, assignedJerseys, playerName = 'No
         const prevIntervalCount = Math.floor(prevTime / EVENT_CHECK_INTERVAL);
 
         if (currentIntervalCount > prevIntervalCount) {
-          const intervalsPassed = currentIntervalCount - prevIntervalCount;
-          for (let i = 1; i <= intervalsPassed; i++) {
+        const intervalsPassed = currentIntervalCount - prevIntervalCount;
+        for (let i = 1; i <= intervalsPassed; i++) {
             const checkTime = (prevIntervalCount + i) * EVENT_CHECK_INTERVAL;
             if (checkTime > GAME_DURATION_SECONDS) break;
             if (events.some(e => e.time === checkTime)) continue;
 
-            // Získání aktuálního stavu týmů pro rozhodování
-            const currentTeamState = teamState;
-            if (!currentTeamState) continue;
-
-            const attackingTeamId = Math.random() > 0.5 ? 'white' : 'black';
-            const defendingTeamId = attackingTeamId === 'white' ? 'black' : 'white';
-
-            const attackingTeamState = currentTeamState[attackingTeamId];
-            const defendingTeamState = currentTeamState[defendingTeamId];
-            const attackingTeamOnIce = attackingTeamState?.onIce ?? [];
-            const defendingTeamOnIce = defendingTeamState?.onIce ?? [];
-            const fatigueData = { 
-              ...currentTeamState.white.fatigue, 
-              ...currentTeamState.black.fatigue 
+            // Vytvoříme stav hry pro generátor
+            const gameState = {
+            teamState: teamState,
+            teams: teams,
+            score: score,
+            setScore: setScore,
+            triggerHighlight: triggerHighlight
             };
 
-            if (attackingTeamOnIce.length < 5 || defendingTeamOnIce.length < 5) continue;
-
-            const eventRoll = Math.random();
-            let eventType = 'attack';
-            if (eventRoll < 0.08) eventType = 'penalty';
-
-            let newEvent = { 
-              time: checkTime, 
-              team: attackingTeamId, 
-              id: `${checkTime}-${attackingTeamId}-${Math.random()}` 
-            };
-
-            if (eventType === 'penalty') {
-              const possibleFoulers = attackingTeamOnIce.filter(p => p && p.position !== 'brankář');
-              if (possibleFoulers.length === 0) continue;
-              const fouler = possibleFoulers[Math.floor(Math.random() * possibleFoulers.length)];
-              newEvent.type = 'penalty';
-              newEvent.player = fouler;
-              newEvent.penaltyMinutes = 2;
-              newEvent.description = `${fouler.name} ${fouler.surname} (${attackingTeamId === 'white' ? 'Bílí' : 'Černí'}) dostává ${newEvent.penaltyMinutes} minuty! 😠 ${fouler.isPlayer ? '(Ty!)' : ''}`;
-              triggerHighlight(fouler.key);
-            } else {
-              const attackersOnIce = attackingTeamOnIce.filter(p => p && p.position !== 'brankář');
-              if (attackersOnIce.length === 0) continue;
-              const attacker = attackersOnIce[Math.floor(Math.random() * attackersOnIce.length)];
-
-              const goalie = defendingTeamOnIce.find(p => p && p.position === 'brankář');
-              const defendersOnIce = defendingTeamOnIce.filter(p => p && p.position === 'obránce');
-              const defender = defendersOnIce.length > 0 
-                ? defendersOnIce[Math.floor(Math.random() * defendersOnIce.length)] 
-                : null;
-
-              let goalChance = 0.25;
-              goalChance += (attacker.level || 1) * 0.04;
-              if (attacker.isPlayer) goalChance += 0.10;
-              if (defender) goalChance -= (defender.level || 1) * 0.03;
-              if (goalie) goalChance -= (goalie.level || 1) * 0.06;
-
-              const attackingAvgFatigue = calculateAverageOnIceFatigue(attackingTeamOnIce, fatigueData);
-              const defendingAvgFatigue = calculateAverageOnIceFatigue(defendingTeamOnIce, fatigueData);
-              const fatigueDifference = defendingAvgFatigue - attackingAvgFatigue;
-              const fatigueBonus = fatigueDifference * FATIGUE_IMPACT_FACTOR;
-              goalChance += fatigueBonus;
-              goalChance = Math.max(0.05, Math.min(0.85, goalChance));
-
-              const outcomeRoll = Math.random();
-              if (outcomeRoll < goalChance) {
-                setScore(prev => ({ 
-                  ...prev, 
-                  [attackingTeamId]: prev[attackingTeamId] + 1 
-                }));
-                const possibleAssists = attackingTeamOnIce.filter(p => p && p.key !== attacker.key && p.position !== 'brankář');
-                const assistant = possibleAssists.length > 0 
-                  ? possibleAssists[Math.floor(Math.random() * possibleAssists.length)] 
-                  : null;
-
-                newEvent.type = 'goal';
-                newEvent.player = attacker;
-                newEvent.assistant = assistant;
-                newEvent.goalieKey = goalie?.key;
-                newEvent.description = `🚨 GÓÓÓL! ${attacker.name} ${attacker.surname} ${attacker.isPlayer ? '(Ty!)' : ''} (${attackingTeamId === 'white' ? 'Bílí' : 'Černí'}) skóruje${assistant ? ` po přihrávce od ${assistant.name} ${assistant.surname}${assistant.isPlayer ? ' (Tvoje asistence!)' : ''}` : ''}!`;
-                console.log(`🚨 Generated GOAL event with goalieKey=${goalie?.key}:`, attacker.key, assistant?.key);
-                triggerHighlight([attacker.key, assistant?.key].filter(Boolean));
-              } else if (outcomeRoll < goalChance + 0.35 || !goalie) {
-                if (goalie) {
-                  newEvent.type = 'save';
-                  newEvent.player = goalie;
-                  newEvent.shooter = attacker;
-                  newEvent.description = `🧤 Zákrok! ${goalie.name} ${goalie.surname} (${defendingTeamId === 'white' ? 'Bílí' : 'Černí'}) chytá střelu ${attacker.name} ${attacker.surname}${attacker.isPlayer ? ' (Tvoje střela!)' : ''}.`;
-                  console.log(`🧤 Generated SAVE event:`, goalie.key, attacker.key);
-                  triggerHighlight([goalie.key, attacker.key]);
-                } else {
-                  newEvent.type = 'miss';
-                  newEvent.player = attacker;
-                  newEvent.description = `💨 Střela vedle od ${attacker.name} ${attacker.surname}${attacker.isPlayer ? ' (Ty!)' : ''} (${attackingTeamId === 'white' ? 'Bílí' : 'Černí'}).`;
-                  console.log(`💨 Generated MISS event:`, attacker.key);
-                  triggerHighlight(attacker.key);
-                }
-              } else if (defender) {
-                newEvent.type = 'defense';
-                newEvent.player = defender;
-                newEvent.attacker = attacker;
-                newEvent.description = `🛡️ Blok! ${defender.name} ${defender.surname} (${defendingTeamId === 'white' ? 'Bílí' : 'Černí'}) zastavil střelu ${attacker.name} ${attacker.surname}${attacker.isPlayer ? ' (Tebe!)' : ''}!`;
-                console.log(`🛡️ Generated DEFENSE event:`, defender.key, attacker.key);
-                triggerHighlight([defender.key, attacker.key]);
-              } else {
-                newEvent.type = 'turnover';
-                newEvent.player = attacker;
-                newEvent.description = `🔄 Ztráta puku týmem ${attackingTeamId === 'white' ? 'Bílých' : 'Černých'}.`;
-              }
+            // Použití externího generátoru událostí
+            if (eventsGeneratorRef.current) {
+            const newEvent = eventsGeneratorRef.current.generateEvent(checkTime, gameState);
+            
+            if (newEvent) {
+                console.log(`📝 Vygenerována nová událost typu ${newEvent.type} od ${newEvent.player?.surname || 'neznámého hráče'}`);
+                setLastEvent(newEvent);
+                setEvents(prev => [newEvent, ...prev]);
+                processedEventRef.current = null;
             }
-            setLastEvent(newEvent);
-            setEvents(prev => [newEvent, ...prev]);
-            processedEventRef.current = null;
-          }
+            }
+        }
         }
 
         // --- AUTOMATICKÉ STŘÍDÁNÍ LOGIC ---
