@@ -21,7 +21,7 @@ import HockeyEventsGenerator from './HockeyEventsGenerator';
 const GAME_DURATION_SECONDS = 60 * 90; // 90 minut (od 16:30 do 18:00)
 const PERIOD_DURATION_SECONDS = GAME_DURATION_SECONDS / 3;
 const MAX_SPEED = 64;
-const EVENT_CHECK_INTERVAL = 90; // Zkráceno pro častější kontroly událostí
+const EVENT_CHECK_INTERVAL = 60; // Zkráceno pro častější kontroly událostí
 
 // Konstanty pro střídání a únavu
 const SHIFT_DURATION = 60;
