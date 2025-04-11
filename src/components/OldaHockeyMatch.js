@@ -880,7 +880,7 @@ const HockeyMatch = ({ onBack, onGameComplete, assignedJerseys, playerName = 'No
         description: `Střídání (${teamColor === 'white' ? 'Bílí' : 'Černí'}): ${playerName} (Ty) ⬇️, ${restedBenchPlayer.name} ${restedBenchPlayer.surname} ⬆️`,
         id: `${currentTime}-sub-${playerKey}-off`
       };
-      setEvents(prev => [subEvent, ...prev]);
+      // setEvents(prev => [subEvent, ...prev]);
       triggerHighlight([playerKey, restedBenchPlayer.key]);
       processedEventRef.current = null;
       console.log(`%c[SUB] ✅ Událost střídání vytvořena`, 'color: green; font-weight: bold');
@@ -940,7 +940,7 @@ const HockeyMatch = ({ onBack, onGameComplete, assignedJerseys, playerName = 'No
         description: `Střídání (${teamColor === 'white' ? 'Bílí' : 'Černí'}): ${playerName} (Ty) ⬆️, ${tiredOnIcePlayer.name} ${tiredOnIcePlayer.surname} ⬇️`,
         id: `${currentTime}-sub-${playerKey}-on`
       };
-      setEvents(prev => [subEvent, ...prev]);
+      // setEvents(prev => [subEvent, ...prev]);
       triggerHighlight([playerKey, tiredOnIcePlayer.key]);
       processedEventRef.current = null;
       console.log(`%c[SUB] ✅ Událost střídání vytvořena`, 'color: green; font-weight: bold');
@@ -1426,7 +1426,7 @@ const HockeyMatch = ({ onBack, onGameComplete, assignedJerseys, playerName = 'No
                           description: `Střídání (${teamColor === 'white' ? 'Bílí' : 'Černí'}): ${playersInNames || 'Nikdo'} ⬆️ | ${playersOutNames || 'Nikdo'} ⬇️`,
                           id: `${substitutionCheckTime}-sub-${teamColor}-${Math.random()}`
                         };
-                        setEvents(prev => [subEvent, ...prev]);
+                        // setEvents(prev => [subEvent, ...prev]);
                         triggerHighlight([...playersInKeys, ...playersOutKeys]);
                         // processedEventRef.current = null; // Still needed?
                      }, 0);
@@ -1888,11 +1888,31 @@ return (
               Statistiky zápasu
             </h3>
             <div className="flex-grow overflow-y-auto custom-scrollbar pr-1">
-              <div className="flex justify-between items-center mb-4 p-2 bg-gray-900/50 rounded-lg">
-                <div className="text-center w-1/3 text-white text-2xl font-bold">{score.white}</div>
-                <div className="text-center w-1/3 text-gray-400">Skóre</div>
-                <div className="text-center w-1/3 text-gray-300 text-2xl font-bold">{score.black}</div>
+            <div className="flex justify-between items-center mb-4 p-2 bg-gray-900/50 rounded-lg">
+            <div className="flex flex-col items-center justify-center w-1/3">
+              <div className="w-12 h-12 bg-white rounded-full flex items-center justify-center mb-1 shadow-lg border border-white/30 overflow-hidden">
+                <img 
+                  src="/Images/LancersWhite.jpg" 
+                  alt="Bílý tým" 
+                  className="h-10 w-10 object-contain"
+                />
               </div>
+              <div className="text-center text-white text-2xl font-bold">{score.white}</div>
+            </div>
+            <div className="text-center w-1/3 text-gray-400 flex flex-col justify-center">
+              <div className="bg-gray-800/70 px-3 py-1 rounded-md font-semibold">Skóre</div>
+            </div>
+            <div className="flex flex-col items-center justify-center w-1/3">
+              <div className="w-12 h-12 bg-black rounded-full flex items-center justify-center mb-1 shadow-lg border border-gray-700 overflow-hidden">
+                <img 
+                  src="/Images/LancersBlack.jpg" 
+                  alt="Černý tým" 
+                  className="h-10 w-10 object-contain"
+                />
+              </div>
+              <div className="text-center text-gray-300 text-2xl font-bold">{score.black}</div>
+            </div>
+          </div>
 
               <div className="grid grid-cols-3 gap-2">
                 <div className="bg-gray-800/30 rounded-lg p-2 text-center">
