@@ -171,6 +171,7 @@ const HockeyMatch = ({ onBack, onGameComplete, assignedJerseys, playerName = 'No
   const [gameState, setGameState] = useState('warmup');
   const [score, setScore] = useState({ white: 0, black: 0 });
   const [gameTime, setGameTime] = useState(0);
+  const [displayTime, setDisplayTime] = useState(0);
   const [currentPeriod, setCurrentPeriod] = useState(1);
   const [gameSpeed, setGameSpeed] = useState(1);
   const [events, setEvents] = useState([]);
@@ -1567,6 +1568,26 @@ const HockeyMatch = ({ onBack, onGameComplete, assignedJerseys, playerName = 'No
     setGameState, setGameTime, setEvents, setLastEvent, setScore, setCurrentPeriod, teams // Include teams if used directly in effect
   ]);
 
+  // --- Plynulá aktualizace zobrazovaného času --- 
+  useEffect(() => {
+    if (gameState !== 'playing') return;
+
+    // Aktualizace 5x za sekundu pro plynulý efekt
+    const displayUpdateInterval = setInterval(() => {
+      setDisplayTime(prevDisplay => {
+        // Pokud je displayTime pozadu za gameTime, přibližujeme ho k němu
+        if (prevDisplay < gameTime) {
+          // Menší krok pro plynulejší pohyb
+          const step = Math.max(1, gameSpeed / 5);
+          return Math.min(gameTime, prevDisplay + step);
+        }
+        // Pokud displayTime dohnal gameTime, zůstáváme na jeho hodnotě
+        return gameTime;
+      });
+    }, 200); // 5x za sekundu (1000ms / 5 = 200ms)
+
+    return () => clearInterval(displayUpdateInterval);
+  }, [gameState, gameTime, gameSpeed]);
 
 // --- Přidaná pomocná funkce k debugování ---
 const forceCompleteUIUpdate = useCallback(() => {
@@ -1918,7 +1939,7 @@ return (
                 <div className="bg-gray-800/30 rounded-lg p-2 text-center">
                   <div className="text-xs text-gray-400">Čas zápasu</div>
                   <div className="text-sm font-semibold">
-                    {formatGameTime(gameTime, PERIOD_DURATION_SECONDS)}
+                   {formatGameTime(displayTime, PERIOD_DURATION_SECONDS)}
                   </div>
                 </div>
                 <div className="bg-gray-800/30 rounded-lg p-2 text-center">
