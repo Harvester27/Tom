@@ -5,6 +5,8 @@ import Image from 'next/image';
 import OldaChat from './OldaChat';
 import { litvinovLancers } from '../data/LitvinovLancers';
 import OldaGameSimulation from './OldaGameSimulation';
+import PostGameRewards from './PostGameRewards';
+
 
 // Helper function for initial state
 function getInitialConversationsState() {
@@ -89,7 +91,16 @@ const isBeforePractice = (currentHour, hockeyPractice) => {
   return result;
 };
 
-const PlayerCareer = ({ onBack, money, xp, level, getXpToNextLevel, getLevelProgress }) => {
+  const PlayerCareer = ({
+    onBack,
+    money,
+    xp,
+    level,
+    getXpToNextLevel,
+    getLevelProgress,
+    onXpChange,       // ← PŘIDAT
+    onMoneyChange     // ← PŘIDAT
+  }) => {
   const [selectedLocation, setSelectedLocation] = useState(null);
   const [showLocationInfo, setShowLocationInfo] = useState(false);
   const [weather, setWeather] = useState('clear');
@@ -932,28 +943,26 @@ const PlayerCareer = ({ onBack, money, xp, level, getXpToNextLevel, getLevelProg
     });
   }, [currentDate, currentHour, hockeyPractice]);
 
-  // Funkce pro zpracování výsledku zápasu s Oldovou partou
   const handleOldaGameComplete = (result) => {
-    // Přidání zkušeností a peněz
+    // Vypočítáme odměny podle výsledku
     const xpReward = result.score.home > result.score.away ? 50 : 20;
     const moneyReward = result.score.home > result.score.away ? 200 : 100;
-    
-    // Informujeme rodiče o změnách
-    if (onXpChange) onXpChange(xp + xpReward);
-    if (onMoneyChange) onMoneyChange(money + moneyReward);
-    
-    // Skryjeme simulaci a zobrazíme odměny
+  
+    // Ukončíme zápas, ale zatím NEPŘIČÍTÁME XP a peníze!
     setShowOldaGame(false);
     setShowRewards(true);
+  
+    // Uložíme si výsledek včetně všech dat o zápasu
     setMatchResult({
       result: result.score.home > result.score.away ? 'win' : 'loss',
       xpReward,
       moneyReward,
       homeScore: result.score.home,
-      awayScore: result.score.away
+      awayScore: result.score.away,
+      rawResult: result // << potřebné pro PostGameRewards
     });
   };
-
+  
   return (
     // Outermost container centers the scaled content
     <div className="fixed inset-0 flex items-center justify-center overflow-hidden bg-black/90 z-50 p-4">
@@ -1020,36 +1029,17 @@ const PlayerCareer = ({ onBack, money, xp, level, getXpToNextLevel, getLevelProg
 
       {/* Zobrazení odměn po zápase */}
       {showRewards && matchResult && (
-        <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-[60]">
-          <div className="bg-gradient-to-br from-indigo-900/90 to-indigo-800/90 p-8 rounded-xl border border-indigo-500/30 shadow-xl backdrop-blur-sm max-w-md w-full mx-4">
-            <h3 className="text-2xl font-bold text-indigo-400 mb-6">
-              {matchResult.result === 'win' ? 'Výhra! 🎉' : 'Prohra 😔'}
-            </h3>
-            <div className="text-white mb-4">
-              <p className="text-xl mb-2">Konečné skóre:</p>
-              <p className="text-2xl font-bold mb-4">
-                Oldova parta {matchResult.homeScore} : {matchResult.awayScore} HC Teplice
-              </p>
-              <p className="text-lg">Získáno:</p>
-              <ul className="space-y-2 mt-2">
-                <li className="flex items-center gap-2">
-                  <span className="text-yellow-400">💰</span>
-                  {matchResult.moneyReward} Kč
-                </li>
-                <li className="flex items-center gap-2">
-                  <span className="text-blue-400">⭐</span>
-                  {matchResult.xpReward} XP
-                </li>
-              </ul>
-            </div>
-            <button
-              onClick={() => setShowRewards(false)}
-              className="w-full bg-indigo-500 hover:bg-indigo-600 text-white font-bold py-3 px-8 rounded-xl transition-colors"
-            >
-              Zavřít
-            </button>
-          </div>
-        </div>
+        <PostGameRewards
+          gameResult={matchResult.rawResult}
+          playerName={playerName}
+          currentXp={xp}
+          currentMoney={money}
+          onBack={() => {
+            if (onXpChange) onXpChange(xp + matchResult.xpReward);
+            if (onMoneyChange) onMoneyChange(money + matchResult.moneyReward);
+            setShowRewards(false);
+          }}
+        />
       )}
 
       {/* Scalable content wrapper */}

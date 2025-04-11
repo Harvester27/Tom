@@ -14,10 +14,14 @@ import {
 import { formatDistanceToNow } from 'date-fns';
 import { cs } from 'date-fns/locale';
 
-const PostGameRewards = ({ gameResult, playerName, onBack, onContinue }) => {
+const PostGameRewards = ({ gameResult, playerName, onBack, onContinue, currentXp = 0, currentMoney = 0 }) => {
   const [rewards, setRewards] = useState(null);
   const [showingStats, setShowingStats] = useState(true);
   const [experienceGained, setExperienceGained] = useState(0);
+  const [animatedXp, setAnimatedXp] = useState(0);
+  const [animatedMoney, setAnimatedMoney] = useState(0);
+  const [xpJump, setXpJump] = useState(false);
+  const [moneyJump, setMoneyJump] = useState(false);
   
   // Spočítat odměny na základě výsledků zápasu
   useEffect(() => {
@@ -28,10 +32,9 @@ const PostGameRewards = ({ gameResult, playerName, onBack, onContinue }) => {
     const wasAbandoned = gameResult.abandoned || false;
     
     // Najít statistiky hráče
-    const playerStats = Object.values(gameResult.playerStats || {}).find(stats => {
-      // Hledáme statistiky hráče - mohli bychom identifikovat podle klíče, ale zatím jednoduše hledáme nenulové statistiky
-      return stats.goals > 0 || stats.assists > 0 || stats.blocks > 0 || stats.saves > 0;
-    }) || { timeOnIce: 0, goals: 0, assists: 0, penalties: 0, blocks: 0, shots: 0, saves: 0 };
+    const playerStats = Object.values(gameResult.playerStats || {}).find(stats => stats.isPlayer) || {
+      timeOnIce: 0, goals: 0, assists: 0, penalties: 0, blocks: 0, shots: 0, saves: 0
+    };
     
     // Základní XP za účast
     let xp = 100;
@@ -44,7 +47,7 @@ const PostGameRewards = ({ gameResult, playerName, onBack, onContinue }) => {
     xp += playerStats.goals * 30;
     xp += playerStats.assists * 15;
     xp += playerStats.blocks * 10;
-    xp += playerStats.saves * 5;
+    xp += playerStats.saves * 1;
     
     // Penalizace za předčasný odchod
     if (wasAbandoned) xp = Math.floor(xp * 0.5);
@@ -88,7 +91,6 @@ const PostGameRewards = ({ gameResult, playerName, onBack, onContinue }) => {
     }
     
     setRewards(generatedRewards);
-    
     return () => clearInterval(xpInterval);
   }, [gameResult]);
   
@@ -194,18 +196,17 @@ const PostGameRewards = ({ gameResult, playerName, onBack, onContinue }) => {
                 </h3>
                 
                 <div className="grid grid-cols-2 gap-3">
-                  {Object.entries(gameResult.playerStats || {}).map(([key, stats]) => {
-                    // Zobrazit jen statistiky hráče - mohli bychom identifikovat podle klíče
-                    if (stats.goals === 0 && stats.assists === 0 && stats.blocks === 0 && stats.saves === 0 && stats.timeOnIce < 60) {
-                      return null;
-                    }
-                    
+                  {(() => {
+                    const playerEntry = Object.entries(gameResult.playerStats || {}).find(([_, stats]) => stats.isPlayer);
+                    if (!playerEntry) return null;
+                    const [key, stats] = playerEntry;
+
                     return (
                       <div key={key} className="bg-gray-900/60 rounded-lg border border-gray-800 p-3">
                         <h4 className="font-semibold text-cyan-300 mb-2 flex justify-between">
                           <span>{playerName} <span className="text-cyan-400">(Ty)</span></span>
                         </h4>
-                        
+
                         <div className="space-y-2">
                           <div className="flex justify-between items-center text-sm">
                             <span className="flex items-center gap-1">
@@ -213,21 +214,21 @@ const PostGameRewards = ({ gameResult, playerName, onBack, onContinue }) => {
                             </span>
                             <span className="font-mono text-gray-300">{formatTime(stats.timeOnIce)}</span>
                           </div>
-                          
+
                           <div className="flex justify-between items-center text-sm">
                             <span className="flex items-center gap-1">
                               <FlagIcon className="w-4 h-4 text-green-500" /> Góly:
                             </span>
                             <span className="font-mono font-bold text-green-400">{stats.goals}</span>
                           </div>
-                          
+
                           <div className="flex justify-between items-center text-sm">
                             <span className="flex items-center gap-1">
                               <StarIcon className="w-4 h-4 text-yellow-500" /> Asistence:
                             </span>
                             <span className="font-mono font-bold text-yellow-400">{stats.assists}</span>
                           </div>
-                          
+
                           {stats.blocks > 0 && (
                             <div className="flex justify-between items-center text-sm">
                               <span className="flex items-center gap-1">
@@ -236,7 +237,7 @@ const PostGameRewards = ({ gameResult, playerName, onBack, onContinue }) => {
                               <span className="font-mono text-blue-400">{stats.blocks}</span>
                             </div>
                           )}
-                          
+
                           {stats.saves > 0 && (
                             <div className="flex justify-between items-center text-sm">
                               <span className="flex items-center gap-1">
@@ -245,7 +246,7 @@ const PostGameRewards = ({ gameResult, playerName, onBack, onContinue }) => {
                               <span className="font-mono text-purple-400">{stats.saves}</span>
                             </div>
                           )}
-                          
+
                           <div className="flex justify-between items-center text-sm">
                             <span className="flex items-center gap-1">
                               <FireIcon className="w-4 h-4 text-orange-500" /> Střely:
@@ -255,7 +256,7 @@ const PostGameRewards = ({ gameResult, playerName, onBack, onContinue }) => {
                         </div>
                       </div>
                     );
-                  })}
+                  })()}
                 </div>
               </div>
               
@@ -297,9 +298,10 @@ const PostGameRewards = ({ gameResult, playerName, onBack, onContinue }) => {
                   <TrophyIcon className="w-6 h-6 text-yellow-400" />
                   Získané odměny
                 </h3>
-                
+
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-                  <div className="bg-gray-900/70 rounded-lg border border-gray-800 p-4 flex items-center justify-between">
+                  {/* Zkušenosti */}
+                  <div className="bg-gray-900/70 rounded-lg border border-gray-800 p-4 flex flex-col gap-2">
                     <div className="flex items-center gap-3">
                       <div className="bg-yellow-500/20 rounded-full p-2">
                         <StarIcon className="w-6 h-6 text-yellow-400" />
@@ -309,10 +311,16 @@ const PostGameRewards = ({ gameResult, playerName, onBack, onContinue }) => {
                         <p className="text-xs text-gray-400">Zkušenostní body získané v zápase</p>
                       </div>
                     </div>
-                    <div className="text-2xl font-bold text-yellow-400">+{experienceGained}</div>
+                    <div className={`text-2xl font-bold text-yellow-400 text-right transition-transform ${xpJump ? 'animate-jump' : ''}`}>
+                      +{animatedXp}
+                    </div>
+                    <div className="text-sm text-gray-400 text-right">
+                      {currentXp} + {experienceGained} = <span className="text-yellow-300 font-bold">{currentXp + experienceGained} XP</span>
+                    </div>
                   </div>
-                  
-                  <div className="bg-gray-900/70 rounded-lg border border-gray-800 p-4 flex items-center justify-between">
+
+                  {/* Peníze */}
+                  <div className="bg-gray-900/70 rounded-lg border border-gray-800 p-4 flex flex-col gap-2">
                     <div className="flex items-center gap-3">
                       <div className="bg-yellow-600/20 rounded-full p-2">
                         <TrophyIcon className="w-6 h-6 text-yellow-500" />
@@ -322,10 +330,15 @@ const PostGameRewards = ({ gameResult, playerName, onBack, onContinue }) => {
                         <p className="text-xs text-gray-400">Odměna za dokončení zápasu</p>
                       </div>
                     </div>
-                    <div className="text-2xl font-bold text-yellow-400">+{rewards.coins}</div>
+                    <div className={`text-2xl font-bold text-yellow-400 text-right transition-transform ${moneyJump ? 'animate-jump' : ''}`}>
+                      +{animatedMoney}
+                    </div>
+                    <div className="text-sm text-gray-400 text-right">
+                      {currentMoney.toLocaleString()} + {rewards.coins.toLocaleString()} = <span className="text-yellow-300 font-bold">{(currentMoney + rewards.coins).toLocaleString()} Kč</span>
+                    </div>
                   </div>
                 </div>
-                
+               
                 {rewards.items.length > 0 && (
                   <div className="mb-6">
                     <h4 className="text-lg font-semibold mb-3 text-center text-indigo-300">Speciální odměny</h4>
@@ -368,9 +381,19 @@ const PostGameRewards = ({ gameResult, playerName, onBack, onContinue }) => {
         .custom-scrollbar::-webkit-scrollbar-thumb { background-color: rgba(56, 189, 248, 0.6); border-radius: 10px; border: 1px solid rgba(30, 41, 59, 0.7); }
         .custom-scrollbar::-webkit-scrollbar-thumb:hover { background-color: rgba(56, 189, 248, 0.9); }
         .custom-scrollbar { scrollbar-width: thin; scrollbar-color: rgba(56, 189, 248, 0.6) rgba(30, 41, 59, 0.5); }
+
+        @keyframes jump {
+          0%   { transform: translateY(0); }
+          50%  { transform: translateY(-6px) scale(1.1); }
+          100% { transform: translateY(0); }
+        }
+
+        .animate-jump {
+          animation: jump 0.25s ease-in-out;
+        }
       `}</style>
     </div>
   );
 };
 
-export default PostGameRewards; 
+export default PostGameRewards;

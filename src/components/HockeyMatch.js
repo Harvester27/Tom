@@ -223,6 +223,23 @@ const HockeyMatch = ({ onBack, onGameComplete, assignedJerseys, playerName = 'No
     const newWhiteSet = new Set(whiteKeys);
     const newBlackSet = new Set(blackKeys);
     
+    // DEBUG: Výpis aktuálního stavu pro obě struktury
+    console.log('%c[SUB] 🧪 DEBUG STAV HRÁČŮ NA LEDĚ', 'color: orange; font-weight: bold');
+    console.log('%c[SUB] teamState.white.onIce:', 'color: skyblue', 
+      whiteOnIcePlayers.map(p => p.surname));
+    console.log('%c[SUB] teamState.black.onIce:', 'color: skyblue', 
+      blackOnIcePlayers.map(p => p.surname));
+    console.log('%c[SUB] playersOnIceState.white:', 'color: yellow', 
+      [...playersOnIceState.white].map(k => {
+        const player = teams.white.players.find(p => p.key === k);
+        return player ? player.surname : k;
+      }));
+    console.log('%c[SUB] playersOnIceState.black:', 'color: yellow', 
+      [...playersOnIceState.black].map(k => {
+        const player = teams.black.players.find(p => p.key === k);
+        return player ? player.surname : k;
+      }));
+    
     // Porovnáme s aktuálním stavem, abychom zjistili, jestli došlo ke změně
     const whiteChanged = !areSetsSame(playersOnIceState.white, newWhiteSet);
     const blackChanged = !areSetsSame(playersOnIceState.black, newBlackSet);
@@ -230,12 +247,22 @@ const HockeyMatch = ({ onBack, onGameComplete, assignedJerseys, playerName = 'No
     if (whiteChanged || blackChanged) {
       // Logování změn
       if (whiteChanged) {
-        console.log("%c[UI UPDATE] White team on ice: ", "color: cyan", 
-          whiteOnIcePlayers.map(p => p.surname));
+        console.log("%c[SUB] ⚪ ZMĚNA bílého týmu na ledě:", "color: lime; font-weight: bold", {
+          před: [...playersOnIceState.white].map(k => {
+            const player = teams.white.players.find(p => p.key === k);
+            return player ? player.surname : k;
+          }),
+          po: whiteOnIcePlayers.map(p => p.surname)
+        });
       }
       if (blackChanged) {
-        console.log("%c[UI UPDATE] Black team on ice: ", "color: cyan", 
-          blackOnIcePlayers.map(p => p.surname));
+        console.log("%c[SUB] ⚫ ZMĚNA černého týmu na ledě:", "color: lime; font-weight: bold", {
+          před: [...playersOnIceState.black].map(k => {
+            const player = teams.black.players.find(p => p.key === k);
+            return player ? player.surname : k;
+          }),
+          po: blackOnIcePlayers.map(p => p.surname)
+        });
       }
       
       // Aktualizujeme state pro zobrazení
@@ -246,8 +273,10 @@ const HockeyMatch = ({ onBack, onGameComplete, assignedJerseys, playerName = 'No
       
       // Force render - způsobí překreslení i když by se React normálně nepřekreslil
       setGameTime(t => t);
+    } else {
+      console.log("%c[SUB] 🟰 Žádná změna v týmech na ledě", "color: gray");
     }
-  }, [getOnIcePlayers, playersOnIceState.white, playersOnIceState.black]);
+  }, [getOnIcePlayers, playersOnIceState.white, playersOnIceState.black, teams]);
 
   // --- Team Initialization Effect ---
   useEffect(() => {
@@ -766,11 +795,11 @@ const HockeyMatch = ({ onBack, onGameComplete, assignedJerseys, playerName = 'No
   const handlePlayerSubstitution = useCallback((teamColor) => {
     const currentTime = gameTime;
 
-    console.log(`🔄 Manual SUB attempted for team ${teamColor} at ${currentTime}`);
+    console.log(`%c[SUB] 🔄 MANUÁLNÍ střídání pro tým ${teamColor} (čas: ${currentTime})`, 'color: yellow; font-weight: bold');
     const currentTeamState = teamState;
 
     if (!currentTeamState || !currentTeamState[teamColor]) {
-      console.error("❌ SUB ERROR: Invalid team state for", teamColor);
+      console.error(`%c[SUB] ❌ Chyba střídání: Neexistuje stav týmu ${teamColor}`, 'color: red; font-weight: bold');
       return;
     }
 
@@ -778,22 +807,40 @@ const HockeyMatch = ({ onBack, onGameComplete, assignedJerseys, playerName = 'No
     const player = teams[teamColor]?.players.find(p => p.isPlayer);
 
     if (!player) {
-      console.error("❌ SUB ERROR: Player object not found in team list for", teamColor);
+      console.error(`%c[SUB] ❌ Chyba střídání: Nenalezen objekt hráče v seznamu týmu ${teamColor}`, 'color: red; font-weight: bold');
       return;
     }
 
     const playerKey = player.key;
+    // KONTROLA: odkud bereme informaci o hráči na ledě
     const isOnIce = team.onIce.some(p => p && p.key === playerKey);
+    const isInPlayersOnIce = playersOnIceState[teamColor].has(playerKey);
     const isOnBench = team.bench.some(p => p && p.key === playerKey);
 
-    console.log(`Player ${playerName} (${playerKey}) - On Ice: ${isOnIce}, On Bench: ${isOnBench}`);
+    console.log(`%c[SUB] 📊 Stav hráče ${playerName} (${teamColor}):`, 'color: cyan; font-weight: bold', {
+      isOnIceTeamState: isOnIce, 
+      isOnIceUIState: isInPlayersOnIce,
+      isOnBench, 
+      fatigue: Math.round(team.fatigue[playerKey] || 0)
+    });
+
+    if (isOnIce !== isInPlayersOnIce) {
+      console.log(`%c[SUB] ⚠️ NESOULAD STAVŮ: teamState (${isOnIce}) vs playersOnIceState (${isInPlayersOnIce})`, 
+        'color: red; font-weight: bold');
+    }
 
     if (isOnIce) {
       const playerOnIceObject = team.onIce.find(p => p.key === playerKey);
       if (!playerOnIceObject) { 
-        console.error("Consistency error: Player key on ice but object not found."); 
+        console.error(`%c[SUB] ❌ Chyba konzistence: Hráč na ledě, ale objekt nenalezen`, 'color: red; font-weight: bold'); 
         return; 
       }
+
+      // Hráči na ledě a lavičce v tepové formě
+      console.log(`%c[SUB] 🏒 Hráči na ledě (${team.onIce.length}):`, 'color: lightgreen', 
+        team.onIce.map(p => p.surname));
+      console.log(`%c[SUB] 🪑 Hráči na lavičce (${team.bench.length}):`, 'color: orange', 
+        team.bench.map(p => p.surname));
 
       // Najdeme nejméně unaveného AI hráče na lavičce (ne brankáře)
       const restedBenchPlayer = [...team.bench]
@@ -801,15 +848,21 @@ const HockeyMatch = ({ onBack, onGameComplete, assignedJerseys, playerName = 'No
         .sort((a, b) => (team.fatigue[a.key] ?? MAX_FATIGUE) - (team.fatigue[b.key] ?? MAX_FATIGUE))[0];
 
       if (!restedBenchPlayer) {
-        console.warn("❌ SUB WARN: No rested AI players on bench to swap with.");
+        console.warn(`%c[SUB] ⚠️ Na lavičce nejsou žádní odpočatí AI hráči pro výměnu`, 'color: orange; font-weight: bold');
         return;
       }
+
+      console.log(`%c[SUB] ➡️ Hráč ${playerName} jde z LEDU, ${restedBenchPlayer.surname} jde NA LED`, 'color: purple; font-weight: bold');
 
       // Provedeme výměnu
       const newOnIce = team.onIce.filter(p => p.key !== playerKey);
       newOnIce.push(restedBenchPlayer);
       const newBench = team.bench.filter(p => p.key !== restedBenchPlayer.key);
       newBench.push(playerOnIceObject);
+
+      console.log(`%c[SUB] 📊 Nové složení:`, 'color: pink');
+      console.log(`%c[SUB] 🏒 Nově na ledě (${newOnIce.length}):`, 'color: lightgreen', newOnIce.map(p => p.surname));
+      console.log(`%c[SUB] 🪑 Nově na lavičce (${newBench.length}):`, 'color: orange', newBench.map(p => p.surname));
 
       updateTeamState(teamColor, {
         onIce: newOnIce,
@@ -827,20 +880,27 @@ const HockeyMatch = ({ onBack, onGameComplete, assignedJerseys, playerName = 'No
       setEvents(prev => [subEvent, ...prev]);
       triggerHighlight([playerKey, restedBenchPlayer.key]);
       processedEventRef.current = null;
-      console.log(`✅ Player ${playerName} substituted OFF ice for ${restedBenchPlayer.surname}`);
+      console.log(`%c[SUB] ✅ Událost střídání vytvořena`, 'color: green; font-weight: bold');
       
       // KLÍČOVÉ: Aktualizujeme stav hráčů na ledě pro UI
       // Po vystřídání manuálního hráče
       setTimeout(() => {
+        console.log(`%c[SUB] 📡 Aktualizace UI po manuálním střídání (hráč jde z ledu)`, 'color: deepskyblue; font-weight: bold');
         updatePlayersOnIceState();
       }, 50);
 
     } else if (isOnBench) {
       const playerOnBenchObject = team.bench.find(p => p.key === playerKey);
       if (!playerOnBenchObject) { 
-        console.error("Consistency error: Player key on bench but object not found."); 
+        console.error(`%c[SUB] ❌ Chyba konzistence: Hráč na lavičce, ale objekt nenalezen`, 'color: red; font-weight: bold'); 
         return; 
       }
+
+      // Hráči na ledě a lavičce v tepové formě
+      console.log(`%c[SUB] 🏒 Hráči na ledě (${team.onIce.length}):`, 'color: lightgreen', 
+        team.onIce.map(p => p.surname));
+      console.log(`%c[SUB] 🪑 Hráči na lavičce (${team.bench.length}):`, 'color: orange', 
+        team.bench.map(p => p.surname));
 
       // Najdeme nejvíce unaveného AI hráče na ledě (ne brankáře)
       const tiredOnIcePlayer = [...team.onIce]
@@ -848,15 +908,21 @@ const HockeyMatch = ({ onBack, onGameComplete, assignedJerseys, playerName = 'No
         .sort((a, b) => (team.fatigue[b.key] ?? 0) - (team.fatigue[a.key] ?? 0))[0];
 
       if (!tiredOnIcePlayer) {
-        console.warn("❌ SUB WARN: No tired AI players on ice to swap with.");
+        console.warn(`%c[SUB] ⚠️ Na ledě nejsou žádní unavení AI hráči pro výměnu`, 'color: orange; font-weight: bold');
         return;
       }
+
+      console.log(`%c[SUB] ➡️ Hráč ${playerName} jde NA LED, ${tiredOnIcePlayer.surname} jde z LEDU`, 'color: green; font-weight: bold');
 
       // Provedeme výměnu
       const newBench = team.bench.filter(p => p.key !== playerKey);
       newBench.push(tiredOnIcePlayer);
       const newOnIce = team.onIce.filter(p => p.key !== tiredOnIcePlayer.key);
       newOnIce.push(playerOnBenchObject);
+
+      console.log(`%c[SUB] 📊 Nové složení:`, 'color: pink');
+      console.log(`%c[SUB] 🏒 Nově na ledě (${newOnIce.length}):`, 'color: lightgreen', newOnIce.map(p => p.surname));
+      console.log(`%c[SUB] 🪑 Nově na lavičce (${newBench.length}):`, 'color: orange', newBench.map(p => p.surname));
 
       updateTeamState(teamColor, {
         onIce: newOnIce,
@@ -874,18 +940,19 @@ const HockeyMatch = ({ onBack, onGameComplete, assignedJerseys, playerName = 'No
       setEvents(prev => [subEvent, ...prev]);
       triggerHighlight([playerKey, tiredOnIcePlayer.key]);
       processedEventRef.current = null;
-      console.log(`✅ Player ${playerName} substituted ON ice for ${tiredOnIcePlayer.surname}`);
+      console.log(`%c[SUB] ✅ Událost střídání vytvořena`, 'color: green; font-weight: bold');
       
       // KLÍČOVÉ: Aktualizujeme stav hráčů na ledě pro UI 
       // Po vystřídání manuálního hráče
       setTimeout(() => {
+        console.log(`%c[SUB] 📡 Aktualizace UI po manuálním střídání (hráč jde na led)`, 'color: deepskyblue; font-weight: bold');
         updatePlayersOnIceState();
       }, 50);
 
     } else {
-      console.error("❌ SUB ERROR: Player is neither on ice nor on bench.");
+      console.error(`%c[SUB] ❌ Hráč není ani na ledě ani na lavičce!`, 'color: red; font-weight: bold');
     }
-  }, [gameTime, teams, playerName, triggerHighlight, updateTeamState, teamState, setEvents, updatePlayersOnIceState]);
+  }, [gameTime, teams, playerName, triggerHighlight, updateTeamState, teamState, setEvents, updatePlayersOnIceState, playersOnIceState]);
 
   // --- Handle Exit ---
   const handleExit = useCallback(() => {
@@ -1303,14 +1370,37 @@ const HockeyMatch = ({ onBack, onGameComplete, assignedJerseys, playerName = 'No
                     .filter(p => p && p.key && p.position !== 'brankář' && !p.isPlayer && !recentlySubstitutedRef.current.has(p.key))
                     .sort((a, b) => (prevTeamState.fatigue[a.key] ?? MAX_FATIGUE) - (prevTeamState.fatigue[b.key] ?? MAX_FATIGUE));
 
+                  // DEBUG: Vypíšeme stav před střídáním
+                  console.log(`%c[SUB] 📊 ${teamColor} STAV před střídáním:`, 'color: #ff9900; font-weight: bold');
+                  console.log(`%c[SUB] Na ledě (${prevTeamState.onIce.length})`, 'color: #33ccff', 
+                    prevTeamState.onIce.map(p => `${p.surname} (${Math.round(prevTeamState.fatigue[p.key] || 0)}%)`));
+                  console.log(`%c[SUB] Unavení na ledě (${tiredOnIce.length})`, 'color: #ff6666', 
+                    tiredOnIce.map(p => `${p.surname} (${Math.round(prevTeamState.fatigue[p.key] || 0)}%)`));
+                  console.log(`%c[SUB] Na lavičce (${prevTeamState.bench.length})`, 'color: #33cc33', 
+                    prevTeamState.bench.map(p => `${p.surname} (${Math.round(prevTeamState.fatigue[p.key] || 0)}%)`));
+                  console.log(`%c[SUB] Odpočatí na lavičce (${restedOnBench.length})`, 'color: #00cc00', 
+                    restedOnBench.map(p => `${p.surname} (${Math.round(prevTeamState.fatigue[p.key] || 0)}%)`));
+
                   const hasHighlyTiredPlayer = tiredOnIce.length > 0 && (prevTeamState.fatigue[tiredOnIce[0].key] ?? 0) > 80;
                   const shouldChange = (timeSinceLastChange >= SHIFT_DURATION || hasHighlyTiredPlayer) && restedOnBench.length > 0 && tiredOnIce.length > 0;
+
+                  // DEBUG: Vypíšeme rozhodovací podmínky
+                  console.log(`%c[SUB] 🔍 Rozhodnutí o střídání:`, 'color: #cc66ff; font-weight: bold', {
+                    timeSinceLastChange,
+                    SHIFT_DURATION,
+                    hasHighlyTiredPlayer,
+                    tiredOnIceCount: tiredOnIce.length,
+                    restedOnBenchCount: restedOnBench.length,
+                    shouldChange
+                  });
 
                   if (!shouldChange) {
                     if (restedOnBench.length === 0 || tiredOnIce.length === 0) {
                       substitutionTimesRef.current.add(subKey);
+                      console.log(`%c[SUB] ⏭️ Nelze střídat - nejsou hráči`, 'color: #ff6600');
                       return { ...prevTeamState, lastShiftChange: substitutionCheckTime };
                     }
+                    console.log(`%c[SUB] ⏭️ Stále ne je čas na střídání`, 'color: #ff6600');
                     return prevTeamState;
                   }
 
@@ -1321,6 +1411,7 @@ const HockeyMatch = ({ onBack, onGameComplete, assignedJerseys, playerName = 'No
                   );
 
                   if (numToChange <= 0) { 
+                    console.log(`%c[SUB] ⚠️ numToChange <= 0, nebude stridat!`, 'color: red; font-weight: bold');
                     return prevTeamState; 
                   }
 
@@ -1329,6 +1420,13 @@ const HockeyMatch = ({ onBack, onGameComplete, assignedJerseys, playerName = 'No
                   const playersIn = restedOnBench.slice(0, numToChange);
                   const playersInKeys = new Set(playersIn.map(p => p.key));
 
+                  console.log(`%c[SUB] 🔀 Hráči ke střídání:`, 'color: #ff00ff; font-weight: bold');
+                  console.log(`%c[SUB] NA LED nastoupí (${playersIn.length}):`, 'color: #00cc00', 
+                    playersIn.map(p => `${p.surname} (${Math.round(prevTeamState.fatigue[p.key] || 0)}%)`));
+                  console.log(`%c[SUB] Z LEDU odejdou (${playersOut.length}):`, 'color: #ff6666', 
+                    playersOut.map(p => `${p.surname} (${Math.round(prevTeamState.fatigue[p.key] || 0)}%)`));
+
+                  // Vytvoříme nové pole hráčů na ledě a na lavičce
                   const newOnIce = [
                     ...prevTeamState.onIce.filter(p => p && !playersOutKeys.has(p.key)),
                     ...playersIn
@@ -1338,6 +1436,19 @@ const HockeyMatch = ({ onBack, onGameComplete, assignedJerseys, playerName = 'No
                     ...prevTeamState.bench.filter(p => p && !playersInKeys.has(p.key)),
                     ...playersOut
                   ];
+
+                  // Ověření, že velikosti polí jsou správné
+                  console.log(`%c[SUB] 📏 Kontrola změn:`, 'color: magenta;');
+                  console.log(`%c[SUB] Počet hráčů na ledě před: ${prevTeamState.onIce.length}, po: ${newOnIce.length}`, 
+                              prevTeamState.onIce.length === newOnIce.length ? 'color: green;' : 'color: red; font-weight: bold');
+                  console.log(`%c[SUB] Počet hráčů na lavičce před: ${prevTeamState.bench.length}, po: ${newBench.length}`, 
+                              prevTeamState.bench.length === newBench.length ? 'color: green;' : 'color: red; font-weight: bold');
+                  
+                  // Zajistíme, aby každý hráč byl pouze jednou buď na ledě, nebo na lavičce
+                  const allPlayersSet = new Set([...newOnIce.map(p => p.key), ...newBench.map(p => p.key)]);
+                  console.log(`%c[SUB] Celkem unikátních hráčů po střídání: ${allPlayersSet.size}`, 
+                    allPlayersSet.size === (prevTeamState.onIce.length + prevTeamState.bench.length) 
+                      ? 'color: green' : 'color: red; font-weight: bold');
 
                   // Add players to "quarantine" for this tick
                   playersOut.forEach(p => { if(p && p.key) recentlySubstitutedRef.current.add(p.key) });
@@ -1362,21 +1473,38 @@ const HockeyMatch = ({ onBack, onGameComplete, assignedJerseys, playerName = 'No
                     processedEventRef.current = null;
 
                     // Logování pro lepší debugování
-                    console.log(`%c[AUTO SUB] ✅ ${teamColor.toUpperCase()} provedeno střídání: ${numToChange} hráčů. IN: ${playersInNames}, OUT: ${playersOutNames}`, 'color: lime; font-weight: bold;');
+                    console.log(`%c[SUB] ✅ ${teamColor.toUpperCase()} STŘÍDÁNÍ PROVEDENO:`, 'color: lime; font-weight: bold');
+                    console.log(`%c[SUB] ${playersInNames}`, 'color: green', 'na led ⬆️');
+                    console.log(`%c[SUB] ${playersOutNames}`, 'color: red', 'z ledu ⬇️');
                     
-                    // DEBUG: Co kdo byl před střídáním, kdo bude po střídání
-                    console.log(`%c[AUTO SUB] ${teamColor} PŘED střídáním na ledě:`, 'color: cyan', 
-                      prevTeamState.onIce.map(p => p.surname));
-                    console.log(`%c[AUTO SUB] ${teamColor} PO střídání na ledě:`, 'color: cyan', 
+                    // DEBUG: Výpis složení týmu po střídání
+                    console.log(`%c[SUB] 🏒 Složení ${teamColor} na ledě PO střídání:`, 'color: cyan', 
                       newOnIce.map(p => p.surname));
+                    console.log(`%c[SUB] 🪑 Složení ${teamColor} na lavičce PO střídání:`, 'color: orange', 
+                      newBench.map(p => p.surname));
+                    
+                    // DEBUG: Ověříme, že pole jsou správná 
+                    const onIceCheck = new Set(newOnIce.map(p => p.key));
+                    const onBenchCheck = new Set(newBench.map(p => p.key));
+                    
+                    // Kontrolujeme, že žádný hráč není současně na ledě i na lavičce
+                    const intersection = [...onIceCheck].filter(key => onBenchCheck.has(key));
+                    if (intersection.length > 0) {
+                      console.log(`%c[SUB] ⚠️ CHYBA: Někteří hráči jsou současně na ledě i na lavičce!`, 'color: red; font-weight: bold', 
+                        intersection.map(key => {
+                          const player = [...newOnIce, ...newBench].find(p => p.key === key);
+                          return player ? player.surname : key;
+                        }));
+                    }
                   } else {
-                    console.warn(`[SUB WARN] Nelze provést střídání - nejsou k dispozici hráči.`);
+                    console.warn(`%c[SUB] ⚠️ Nelze vytvořit událost střídání - chybí jména hráčů.`, 'color: orange; font-weight: bold');
                   }
 
                   // Označíme toto střídání jako provedené
                   substitutionTimesRef.current.add(subKey);
 
                   // Vrátíme nový stav týmu
+                  console.log(`%c[SUB] 🔄 Vracíme nový stav týmu ${teamColor} po střídání`, 'color: #9933ff');
                   return {
                     ...prevTeamState,
                     onIce: newOnIce,
@@ -1387,14 +1515,49 @@ const HockeyMatch = ({ onBack, onGameComplete, assignedJerseys, playerName = 'No
                 
                 // KLÍČOVÁ ZMĚNA: Explicitní aktualizace UI stavu pro hráče na ledě po AUTO střídání 
                 setTimeout(() => {
+                  // Kontrolní výpis - co ukazuje teamState PŘED aktualizací UI
+                  if (teamState && teamState[teamColor]) {
+                    console.log(`%c[SUB] 🔍 Kontrola teamState.${teamColor}.onIce před aktualizací UI:`, 'color: gold; font-weight: bold',
+                      teamState[teamColor].onIce.map(p => p.surname));
+                  }
+                  
                   // Při automatickém střídání musíme aktualizovat UI stav
                   updatePlayersOnIceState();
-                  console.log(`%c[AUTO SUB] Aktualizace UI stavu hráčů na ledě po střídání`, 'color: magenta');
+                  console.log(`%c[SUB] 🔄 updatePlayersOnIceState() volán po střídání`, 'color: magenta; font-weight: bold');
                 }, 50);
                 
-                // Pro jistotu ještě jedno vynucené překreslení
+                // Pro jistotu ještě jedno vynucené překreslení s delším zpožděním
                 setTimeout(() => {
-                  setGameTime(prev => prev); // Force render
+                  // Kontrolní výpis - co ukazuje teamState po čase 150ms
+                  if (teamState && teamState[teamColor]) {
+                    console.log(`%c[SUB] 🧐 Kontrola teamState.${teamColor}.onIce po 150ms:`, 'color: gold; font-weight: bold',
+                      teamState[teamColor].onIce.map(p => p.surname));
+                    
+                    // Porovnání s playersOnIceState
+                    console.log(`%c[SUB] 🔍 Porovnání playersOnIceState.${teamColor} s teamState po 150ms:`, 'color: orange');
+                    const onIceKeys = new Set(teamState[teamColor].onIce.map(p => p.key));
+                    const playersMatch = areSetsSame(onIceKeys, playersOnIceState[teamColor]);
+                    console.log(`%c[SUB] Stav se ${playersMatch ? 'SHODUJE ✅' : 'NESHODUJE ❌'}`, 
+                      playersMatch ? 'color: green; font-weight: bold' : 'color: red; font-weight: bold');
+                    
+                    if (!playersMatch) {
+                      console.log(`%c[SUB] 📋 Detail rozdílů:`, 'color: darkred');
+                      console.log(`%c[SUB] V teamState, ale ne v playersOnIceState:`, 'color: red', 
+                        [...onIceKeys].filter(k => !playersOnIceState[teamColor].has(k)).map(k => {
+                          const player = teamState[teamColor].onIce.find(p => p.key === k);
+                          return player ? player.surname : k;
+                        }));
+                      console.log(`%c[SUB] V playersOnIceState, ale ne v teamState:`, 'color: orange', 
+                        [...playersOnIceState[teamColor]].filter(k => !onIceKeys.has(k)).map(k => {
+                          const player = teams[teamColor].players.find(p => p.key === k);
+                          return player ? player.surname : k;
+                        }));
+                    }
+                  }
+                  
+                  // Vynucené překreslení
+                  setGameTime(prev => prev);
+                  console.log(`%c[SUB] 🔄 Vynucené překreslení po 150ms`, 'color: fuchsia');
                 }, 150);
               };
 
@@ -1447,10 +1610,55 @@ const HockeyMatch = ({ onBack, onGameComplete, assignedJerseys, playerName = 'No
     isPlayerOnIce
   ]);
 
+  // --- Přidaná pomocná funkce k debugování ---
+  const forceCompleteUIUpdate = useCallback(() => {
+    console.log(`%c[SUB] 🚨 VYNUCENÁ KOMPLETNÍ AKTUALIZACE UI`, 'color: red; font-weight: bold; background-color: yellow; padding: 3px');
+    
+    // 1. Explicitně aktualizujeme playersOnIceState
+    if (teamState) {
+      const whiteOnIce = new Set(teamState.white.onIce.map(p => p.key));
+      const blackOnIce = new Set(teamState.black.onIce.map(p => p.key));
+      
+      setPlayersOnIceState({
+        white: whiteOnIce,
+        black: blackOnIce
+      });
+      
+      console.log(`%c[SUB] ⚪ playersOnIceState.white aktualizováno: ${teamState.white.onIce.length} hráčů`, 'color: white; background-color: green');
+      console.log(`%c[SUB] ⚫ playersOnIceState.black aktualizováno: ${teamState.black.onIce.length} hráčů`, 'color: white; background-color: blue');
+    }
+    
+    // 2. Vynucené překreslení
+    setGameTime(gt => gt);
+    
+    // 3. Vynutíme nové renderování s krátkým zpožděním a postupně
+    const timeouts = [100, 200, 500, 1000];
+    timeouts.forEach(timeout => {
+      setTimeout(() => {
+        setGameTime(gt => gt);
+        console.log(`%c[SUB] 🔄 Vynucené překreslení po ${timeout}ms`, 'color: purple');
+      }, timeout);
+    });
+  }, [teamState]);
+
+  // --- Tlačítko pro vynucené překreslení UI ---
+  const renderDebugButton = () => {
+    if (gameState === 'finished') return null;
+    
+    return (
+      <button
+        onClick={forceCompleteUIUpdate}
+        className="fixed bottom-4 right-4 z-50 bg-red-600 text-white px-3 py-2 rounded-lg shadow-lg border-2 border-white"
+      >
+        Vynutit aktualizaci UI
+      </button>
+    );
+  };
+
   // --- Main Render ---
   return (
     <div className="fixed inset-0 bg-black/90 backdrop-blur-sm text-gray-200 z-50 flex items-center justify-center p-2 sm:p-4 overflow-hidden">
-      <div className="w-full max-w-screen-xl h-[96vh] bg-gradient-to-br from-gray-800 via-gray-900 to-black rounded-xl shadow-2xl border border-gray-700 flex flex-col">
+      <div className="w-full max-w-screen-xl h-[96vh] bg-gradient-to-br from-gray-800 via-gray-900 to-black rounded-xl shadow-2xl border border-gray-700 flex flex-col">{renderDebugButton()}
 
         {/* Header */}
         <div className="flex justify-between items-center p-3 sm:p-4 border-b border-gray-700 flex-shrink-0">

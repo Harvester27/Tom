@@ -2630,6 +2630,8 @@ const CardGame = () => {
           level={getLevelFromXp(xp)}
           getXpToNextLevel={getXpToNextLevel}
           getLevelProgress={getLevelProgress}
+          onXpChange={setXp} 
+          onMoneyChange={setMoney}
         />
       )}
 
