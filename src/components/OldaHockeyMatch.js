@@ -767,10 +767,10 @@ const HockeyMatch = ({ onBack, onGameComplete, assignedJerseys, playerName = 'No
   // --- Handle Start/Pause ---
   const handleStartPause = () => {
     if (gameState === 'playing') {
-      console.log("⏸️ Pausing game");
+      console.log("⏱️ [TIME] Pausing game");
       setGameState('paused');
     } else if (gameState === 'paused' || gameState === 'warmup') {
-      console.log("▶️ Starting/resuming game")
+      console.log("⏱️ [TIME] Starting/resuming game");
       setGameState('playing');
     }
   };
@@ -1214,25 +1214,26 @@ const HockeyMatch = ({ onBack, onGameComplete, assignedJerseys, playerName = 'No
   useEffect(() => {
     if (gameState !== 'playing') return;
 
-    let intervalId;
-
+    console.log("⏱️ [TIME] Setting up gameTick interval");
+    
+    // Pro uzavření všech potřebných hodnot - použijeme funkční closure
     const gameTick = () => {
-      console.log("📢 gameTick called, current time:", gameTime, "gameState:", gameState);
+      console.log("⏱️ [TIME] gameTick called, current time:", gameTime, "gameState:", gameState);
       
       setGameTime(prevTime => {
         const timeIncrement = gameSpeed;
         const newTime = Math.min(GAME_DURATION_SECONDS, prevTime + timeIncrement);
-    
-        console.log(`📊 Time update attempt: ${prevTime} -> ${newTime} (speed: ${gameSpeed})`);
+
+        console.log(`⏱️ [TIME] Update attempt: ${prevTime} -> ${newTime} (speed: ${gameSpeed})`);
         
         if (newTime >= GAME_DURATION_SECONDS && prevTime < GAME_DURATION_SECONDS) {
-          console.log("🏁 Game finished!");
+          console.log("⏱️ [TIME] Game finished!");
           setGameState('finished');
           return GAME_DURATION_SECONDS;
         }
-    
+
         if (gameState !== 'playing') {
-          console.log("⚠️ Game not playing, time not updated");
+          console.log("⏱️ [TIME] Game not playing, time not updated");
           return prevTime;
         }
 
@@ -1332,33 +1333,80 @@ const HockeyMatch = ({ onBack, onGameComplete, assignedJerseys, playerName = 'No
                     .filter(p => p && p.key && p.position !== 'brankář' && !p.isPlayer && !recentlySubstitutedRef.current.has(p.key))
                     .sort((a, b) => (prevTeamState.fatigue[a.key] ?? MAX_FATIGUE) - (prevTeamState.fatigue[b.key] ?? MAX_FATIGUE));
 
-                  // DEBUG logovací kód... (zachováno z původního)
-
                   const hasHighlyTiredPlayer = tiredOnIce.length > 0 && (prevTeamState.fatigue[tiredOnIce[0].key] ?? 0) > 80;
                   const shouldChange = (timeSinceLastChange >= SHIFT_DURATION || hasHighlyTiredPlayer) && restedOnBench.length > 0 && tiredOnIce.length > 0;
-
-                  // DEBUG logovací kód... (zachováno z původního)
 
                   if (!shouldChange) {
                     if (restedOnBench.length === 0 || tiredOnIce.length === 0) {
                       substitutionTimesRef.current.add(subKey);
-                      console.log(`%c[SUB] ⏭️ Nelze střídat - nejsou hráči`, 'color: #ff6600');
                       return prevTeamState;
                     }
-                    console.log(`%c[SUB] ⏭️ Stále ne je čas na střídání`, 'color: #ff6600');
                     return prevTeamState;
                   }
 
-                  // Zbytek kódu pro střídání... (zachováno z původního)
-                  
-                  // Další logika zde...
-                  
-                  return prevTeamState;
+                  const numToChange = Math.min(
+                    tiredOnIce.length,
+                    restedOnBench.length,
+                    hasHighlyTiredPlayer ? Math.max(1, Math.ceil(tiredOnIce.length / 2)) : 3
+                  );
+
+                  if (numToChange <= 0) {
+                    substitutionTimesRef.current.add(subKey);
+                    return prevTeamState;
+                  }
+
+                  const playersOut = tiredOnIce.slice(0, numToChange);
+                  const playersOutKeys = new Set(playersOut.map(p => p.key));
+                  const playersIn = restedOnBench.slice(0, numToChange);
+                  const playersInKeys = new Set(playersIn.map(p => p.key));
+
+                  // Vytvoříme nové pole hráčů na ledě a na lavičce
+                  const newOnIce = [
+                    ...prevTeamState.onIce.filter(p => p && !playersOutKeys.has(p.key)),
+                    ...playersIn
+                  ];
+
+                  const newBench = [
+                    ...prevTeamState.bench.filter(p => p && !playersInKeys.has(p.key)),
+                    ...playersOut
+                  ];
+
+                  // Add players to "quarantine" for this tick
+                  playersOut.forEach(p => { if(p && p.key) recentlySubstitutedRef.current.add(p.key) });
+                  playersIn.forEach(p => { if(p && p.key) recentlySubstitutedRef.current.add(p.key) });
+
+                  const playersInNames = playersIn.map(p => p.surname).join(", ");
+                  const playersOutNames = playersOut.map(p => p.surname).join(", ");
+
+                  if (playersInNames || playersOutNames) {
+                    // Vytvoříme událost střídání (runs outside updateTeamState)
+                    setTimeout(() => {
+                        const subEvent = {
+                          time: substitutionCheckTime,
+                          type: 'substitution',
+                          team: teamColor,
+                          description: `Střídání (${teamColor === 'white' ? 'Bílí' : 'Černí'}): ${playersInNames || 'Nikdo'} ⬆️ | ${playersOutNames || 'Nikdo'} ⬇️`,
+                          id: `${substitutionCheckTime}-sub-${teamColor}-${Math.random()}`
+                        };
+                        // setEvents(prev => [subEvent, ...prev]);
+                        triggerHighlight([...playersInKeys, ...playersOutKeys]);
+                    }, 0);
+                  }
+
+                  // Označíme toto střídání jako provedené
+                  substitutionTimesRef.current.add(subKey);
+
+                  // Vrátíme nový stav týmu
+                  return {
+                    ...prevTeamState,
+                    onIce: newOnIce,
+                    bench: newBench,
+                    lastShiftChange: substitutionCheckTime
+                  };
                 });
 
                 // KLÍČOVÁ ZMĚNA: Explicitní aktualizace UI stavu pro hráče na ledě po AUTO střídání
                 setTimeout(() => {
-                  // Update UI
                   updatePlayersOnIceState();
                 }, 50);
               })();
@@ -1386,44 +1434,23 @@ const HockeyMatch = ({ onBack, onGameComplete, assignedJerseys, playerName = 'No
             }
           }
         }
-        console.log("✅ Time successfully updated to:", newTime);
+        
+        console.log("⏱️ [TIME] Successfully updated to:", newTime);
         return newTime; // Return the new game time
       });
     };
 
     // Spustíme interval, který volá gameTick každou sekundu
-    console.log("⏱️ Setting up gameTick interval");
-    intervalId = setInterval(gameTick, 1000);
+    const intervalId = setInterval(gameTick, 1000);
 
     // Funkce pro vyčištění intervalu
     return () => {
-      console.log("🧹 Cleaning up gameTick interval");
+      console.log("⏱️ [TIME] Cleaning up gameTick interval");
       if (intervalId) {
         clearInterval(intervalId);
       }
     };
-  }, [
-    gameState, 
-    gameSpeed, 
-    events, 
-    teamState, 
-    score, 
-    findPlayerTeamColor, 
-    generateSpecialAction, 
-    triggerHighlight, 
-    lastSpecialActionTime, 
-    updateTeamState, 
-    updatePlayersOnIceState,
-    // KLÍČOVÁ ZMĚNA: Odstranili jsme isPlayerOnIce ze seznamu závislostí
-    // a další závislosti, které mohou způsobovat cyklické překreslování
-    setGameState, 
-    setGameTime, 
-    setEvents, 
-    setLastEvent, 
-    setScore, 
-    setCurrentPeriod,
-    teams
-  ]);
+  }, [gameState, gameSpeed]); // ZJEDNODUŠENÉ ZÁVISLOSTI - pouze gameState a gameSpeed
 
 // --- Přidaná pomocná funkce k debugování ---
 const forceCompleteUIUpdate = useCallback(() => {
