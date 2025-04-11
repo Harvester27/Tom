@@ -15,7 +15,7 @@ import clsx from 'clsx';
 
 // Importujeme komponenty z nového souboru
 import { PlayerStatus, TeamTable, PlayerSpecialAction, formatTimeOnIce, getEventIcon, EventDetail } from './HockeyComponents';
-import HockeyEventsGenerator from './HockeyEventsGenerator.';
+import HockeyEventsGenerator from './HockeyEventsGenerator';
 
 // --- Constants ---
 const GAME_DURATION_SECONDS = 60 * 90; // 90 minut (od 16:30 do 18:00)
