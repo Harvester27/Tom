@@ -2,13 +2,13 @@
 
 import { getEventIcon } from './HockeyComponents';
 
-// Konstanty pro generování událostí (zachováváme původní konstanty)
+// Konstanty pro generování událostí
 const BASE_EVENT_CHANCE = 0.2;
 const MIN_EVENT_SPACING = 5;
 const MAX_EVENT_SPACING = 25;
 const EVENT_CHECK_INTERVAL = 5;
 
-// Váhy pro jednotlivé typy akcí (určují relativní pravděpodobnost)
+// Váhy pro jednotlivé typy akcí
 const EVENT_TYPE_WEIGHTS = {
   shot: 35,           // Střela
   pass: 20,           // Přihrávka
@@ -49,7 +49,7 @@ const PENALTY_TYPES = [
   { minutes: 5, description: 'větší trest za naražení zezadu', chance: 0.01 }
 ];
 
-// NOVÉ SLOVNÍKY PRO DETAILNÍ POPISY UDÁLOSTÍ
+// === SLOVNÍKY PRO DETAILNÍ POPISY UDÁLOSTÍ ===
 
 // Adjektiva pro popis střel
 const SHOT_ADJECTIVES = [
@@ -141,8 +141,10 @@ const ODD_MAN_RUSH = [
   'početní výhodu', 'výhodu přečíslení', 'samostatný únik'
 ];
 
-// Pomocné funkce
-const selectRandomByWeight = (items) => {
+// === POMOCNÉ FUNKCE ===
+
+// Výběr náhodné položky podle váhy
+function selectRandomByWeight(items) {
   const totalWeight = Object.values(items).reduce((sum, weight) => sum + weight, 0);
   let random = Math.random() * totalWeight;
   
@@ -152,14 +154,16 @@ const selectRandomByWeight = (items) => {
   }
   
   return Object.keys(items)[0];
-};
+}
 
-const selectRandomFrom = (items) => {
+// Výběr náhodné položky z pole
+function selectRandomFrom(items) {
   if (!items || items.length === 0) return null;
   return items[Math.floor(Math.random() * items.length)];
-};
+}
 
-const selectRandomWithChance = (items) => {
+// Výběr náhodné položky podle pravděpodobnosti
+function selectRandomWithChance(items) {
   if (!items || items.length === 0) return null;
   
   let cumulative = 0;
@@ -170,14 +174,15 @@ const selectRandomWithChance = (items) => {
   
   const random = Math.random();
   return ranges.find(item => random <= item.maxRange) || items[0];
-};
+}
 
-const selectRandomPenalty = () => {
+// Výběr náhodného trestu
+function selectRandomPenalty() {
   return selectRandomWithChance(PENALTY_TYPES);
-};
+}
 
-// Funkce pro vylepšený popis události
-const createEnhancedDescription = (eventType, data) => {
+// Funkce pro vytvoření vylepšeného popisu události
+function createEnhancedDescription(eventType, data) {
   const { attacker, defender, team, teamName, opposingTeamName, goalie, assistants = [] } = data;
   const attackerName = `${attacker.name} ${attacker.surname}${attacker.isPlayer ? ' (Ty!)' : ''}`;
   
@@ -319,10 +324,10 @@ const createEnhancedDescription = (eventType, data) => {
     default: 
       return null;
   }
-};
+}
 
 // Funkce pro generování náhodné události
-const generateRandomEvent = (gameTime, teamState, teams, score, highlightPlayersFn, setScore) => {
+function generateRandomEvent(gameTime, teamState, teams, score, highlightPlayersFn, setScore) {
   if (!teamState) return null;
   
   // Vybereme náhodně útočící tým
@@ -669,7 +674,7 @@ const generateRandomEvent = (gameTime, teamState, teams, score, highlightPlayers
   }
   
   return event;
-};
+}
 
 // Třída pro generátor událostí v zápase
 class HockeyEventsGenerator {
@@ -701,7 +706,7 @@ class HockeyEventsGenerator {
     return currentTime >= this.nextEventTime;
   }
   
-  // DŮLEŽITÉ - Toto je metoda, která je volána z OldaHockeyMatch.js
+  // Hlavní metoda volaná z OldaHockeyMatch.js
   generateEvent(currentTime, gameState) {
     const { teamState, teams, score, setScore, triggerHighlight } = gameState;
     
