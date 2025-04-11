@@ -2,11 +2,11 @@
 
 import { getEventIcon } from './HockeyComponents';
 
-// Konstanty pro generování událostí
-const BASE_EVENT_CHANCE = 0.2;      // Základní šance na událost při kontrole
-const MIN_EVENT_SPACING = 5;        // Minimální rozestup mezi událostmi (v sekundách)
-const MAX_EVENT_SPACING = 25;       // Maximální rozestup mezi událostmi (v sekundách)
-const EVENT_CHECK_INTERVAL = 5;     // Jak často kontrolujeme, zda se má vygenerovat událost (v sekundách)
+// Konstanty pro generování událostí (zachováváme původní konstanty)
+const BASE_EVENT_CHANCE = 0.2;
+const MIN_EVENT_SPACING = 5;
+const MAX_EVENT_SPACING = 25;
+const EVENT_CHECK_INTERVAL = 5;
 
 // Váhy pro jednotlivé typy akcí (určují relativní pravděpodobnost)
 const EVENT_TYPE_WEIGHTS = {
@@ -17,35 +17,131 @@ const EVENT_TYPE_WEIGHTS = {
   turnover: 8,        // Ztráta puku
   icing: 5,           // Zakázané uvolnění
   offside: 5,         // Ofsajd
-  penalty: 2,         // Trest
+  penalty: 2          // Trest
 };
 
-// Speciální typy akcí, které se mohou stát po jiných akcích (např. střela může vést k gólu)
+// Speciální typy akcí, které se mohou stát po jiných akcích
 const FOLLOW_UP_EVENTS = {
   shot: [
     { type: 'goal', chance: 0.25, description: 'střelu' },
     { type: 'save', chance: 0.45, description: 'střelu' },
     { type: 'block', chance: 0.15, description: 'střelu' },
-    { type: 'miss', chance: 0.15, description: 'střelu' },
+    { type: 'miss', chance: 0.15, description: 'střelu' }
   ],
   hit: [
     { type: 'penalty', chance: 0.15, description: 'bodyček' },
-    { type: 'turnover', chance: 0.35, description: 'bodyček' },
+    { type: 'turnover', chance: 0.35, description: 'bodyček' }
   ]
 };
 
 // Typy trestů a jejich pravděpodobnosti
 const PENALTY_TYPES = [
-  { minutes: 2, description: 'menší trest za hákování', chance: 0.25 },
-  { minutes: 2, description: 'menší trest za držení', chance: 0.2 },
-  { minutes: 2, description: 'menší trest za sekání', chance: 0.15 },
-  { minutes: 2, description: 'menší trest za nedovolené bránění', chance: 0.15 },
+  { minutes: 2, description: 'menší trest za hákování', chance: 0.2 },
+  { minutes: 2, description: 'menší trest za držení', chance: 0.15 },
+  { minutes: 2, description: 'menší trest za sekání', chance: 0.12 },
+  { minutes: 2, description: 'menší trest za nedovolené bránění', chance: 0.12 },
   { minutes: 2, description: 'menší trest za vysokou hůl', chance: 0.1 },
-  { minutes: 4, description: 'dvojitý menší trest za krvavé zranění', chance: 0.1 },
-  { minutes: 5, description: 'větší trest za napadení', chance: 0.05 },
+  { minutes: 2, description: 'menší trest za krosček', chance: 0.08 },
+  { minutes: 2, description: 'menší trest za podražení', chance: 0.08 },
+  { minutes: 4, description: 'dvojitý menší trest za krvavé zranění', chance: 0.08 },
+  { minutes: 5, description: 'větší trest za napadení', chance: 0.04 },
+  { minutes: 5, description: 'větší trest za úder loktem', chance: 0.02 },
+  { minutes: 5, description: 'větší trest za naražení zezadu', chance: 0.01 }
 ];
 
-// Pomocná funkce pro výběr náhodného prvku podle váhy
+// NOVÉ SLOVNÍKY PRO DETAILNÍ POPISY UDÁLOSTÍ
+
+// Adjektiva pro popis střel
+const SHOT_ADJECTIVES = [
+  'tvrdou', 'ostrou', 'prudkou', 'nechytatelnou', 'razantní', 'nebezpečnou', 
+  'přesnou', 'překvapivou', 'pohotovou', 'dělovitou', 'technickou', 'křižnou',
+  'rychlou', 'pumelici', 'perfektně umístěnou', 'nepříjemnou'
+];
+
+// Způsoby provedení střely
+const SHOT_TYPES = [
+  'z první', 'bez přípravy', 'po rychlé kombinaci', 'z otočky', 'z mezikruží',
+  'po objetí branky', 'po přihrávce zpoza branky', 'po individuálním průniku',
+  'z pravého kruhu', 'z levého kruhu', 'z vrcholu kruhu', 'z osy kluziště',
+  'po přečíslení', 'z dorážky', 'golfovým úderem', 'po kličce'
+];
+
+// Místa střely
+const SHOT_TARGETS = [
+  'do horního rohu', 'k bližší tyči', 'k vzdálenější tyči', 'mezi betony',
+  'pod vyrážečku', 'nad lapačku', 'do horního rohu', 'do šibenice',
+  'po ledě', 'nad branku', 'vedle branky', 'těsně nad břevno',
+  'do protipohybu brankáře', 'do brankoviště'
+];
+
+// Popisy brankářských zákroků
+const SAVE_DESCRIPTIONS = [
+  'vyrazil lapačkou', 'chytil do lapačky', 'zastavil betonem', 'vyrazil vyrážečkou',
+  'se štěstím zastavil', 'reflexivně vykopl', 'chytil na druhý pokus',
+  'schoval pod lapačku', 'zlikvidoval', 'skvěle vyrazil', 'famózně zneškodnil',
+  'vyrazil ramenem', 'zastavil tělem', 'ukryl pod betony', 'vykopl pravým betonem',
+  'zneškodnil bleskovou reakcí', 'vytěsnil konečky prstů'
+];
+
+// Popis přihrávek
+const PASS_DESCRIPTIONS = [
+  'přesnou přihrávkou našel', 'výborně přihrál na', 'poslal přihrávku mezi kruhy na',
+  'zpoza branky poslal kotouč na', 'posunul puk na', 'bekhendem našel přihrávkou',
+  'přihrál z první na', 'poslal kotouč křižně na', 'z otočky přihrál na',
+  'dokonale našel volného', 'přes dva hráče poslal puk na', 'zpětnou přihrávkou vybídl',
+  'předložil puk ideálně pro', 'posunul na modrou čáru na'
+];
+
+// Popis bodyčeků
+const HIT_DESCRIPTIONS = [
+  'tvrdě bodyčekoval', 'atakoval u mantinelu', 'složil čistým hitem',
+  'poslal k ledu', 'přišpendlil na mantinel', 'vystavil do cesty jasný bodyček',
+  'důrazně zastavil', 'nemilosrdně sundal', 'složil na led drtivým hitem',
+  'vybodoval v souboji u hrazení', 'atakoval ramenem', 'tvrdě dohrál'
+];
+
+// Popis ztráty puku
+const TURNOVER_DESCRIPTIONS = [
+  'pod tlakem ztratil kotouč', 'neudržel puk na holi', 'pokazil rozehrávku',
+  'přišel o puk v souboji s', 'ztratil kontrolu nad pukem', 'nahrál přímo na hokejku',
+  'byl okraden o puk hráčem', 'přišel o kotouč po důrazu', 'chyboval v rozehrávce',
+  'neudržel puk na útočné modré', 'přehodil hrazení a poslal kotouč mimo hru',
+  'udělal chybu v rozehrávce a daroval puk'
+];
+
+// Popis obranných zákroků
+const DEFENSE_DESCRIPTIONS = [
+  'skvěle vypíchnul kotouč', 'zablokoval přihrávku', 'výborně přečetl hru a zachytil kotouč',
+  'byl první u puku a odvrátil nebezpečí', 'obětavě padl do střely', 'dobrým postavením zabránil šanci',
+  'výborným zákrokem zmařil útočnou akci', 'odebral puk čistým zákrokem', 'přečetl přihrávku a zachytil ji',
+  'vytlačil soupeře z ideální pozice', 'vypíchnul puk v poslední chvíli'
+];
+
+// Popis blokování střel
+const BLOCK_DESCRIPTIONS = [
+  'obětavě zablokoval střelu', 'vrhnul se pod puk', 'skvěle si lehl do střely',
+  'nastavil tělo a zablokoval ránu', 'tělem zastavil nebezpečný pokus', 'obětavým skluzem zblokoval střelu',
+  'položil se na led a zabránil střele projít', 'prudkou ránu zastavil vlastním tělem',
+  'statečně nastavil holeně', 'blokoval střelu za cenu bolesti'
+];
+
+// Způsoby gólu
+const GOAL_DESCRIPTIONS = [
+  'zavěsil přesně nad rameno brankáře', 'propálil brankáře', 'trefil přesně k tyči',
+  'uklidil puk do prázdné branky', 'doklepnul kotouč do sítě', 'prostřelil gólmana mezi betony',
+  'překonal brankáře střelou do šibenice', 'trefil se nechytatelně po ledě k tyči',
+  'poslal puk přesně nad lapačku', 'zavěsil efektně pod břevno', 'nachytal brankáře střelou na bližší tyč',
+  'propálil vše, co mu stálo v cestě', 'rychlou kličkou obhodil gólmana a skóroval',
+  'prudkou ranou nedal brankáři šanci', 'dorazil odražený puk do sítě'
+];
+
+// Způsoby přečíslení
+const ODD_MAN_RUSH = [
+  'přečíslení 2 na 1', 'přečíslení 3 na 2', 'brejk', 'únik', 'rychlý protiútok',
+  'početní výhodu', 'výhodu přečíslení', 'samostatný únik'
+];
+
+// Pomocné funkce
 const selectRandomByWeight = (items) => {
   const totalWeight = Object.values(items).reduce((sum, weight) => sum + weight, 0);
   let random = Math.random() * totalWeight;
@@ -58,17 +154,14 @@ const selectRandomByWeight = (items) => {
   return Object.keys(items)[0];
 };
 
-// Pomocná funkce pro výběr náhodného prvku z pole
 const selectRandomFrom = (items) => {
   if (!items || items.length === 0) return null;
   return items[Math.floor(Math.random() * items.length)];
 };
 
-// Pomocná funkce pro výběr náhodného prvku z pole s pravděpodobnostmi
 const selectRandomWithChance = (items) => {
   if (!items || items.length === 0) return null;
   
-  // Kumulativní pravděpodobnosti
   let cumulative = 0;
   const ranges = items.map(item => {
     cumulative += item.chance;
@@ -79,9 +172,153 @@ const selectRandomWithChance = (items) => {
   return ranges.find(item => random <= item.maxRange) || items[0];
 };
 
-// Pomocná funkce pro výběr náhodného trestu
 const selectRandomPenalty = () => {
   return selectRandomWithChance(PENALTY_TYPES);
+};
+
+// Funkce pro vylepšený popis události
+const createEnhancedDescription = (eventType, data) => {
+  const { attacker, defender, team, teamName, opposingTeamName, goalie, assistants = [] } = data;
+  const attackerName = `${attacker.name} ${attacker.surname}${attacker.isPlayer ? ' (Ty!)' : ''}`;
+  
+  // Funkce získá jméno týmu s velkým prvním písmenem
+  const formatTeamName = (name) => {
+    return name.charAt(0).toUpperCase() + name.slice(1);
+  };
+  
+  switch(eventType) {
+    case 'shot': {
+      const adjective = selectRandomFrom(SHOT_ADJECTIVES);
+      const shotType = selectRandomFrom(SHOT_TYPES);
+      const target = selectRandomFrom(SHOT_TARGETS);
+      
+      return `🏒 ${attackerName} (${formatTeamName(teamName)}) vystřelil ${adjective} ránu ${shotType} ${target}!`;
+    }
+    
+    case 'goal': {
+      const goalDescription = selectRandomFrom(GOAL_DESCRIPTIONS);
+      let description = `🚨 GÓÓÓL! ${attackerName} (${formatTeamName(teamName)}) ${goalDescription}`;
+      
+      // Přidání asistentů, pokud existují
+      if (assistants.length > 0) {
+        const assistant1Name = `${assistants[0].name} ${assistants[0].surname}${assistants[0].isPlayer ? ' (Ty!)' : ''}`;
+        
+        if (assistants.length === 1) {
+          description += ` po přihrávce od ${assistant1Name}`;
+        } else {
+          const assistant2Name = `${assistants[1].name} ${assistants[1].surname}${assistants[1].isPlayer ? ' (Ty!)' : ''}`;
+          description += ` po souhře ${assistant1Name} a ${assistant2Name}`;
+        }
+      }
+      
+      description += '!';
+      
+      // Občas přidáme informaci o skóre
+      if (Math.random() > 0.5 && data.score) {
+        description += ` Stav utkání je nyní ${data.score[team]}:${data.score[team === 'white' ? 'black' : 'white']}.`;
+      }
+      
+      return description;
+    }
+    
+    case 'save': {
+      if (!goalie) return null;
+      
+      const adjective = selectRandomFrom(SHOT_ADJECTIVES);
+      const shotType = selectRandomFrom(SHOT_TYPES);
+      const saveDescription = selectRandomFrom(SAVE_DESCRIPTIONS);
+      const goalieName = `${goalie.name} ${goalie.surname}${goalie.isPlayer ? ' (Ty!)' : ''}`;
+      
+      return `🧤 Zákrok! ${goalieName} (${formatTeamName(opposingTeamName)}) ${saveDescription} ${adjective} střelu ${attackerName} ${shotType}.`;
+    }
+    
+    case 'block': {
+      if (!defender) return null;
+      
+      const blockDescription = selectRandomFrom(BLOCK_DESCRIPTIONS);
+      const defenderName = `${defender.name} ${defender.surname}${defender.isPlayer ? ' (Ty!)' : ''}`;
+      
+      return `🛡️ Blok! ${defenderName} (${formatTeamName(opposingTeamName)}) ${blockDescription} od ${attackerName}!`;
+    }
+    
+    case 'miss': {
+      const shotType = selectRandomFrom(SHOT_TYPES);
+      
+      return `💨 ${attackerName} (${formatTeamName(teamName)}) vyslal střelu ${shotType}, ale minul branku a puk letí mimo!`;
+    }
+    
+    case 'pass': {
+      if (!data.receiver) return null;
+      
+      const passDescription = selectRandomFrom(PASS_DESCRIPTIONS);
+      const receiverName = `${data.receiver.name} ${data.receiver.surname}${data.receiver.isPlayer ? ' (Ty!)' : ''}`;
+      
+      return `🔄 ${attackerName} (${formatTeamName(teamName)}) ${passDescription} ${receiverName}.`;
+    }
+    
+    case 'defense': {
+      if (!defender) return null;
+      
+      const defenseDescription = selectRandomFrom(DEFENSE_DESCRIPTIONS);
+      const defenderName = `${defender.name} ${defender.surname}${defender.isPlayer ? ' (Ty!)' : ''}`;
+      
+      return `🛡️ ${defenderName} (${formatTeamName(opposingTeamName)}) ${defenseDescription} v souboji s ${attackerName}.`;
+    }
+    
+    case 'hit': {
+      if (!defender) return null;
+      
+      const hitDescription = selectRandomFrom(HIT_DESCRIPTIONS);
+      const defenderName = `${defender.name} ${defender.surname}${defender.isPlayer ? ' (Ty!)' : ''}`;
+      
+      return `💥 ${attackerName} (${formatTeamName(teamName)}) ${hitDescription} ${defenderName}!`;
+    }
+    
+    case 'turnover': {
+      const turnoverDescription = selectRandomFrom(TURNOVER_DESCRIPTIONS);
+      
+      // Někdy přidáme jméno obránce
+      if (defender && Math.random() > 0.5) {
+        const defenderName = `${defender.name} ${defender.surname}${defender.isPlayer ? ' (Ty!)' : ''}`;
+        return `🔄 ${attackerName} (${formatTeamName(teamName)}) ${turnoverDescription} ${defenderName}.`;
+      }
+      
+      return `🔄 ${attackerName} (${formatTeamName(teamName)}) ${turnoverDescription}.`;
+    }
+    
+    case 'icing': {
+      const icingVariants = [
+        `❄️ Zakázané uvolnění týmu ${formatTeamName(teamName)}. Bude se vhazovat v obranném pásmu.`,
+        `❄️ ${formatTeamName(teamName)} posílají kotouč přes všechny čáry! Rozhodčí odpískává zakázané uvolnění.`,
+        `❄️ Puk přeletěl přes celé kluziště! Zakázané uvolnění proti týmu ${formatTeamName(teamName)}.`
+      ];
+      
+      return selectRandomFrom(icingVariants);
+    }
+    
+    case 'offside': {
+      const offsideVariants = [
+        `🚫 Ofsajd týmu ${formatTeamName(teamName)}. Rozhodčí přerušuje hru, puk opustil útočné pásmo.`,
+        `🚫 ${formatTeamName(teamName)} při vstupu do pásma přechází modrou čáru nepovoleně! Rozhodčí signalizuje ofsajd.`,
+        `🚫 ${attackerName} vstupuje do pásma příliš brzy. Čárový rozhodčí odpískává ofsajd.`
+      ];
+      
+      return selectRandomFrom(offsideVariants);
+    }
+    
+    case 'penalty': {
+      const penalty = data.penalty;
+      
+      if (!penalty) return null;
+      
+      return `😠 ${attackerName} (${formatTeamName(teamName)}) dostává ${penalty.minutes} minuty za ${penalty.description}! ${
+        Math.random() > 0.5 ? `${formatTeamName(opposingTeamName)} budou hrát v přesilovce.` : ''
+      }`;
+    }
+    
+    default: 
+      return null;
+  }
 };
 
 // Funkce pro generování náhodné události
@@ -131,20 +368,13 @@ const generateRandomEvent = (gameTime, teamState, teams, score, highlightPlayers
   if (!attacker) return null;
   
   // Příprava textu pro týmy
-  const attackingTeamName = attackingTeamId === 'white' ? 'Bílí' : 'Černí';
-  const defendingTeamName = defendingTeamId === 'white' ? 'Bílí' : 'Černí';
-  
-  // Funkce pro formátování jména hráče s označením, zda je to hráč ovládaný uživatelem
-  const formatPlayerName = (player) => {
-    if (!player) return 'Neznámý hráč';
-    return `${player.name} ${player.surname}${player.isPlayer ? ' (Ty!)' : ''}`;
-  };
+  const attackingTeamName = attackingTeamId === 'white' ? 'bílí' : 'černí';
+  const defendingTeamName = defendingTeamId === 'white' ? 'bílí' : 'černí';
   
   // Zpracujeme událost podle jejího typu
   switch(eventType) {
     case 'shot': {
       event.player = attacker;
-      event.description = `🏒 ${formatPlayerName(attacker)} (${attackingTeamName}) vystřelil na bránu!`;
       
       // Určíme následnou událost (gól, zákrok, blok...)
       let shotModifier = 0;
@@ -176,10 +406,12 @@ const generateRandomEvent = (gameTime, teamState, teams, score, highlightPlayers
         switch(followUp.type) {
           case 'goal': {
             // Zvýšíme skóre
-            setScore(prev => ({ 
-              ...prev, 
-              [attackingTeamId]: prev[attackingTeamId] + 1 
-            }));
+            if (setScore) {
+              setScore(prev => ({ 
+                ...prev, 
+                [attackingTeamId]: prev[attackingTeamId] + 1 
+              }));
+            }
             
             // Vybereme náhodně asistujícího hráče
             const possibleAssists = attackingFieldPlayers.filter(p => p.key !== attacker.key);
@@ -187,12 +419,33 @@ const generateRandomEvent = (gameTime, teamState, teams, score, highlightPlayers
               ? selectRandomFrom(possibleAssists)
               : null;
             
+            // Někdy přidáme i druhého asistenta
+            let secondAssistant = null;
+            if (assistant && possibleAssists.length > 1 && Math.random() > 0.5) {
+              const possibleSecondAssists = possibleAssists.filter(p => p.key !== assistant.key);
+              secondAssistant = possibleSecondAssists.length > 0 
+                ? selectRandomFrom(possibleSecondAssists)
+                : null;
+            }
+            
             event.assistant = assistant;
+            event.secondAssistant = secondAssistant;
             event.goalieKey = defendingGoalie?.key;
-            event.description = `🚨 GÓÓÓL! ${formatPlayerName(attacker)} (${attackingTeamName}) skóruje${assistant ? ` po přihrávce od ${formatPlayerName(assistant)}` : ''}!`;
+            
+            // Vytvoříme vylepšený popis gólu
+            event.description = createEnhancedDescription('goal', {
+              attacker,
+              team: attackingTeamId,
+              teamName: attackingTeamName, 
+              opposingTeamName: defendingTeamName,
+              assistants: [assistant, secondAssistant].filter(Boolean),
+              score
+            });
             
             // Zvýrazníme hráče
-            highlightPlayersFn([attacker.key, assistant?.key].filter(Boolean));
+            if (highlightPlayersFn) {
+              highlightPlayersFn([attacker.key, assistant?.key].filter(Boolean));
+            }
             break;
           }
           
@@ -200,10 +453,18 @@ const generateRandomEvent = (gameTime, teamState, teams, score, highlightPlayers
             if (defendingGoalie) {
               event.player = defendingGoalie;
               event.shooter = attacker;
-              event.description = `🧤 Zákrok! ${formatPlayerName(defendingGoalie)} (${defendingTeamName}) chytá ${followUp.description} ${formatPlayerName(attacker)}.`;
+              
+              event.description = createEnhancedDescription('save', {
+                attacker,
+                goalie: defendingGoalie,
+                teamName: attackingTeamName,
+                opposingTeamName: defendingTeamName
+              });
               
               // Zvýrazníme hráče
-              highlightPlayersFn([defendingGoalie.key, attacker.key]);
+              if (highlightPlayersFn) {
+                highlightPlayersFn([defendingGoalie.key, attacker.key]);
+              }
             }
             break;
           }
@@ -212,22 +473,47 @@ const generateRandomEvent = (gameTime, teamState, teams, score, highlightPlayers
             if (specificDefender) {
               event.player = specificDefender;
               event.attacker = attacker;
-              event.description = `🛡️ Blok! ${formatPlayerName(specificDefender)} (${defendingTeamName}) zablokoval ${followUp.description} ${formatPlayerName(attacker)}!`;
+              
+              event.description = createEnhancedDescription('block', {
+                attacker,
+                defender: specificDefender,
+                teamName: attackingTeamName,
+                opposingTeamName: defendingTeamName
+              });
               
               // Zvýrazníme hráče
-              highlightPlayersFn([specificDefender.key, attacker.key]);
+              if (highlightPlayersFn) {
+                highlightPlayersFn([specificDefender.key, attacker.key]);
+              }
             }
             break;
           }
           
           case 'miss': {
             event.player = attacker;
-            event.description = `💨 Střela vedle! ${formatPlayerName(attacker)} (${attackingTeamName}) minul branku.`;
+            
+            event.description = createEnhancedDescription('miss', {
+              attacker,
+              teamName: attackingTeamName
+            });
             
             // Zvýrazníme hráče
-            highlightPlayersFn(attacker.key);
+            if (highlightPlayersFn) {
+              highlightPlayersFn(attacker.key);
+            }
             break;
           }
+        }
+      } else {
+        // Pokud není následná událost, vytvoříme popis střely
+        event.description = createEnhancedDescription('shot', {
+          attacker,
+          teamName: attackingTeamName
+        });
+        
+        // Zvýrazníme hráče
+        if (highlightPlayersFn) {
+          highlightPlayersFn(attacker.key);
         }
       }
       break;
@@ -242,18 +528,31 @@ const generateRandomEvent = (gameTime, teamState, teams, score, highlightPlayers
       if (receiver) {
         event.player = attacker;
         event.receiver = receiver;
-        event.description = `🔄 ${formatPlayerName(attacker)} (${attackingTeamName}) přihrává na ${formatPlayerName(receiver)}.`;
+        
+        event.description = createEnhancedDescription('pass', {
+          attacker,
+          receiver,
+          teamName: attackingTeamName
+        });
         
         // Zvýrazníme hráče
-        highlightPlayersFn([attacker.key, receiver.key]);
+        if (highlightPlayersFn) {
+          highlightPlayersFn([attacker.key, receiver.key]);
+        }
       } else {
         // Pokud nemáme komu přihrát, změníme na jiný typ události
         event.type = 'turnover';
         event.player = attacker;
-        event.description = `🔄 ${formatPlayerName(attacker)} (${attackingTeamName}) se snaží přihrát, ale nikdo není volný.`;
+        
+        event.description = createEnhancedDescription('turnover', {
+          attacker,
+          teamName: attackingTeamName
+        });
         
         // Zvýrazníme hráče
-        highlightPlayersFn(attacker.key);
+        if (highlightPlayersFn) {
+          highlightPlayersFn(attacker.key);
+        }
       }
       break;
     }
@@ -261,10 +560,18 @@ const generateRandomEvent = (gameTime, teamState, teams, score, highlightPlayers
     case 'defense': {
       if (specificDefender) {
         event.player = specificDefender;
-        event.description = `🛡️ ${formatPlayerName(specificDefender)} (${defendingTeamName}) předvádí dobrý obranný zákrok.`;
+        
+        event.description = createEnhancedDescription('defense', {
+          defender: specificDefender,
+          attacker,
+          teamName: defendingTeamName,
+          opposingTeamName: attackingTeamName
+        });
         
         // Zvýrazníme hráče
-        highlightPlayersFn(specificDefender.key);
+        if (highlightPlayersFn) {
+          highlightPlayersFn(specificDefender.key);
+        }
       }
       break;
     }
@@ -273,10 +580,17 @@ const generateRandomEvent = (gameTime, teamState, teams, score, highlightPlayers
       if (defender) {
         event.player = attacker;
         event.target = defender;
-        event.description = `💥 ${formatPlayerName(attacker)} (${attackingTeamName}) tvrdě bodyčekuje ${formatPlayerName(defender)}!`;
+        
+        event.description = createEnhancedDescription('hit', {
+          attacker,
+          defender,
+          teamName: attackingTeamName
+        });
         
         // Zvýrazníme hráče
-        highlightPlayersFn([attacker.key, defender.key]);
+        if (highlightPlayersFn) {
+          highlightPlayersFn([attacker.key, defender.key]);
+        }
         
         // Kontrola, zda po bodyčeku následuje další událost (trest, ztráta puku)
         const followUp = selectRandomWithChance(FOLLOW_UP_EVENTS.hit);
@@ -288,7 +602,10 @@ const generateRandomEvent = (gameTime, teamState, teams, score, highlightPlayers
             event.type = 'penalty';
             event.player = attacker;
             event.penaltyMinutes = penalty.minutes;
-            event.description = `😠 ${formatPlayerName(attacker)} (${attackingTeamName}) dostává ${penalty.minutes} minuty za ${penalty.description} po tvrdém bodyčeku!`;
+            
+            event.description = `😠 ${attacker.name} ${attacker.surname} ${attacker.isPlayer ? '(Ty!)' : ''} (${attackingTeamId === 'white' ? 'Bílí' : 'Černí'}) dostává ${penalty.minutes} minuty za ${penalty.description}! ${
+              Math.random() > 0.5 ? `${defendingTeamId === 'white' ? 'Bílí' : 'Černí'} budou hrát v přesilovce.` : ''
+            }`;
           }
         }
       }
@@ -297,22 +614,37 @@ const generateRandomEvent = (gameTime, teamState, teams, score, highlightPlayers
     
     case 'turnover': {
       event.player = attacker;
-      event.description = `🔄 ${formatPlayerName(attacker)} (${attackingTeamName}) ztrácí puk.`;
+      
+      event.description = createEnhancedDescription('turnover', {
+        attacker,
+        defender,
+        teamName: attackingTeamName,
+        opposingTeamName: defendingTeamName
+      });
       
       // Zvýrazníme hráče
-      highlightPlayersFn(attacker.key);
+      if (highlightPlayersFn) {
+        highlightPlayersFn(attacker.key);
+      }
       break;
     }
     
     case 'icing': {
       event.team = attackingTeamId;
-      event.description = `❄️ Zakázané uvolnění týmu ${attackingTeamName}.`;
+      
+      event.description = createEnhancedDescription('icing', {
+        teamName: attackingTeamName
+      });
       break;
     }
     
     case 'offside': {
       event.team = attackingTeamId;
-      event.description = `🚫 Ofsajd týmu ${attackingTeamName}.`;
+      
+      event.description = createEnhancedDescription('offside', {
+        attacker,
+        teamName: attackingTeamName
+      });
       break;
     }
     
@@ -322,10 +654,15 @@ const generateRandomEvent = (gameTime, teamState, teams, score, highlightPlayers
       if (penalty) {
         event.player = attacker;
         event.penaltyMinutes = penalty.minutes;
-        event.description = `😠 ${formatPlayerName(attacker)} (${attackingTeamName}) dostává ${penalty.minutes} minuty za ${penalty.description}!`;
+        
+        event.description = `😠 ${attacker.name} ${attacker.surname} ${attacker.isPlayer ? '(Ty!)' : ''} (${attackingTeamId === 'white' ? 'Bílí' : 'Černí'}) dostává ${penalty.minutes} minuty za ${penalty.description}! ${
+          Math.random() > 0.5 ? `${defendingTeamId === 'white' ? 'Bílí' : 'Černí'} budou hrát v přesilovce.` : ''
+        }`;
         
         // Zvýrazníme hráče
-        highlightPlayersFn(attacker.key);
+        if (highlightPlayersFn) {
+          highlightPlayersFn(attacker.key);
+        }
       }
       break;
     }
@@ -340,59 +677,50 @@ class HockeyEventsGenerator {
     this.lastEventTime = 0;
     this.nextEventTime = 0;
     this.processedEventIds = new Set();
+    console.log("✅ Vylepšený hokejový generátor událostí inicializován.");
   }
   
-  // Vyčistí generátor pro nový zápas
   reset() {
     this.lastEventTime = 0;
     this.nextEventTime = 0;
     this.processedEventIds.clear();
+    console.log("🔄 Hokejový generátor událostí resetován.");
   }
   
-  // Naplánování další události
   scheduleNextEvent() {
-    // Náhodný čas do další události (mezi MIN a MAX EVENT_SPACING)
     const timeToNextEvent = MIN_EVENT_SPACING + Math.random() * (MAX_EVENT_SPACING - MIN_EVENT_SPACING);
     this.nextEventTime = this.lastEventTime + timeToNextEvent;
   }
   
-  // Kontrola, zda se má generovat nová událost
   shouldGenerateEvent(currentTime) {
-    // Pokud ještě nemáme naplánovanou další událost, naplánujeme ji
     if (this.nextEventTime === 0) {
       this.scheduleNextEvent();
       return false;
     }
     
-    // Kontrolujeme, zda jsme dosáhli naplánovaného času pro událost
     return currentTime >= this.nextEventTime;
   }
   
-  // Hlavní metoda pro vygenerování nové události
+  // DŮLEŽITÉ - Toto je metoda, která je volána z OldaHockeyMatch.js
   generateEvent(currentTime, gameState) {
     const { teamState, teams, score, setScore, triggerHighlight } = gameState;
     
-    // Pokud by se neměla generovat událost, vrátíme null
     if (!this.shouldGenerateEvent(currentTime)) {
       return null;
     }
     
-    // Vygenerujeme událost
     const event = generateRandomEvent(currentTime, teamState, teams, score, triggerHighlight, setScore);
     
-    // Aktualizujeme čas poslední události a naplánujeme další
     this.lastEventTime = currentTime;
     this.scheduleNextEvent();
     
     return event;
   }
   
-  // Metoda pro sledování zpracovaných událostí (aby nedošlo k duplicitám)
   markEventAsProcessed(eventId) {
     this.processedEventIds.add(eventId);
   }
   
-  // Kontrola, zda byla událost již zpracována
   isEventProcessed(eventId) {
     return this.processedEventIds.has(eventId);
   }
