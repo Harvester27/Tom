@@ -767,8 +767,10 @@ const HockeyMatch = ({ onBack, onGameComplete, assignedJerseys, playerName = 'No
   // --- Handle Start/Pause ---
   const handleStartPause = () => {
     if (gameState === 'playing') {
+      console.log("⏸️ Pausing game");
       setGameState('paused');
     } else if (gameState === 'paused' || gameState === 'warmup') {
+      console.log("▶️ Starting/resuming game")
       setGameState('playing');
     }
   };
@@ -1215,17 +1217,24 @@ const HockeyMatch = ({ onBack, onGameComplete, assignedJerseys, playerName = 'No
     let intervalId;
 
     const gameTick = () => {
+      console.log("📢 gameTick called, current time:", gameTime, "gameState:", gameState);
+      
       setGameTime(prevTime => {
         const timeIncrement = gameSpeed;
         const newTime = Math.min(GAME_DURATION_SECONDS, prevTime + timeIncrement);
-
+    
+        console.log(`📊 Time update attempt: ${prevTime} -> ${newTime} (speed: ${gameSpeed})`);
+        
         if (newTime >= GAME_DURATION_SECONDS && prevTime < GAME_DURATION_SECONDS) {
-          setGameState('finished');
           console.log("🏁 Game finished!");
+          setGameState('finished');
           return GAME_DURATION_SECONDS;
         }
-
-        if (gameState !== 'playing') return prevTime;
+    
+        if (gameState !== 'playing') {
+          console.log("⚠️ Game not playing, time not updated");
+          return prevTime;
+        }
 
         // --- Změna periody ---
         const newPeriod = Math.min(3, Math.floor(newTime / PERIOD_DURATION_SECONDS) + 1);
@@ -1377,15 +1386,18 @@ const HockeyMatch = ({ onBack, onGameComplete, assignedJerseys, playerName = 'No
             }
           }
         }
+        console.log("✅ Time successfully updated to:", newTime);
         return newTime; // Return the new game time
       });
     };
 
     // Spustíme interval, který volá gameTick každou sekundu
+    console.log("⏱️ Setting up gameTick interval");
     intervalId = setInterval(gameTick, 1000);
 
     // Funkce pro vyčištění intervalu
     return () => {
+      console.log("🧹 Cleaning up gameTick interval");
       if (intervalId) {
         clearInterval(intervalId);
       }
