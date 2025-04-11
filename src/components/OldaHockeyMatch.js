@@ -14,13 +14,14 @@ import {
 import clsx from 'clsx';
 
 // Importujeme komponenty z nového souboru
-import { PlayerStatus, TeamTable, PlayerSpecialAction, formatTimeOnIce, getEventIcon } from './HockeyComponents';
+import { PlayerStatus, TeamTable, PlayerSpecialAction, formatTimeOnIce, getEventIcon, EventDetail } from './HockeyComponents';
+import HockeyEventsGenerator from './HockeyEventsGenerator';
 
 // --- Constants ---
 const GAME_DURATION_SECONDS = 60 * 90; // 90 minut (od 16:30 do 18:00)
 const PERIOD_DURATION_SECONDS = GAME_DURATION_SECONDS / 3;
 const MAX_SPEED = 64;
-const EVENT_CHECK_INTERVAL = 15; // V sekundách herního času
+const EVENT_CHECK_INTERVAL = 5; // Zkráceno pro častější kontroly událostí
 
 // Konstanty pro střídání a únavu
 const SHIFT_DURATION = 60;
@@ -164,6 +165,7 @@ const HockeyMatch = ({ onBack, onGameComplete, assignedJerseys, playerName = 'No
   const processedEventRef = useRef(null);
   const processedEventIdsRef = useRef(new Set());
   const recentlySubstitutedRef = useRef(new Set());
+  const eventsGeneratorRef = useRef(new HockeyEventsGenerator());
 
   // --- State ---
   const [gameState, setGameState] = useState('warmup');
@@ -178,6 +180,7 @@ const HockeyMatch = ({ onBack, onGameComplete, assignedJerseys, playerName = 'No
   const [showExitConfirm, setShowExitConfirm] = useState(false);
   const [specialAction, setSpecialAction] = useState(null);
   const [lastSpecialActionTime, setLastSpecialActionTime] = useState(0);
+  const [showDetailedStats, setShowDetailedStats] = useState(false);
   
   // KLÍČOVÁ OPRAVA: Separátní state pro sledování hráčů na ledě 
   // Ten budeme používat VÝHRADNĚ pro UI rendering

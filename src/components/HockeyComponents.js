@@ -9,13 +9,17 @@ import {
   HandRaisedIcon,
   ShieldCheckIcon,
   ExclamationTriangleIcon,
-  ClockIcon
+  ClockIcon,
+  PaperAirplaneIcon,
+  BoltIcon,
+  ArrowPathIcon,
+  CursorArrowRaysIcon,
+  NoSymbolIcon,
+  FingerPrintIcon,
+  WrenchIcon
 } from '@heroicons/react/24/solid';
 import { InformationCircleIcon } from '@heroicons/react/24/outline';
 import clsx from 'clsx';
-
-// Importujeme litvinovLancers z datové složky
-// import { litvinovLancers } from '../data/LitvinovLancers';
 
 // --- Helper Functions ---
 export const formatTimeOnIce = (totalSeconds) => {
@@ -27,15 +31,35 @@ export const formatTimeOnIce = (totalSeconds) => {
 
 export const getEventIcon = (type) => {
   switch (type) {
-    case 'goal': return <FlagIcon className="h-5 w-5 text-green-400" />;
-    case 'save': return <HandRaisedIcon className="h-5 w-5 text-blue-400" />;
-    case 'defense': return <ShieldCheckIcon className="h-5 w-5 text-orange-400" />;
-    case 'penalty': return <ExclamationTriangleIcon className="h-5 w-5 text-red-500" />;
-    case 'period_change': return <ClockIcon className="h-5 w-5 text-indigo-400" />;
-    case 'substitution': return <UserGroupIcon className="h-5 w-5 text-teal-400" />;
-    case 'miss': return <XMarkSolidIcon className="h-5 w-5 text-gray-500" />;
-    case 'turnover': return <InformationCircleIcon className="h-5 w-5 text-purple-400 transform rotate-90" />;
-    default: return <InformationCircleIcon className="h-5 w-5 text-gray-600" />;
+    case 'goal': 
+      return <FlagIcon className="h-5 w-5 text-green-400" title="Gól" />;
+    case 'save': 
+      return <HandRaisedIcon className="h-5 w-5 text-blue-400" title="Zákrok brankáře" />;
+    case 'defense': 
+    case 'block': 
+      return <ShieldCheckIcon className="h-5 w-5 text-orange-400" title="Obranný zákrok" />;
+    case 'penalty': 
+      return <ExclamationTriangleIcon className="h-5 w-5 text-red-500" title="Trest" />;
+    case 'period_change': 
+      return <ClockIcon className="h-5 w-5 text-indigo-400" title="Změna třetiny" />;
+    case 'substitution': 
+      return <UserGroupIcon className="h-5 w-5 text-teal-400" title="Střídání" />;
+    case 'miss': 
+      return <XMarkSolidIcon className="h-5 w-5 text-gray-500" title="Střela mimo" />;
+    case 'shot': 
+      return <CursorArrowRaysIcon className="h-5 w-5 text-yellow-400" title="Střela" />;
+    case 'pass': 
+      return <PaperAirplaneIcon className="h-5 w-5 text-cyan-400" title="Přihrávka" />;
+    case 'hit': 
+      return <BoltIcon className="h-5 w-5 text-orange-500" title="Bodyček" />;
+    case 'turnover': 
+      return <ArrowPathIcon className="h-5 w-5 text-amber-400" title="Ztráta puku" />;
+    case 'icing': 
+      return <FingerPrintIcon className="h-5 w-5 text-blue-300" title="Zakázané uvolnění" />;
+    case 'offside': 
+      return <NoSymbolIcon className="h-5 w-5 text-red-300" title="Ofsajd" />;
+    default: 
+      return <InformationCircleIcon className="h-5 w-5 text-gray-600" title="Událost" />;
   }
 };
 
@@ -249,7 +273,9 @@ export const TeamTable = React.memo(({ teamData, teamColor, teamState, playerSta
                   shots: 0, 
                   saves: 0, 
                   savePercentage: 0, 
-                  shotsAgainst: 0 
+                  shotsAgainst: 0,
+                  hits: 0,
+                  passes: 0
                 };
 
                 return (
@@ -388,6 +414,65 @@ export const PlayerSpecialAction = ({ action, onOptionSelect }) => {
             <p className="text-gray-300 mb-5">{result.message}</p>
           </div>
         )}
+      </div>
+    </div>
+  );
+};
+
+// --- EventDetail Component --- (Nová komponenta pro vylepšené zobrazení událostí)
+export const EventDetail = ({ event }) => {
+  if (!event) return null;
+  
+  // Formátování času
+  const formatTime = (seconds) => {
+    const minutes = Math.floor(seconds / 60);
+    const remainderSeconds = seconds % 60;
+    return `${minutes.toString().padStart(2, '0')}:${remainderSeconds.toString().padStart(2, '0')}`;
+  };
+  
+  // Určení barvy pozadí podle typu události
+  const getBgColor = () => {
+    switch (event.type) {
+      case 'goal': 
+        return 'bg-green-900/30 border-l-4 border-green-500';
+      case 'penalty': 
+        return 'bg-red-900/30 border-l-4 border-red-500';
+      case 'period_change': 
+        return 'bg-indigo-900/30 border-l-4 border-indigo-500';
+      case 'shot': 
+      case 'save': 
+      case 'miss': 
+        return 'bg-yellow-900/20 border-l-4 border-yellow-600';
+      case 'hit': 
+        return 'bg-orange-900/20 border-l-4 border-orange-500';
+      case 'pass': 
+      case 'turnover': 
+        return 'bg-cyan-900/20 border-l-4 border-cyan-600';
+      case 'defense': 
+      case 'block': 
+        return 'bg-blue-900/20 border-l-4 border-blue-500';
+      case 'substitution': 
+        return 'bg-purple-900/20 border-l-4 border-purple-500';
+      case 'icing': 
+      case 'offside': 
+        return 'bg-gray-800/40 border-l-4 border-gray-500';
+      default: 
+        return 'bg-gray-800/30';
+    }
+  };
+  
+  return (
+    <div className={`p-2 rounded-lg ${getBgColor()} ${event.isNew ? 'animate-pulse' : ''}`}>
+      <div className="flex items-start gap-2">
+        <div className="flex-shrink-0 mt-0.5">
+          {getEventIcon(event.type)}
+        </div>
+        <div className="flex-1">
+          <div className="text-sm">{event.description}</div>
+          <div className="text-xs text-gray-400 mt-1">
+            {formatTime(event.time)}
+          </div>
+        </div>
       </div>
     </div>
   );
