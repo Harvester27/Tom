@@ -514,15 +514,23 @@ const PlayerCareer = ({
             onClick: () => {
               if (isGameDay) {
                 // Kontrola, jestli už je správný čas pro hokej
-                const hockeyDate = new Date(2024, 5, 2); // 2. června 2024
-                const currentTimestamp = currentDate.getTime();
-                const minTimeForHockey = new Date(2024, 5, 2);
-                minTimeForHockey.setHours(16, 0, 0, 0); // 16:00
-                
-                if (currentTimestamp < minTimeForHockey.getTime()) {
+                // Vytvoříme správnou kontrolu času
+                // Kontrolujeme, jestli už je alespoň 16:00 v den hokeje (2. června)
+                const hockeyDate = new Date(2024, 5, 2);
+                const isCorrectDay = currentDate.getDate() === hockeyDate.getDate() &&
+                                    currentDate.getMonth() === hockeyDate.getMonth() &&
+                                    currentDate.getFullYear() === hockeyDate.getFullYear();
+
+                // Pokud je správný den, kontrolujeme hodinu
+                if (isCorrectDay && currentHour >= 16) {
+                  // Nastavíme čas na 19:00 a spustíme hokejový zápas
+                  setCurrentHour(19);
+                  updateWeather(currentDate, 19, false);
+                  console.log("Spouštím hokejový zápas s Oldou!");
+                  setShowOldaGame(true);
+                } else {
                   // Pokud je moc brzo, zobrazíme upozornění
-                  // ale nezobrazujeme časový detail znovu, protože už byl zobrazen dříve
-                  alert('Je ještě brzo na hokej! Přijď později.');
+                  alert('Je ještě brzo na hokej! Přijď 2. června od 16:00.');
                   return;
                 }
                 
