@@ -140,55 +140,57 @@ const PlayerCareer = ({
   const goToNextDay = useCallback(() => {
     const nextDay = new Date(currentDate);
     nextDay.setDate(nextDay.getDate() + 1);
-    nextDay.setHours(8, 0, 0, 0);
+    nextDay.setHours(9, 0, 0, 0); // Vždy nastavíme 9:00
     setCurrentDate(nextDay);
-    setCurrentHour(8);
-    updateWeather(nextDay, 8, true); // Force nové počasí pro nový den
+    setCurrentHour(9);
+    updateWeather(nextDay, 9, true); // Force nové počasí pro nový den
     setShowLocationInfo(false);
+  }, [currentDate, updateWeather]);
+
+  // Nová funkce pro ruční změnu času
+  const changeGameTime = useCallback((newHour) => {
+    if (newHour >= 0 && newHour < 24) {
+      setCurrentHour(newHour);
+      
+      // Aktualizujeme počasí s novým časem
+      const date = new Date(currentDate);
+      updateWeather(date, newHour, false);
+      
+      console.log(`Čas změněn na ${newHour}:00`);
+    } else {
+      console.error("Neplatný čas. Zadejte hodnotu mezi 0-23.");
+    }
   }, [currentDate, updateWeather]);
 
   // Přidáme novou funkci pro rychlý skok na den hokejového tréninku
   const goToHockeyDay = useCallback(() => {
     const hockeyDate = new Date(2024, 5, 2); // 2. června 2024
-    hockeyDate.setHours(14, 0, 0, 0); // Nastavíme čas na 14:00, aby byl před tréninkem
+    hockeyDate.setHours(9, 0, 0, 0); // Nastavíme čas na 9:00
     
     setCurrentDate(hockeyDate);
-    setCurrentHour(14);
-    updateWeather(hockeyDate, 14, true);
+    setCurrentHour(9);
+    updateWeather(hockeyDate, 9, true);
     
     console.log("Přesun na den hokejového tréninku:", {
       nové_datum: hockeyDate.toISOString(),
-      nová_hodina: 14
+      nová_hodina: 9
     });
   }, [updateWeather]);
 
   // Referenční proměnná pro kontrolu inicializace počasí
   const weatherInitialized = useRef(false);
   
-  // Efekt pro aktualizaci času a počasí
+  // Efekt pro aktualizaci času a počasí - ODSTRANĚN ČASOVAČ
   useEffect(() => {
-    console.log("🌦️ [WEATHER] Nastavení časovače pro pravidelnou aktualizaci počasí");
+    console.log("🌦️ [WEATHER] Časovač pro pravidelnou aktualizaci počasí je deaktivovaný");
     
-    const interval = setInterval(() => {
-      setCurrentHour(prev => {
-        const newHour = prev + 1;
-        if (newHour >= 24) {
-          goToNextDay();
-          return 9; // Nový den začíná v 9:00
-        }
-        
-        // Aktualizace počasí s novou hodinou - bez FORCE
-        const date = new Date(currentDate);
-        updateWeather(date, newHour, false);
-        return newHour;
-      });
-    }, 120000); // Každé 2 minuty = 1 herní hodina
+    // Jednorázově nastavíme počasí, ale čas se nebude automaticky měnit
+    updateWeather(currentDate, currentHour, false);
 
     return () => {
       console.log("🌦️ [WEATHER] Čištění časovače pro aktualizaci počasí");
-      clearInterval(interval);
     };
-  }, [currentDate, goToNextDay, updateWeather]);
+  }, [currentDate, currentHour, updateWeather]);
   
   // Samostatný efekt pro počáteční nastavení počasí - pouze při startu aplikace
   useEffect(() => {
@@ -269,15 +271,15 @@ const PlayerCareer = ({
       if (hockeyPractice && hockeyPractice.date) {
         console.log("Nastavuji datum podle uloženého hokejového tréninku:", hockeyPractice.date);
         startDate = new Date(hockeyPractice.date);
-        startDate.setHours(9, 0, 0, 0);
+        startDate.setHours(9, 0, 0, 0); // Vždy 9:00
       } else {
         startDate = new Date(2024, 5, 1); // 1. června 2024 (den před tréninkem)
-        startDate.setHours(9, 0, 0, 0);
-        console.log("Nastavuji výchozí datum na 1. června 2024");
+        startDate.setHours(9, 0, 0, 0); // Vždy 9:00
+        console.log("Nastavuji výchozí datum na 1. června 2024, 9:00");
       }
       
       setCurrentDate(startDate);
-      setCurrentHour(9); // Začínáme v 9:00 místo 8:00
+      setCurrentHour(9); // Vždy 9:00
       
       // DŮLEŽITÉ: Nastavíme window._weatherInitialized na true IHNED
       // aby ostatní efekty neprováděly své aktualizace
@@ -389,6 +391,18 @@ const PlayerCareer = ({
       icon: '🏠',
       color: '#FFD700',
       actions: [
+        {
+          name: 'Nastavit čas na 12:00',
+          onClick: () => changeGameTime(12)
+        },
+        {
+          name: 'Nastavit čas na 16:00',
+          onClick: () => changeGameTime(16)
+        },
+        {
+          name: 'Nastavit čas na 20:00',
+          onClick: () => changeGameTime(20)
+        },
         {
           name: 'Jít spát (další den)',
           onClick: goToNextDay
