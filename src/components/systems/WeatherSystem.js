@@ -85,6 +85,20 @@ export const useWeather = (initialDate, initialHour) => {
     const currentTemp = temperature;
     let newWeather = { ...weatherTrend };
 
+    // Kontrola, zda počasí vůbec potřebuje aktualizaci
+    if (typeof window !== 'undefined' && window._lastGeneratedWeatherId) {
+      const currentId = `${date.toDateString()}-${hour}`;
+      if (currentId === window._lastGeneratedWeatherId && !forcedChange) {
+        weatherLog('Přeskakuji generování počasí - už bylo generováno', { currentId });
+        return {
+          type: weather,
+          temperature: temperature,
+          trend: weatherTrend
+        };
+      }
+      window._lastGeneratedWeatherId = currentId;
+    }
+
     // Minimální délka trvání počasí - zabraňuje příliš častým změnám
     const MIN_WEATHER_DURATION = 6; 
     
@@ -92,7 +106,10 @@ export const useWeather = (initialDate, initialHour) => {
     // Kontrolujeme forcedChange, duration <= 0 nebo pokud je speciální časový úsek
     const isSpecialTimeChange = (hour === 8 || hour === 12 || hour === 18);
     const currentDuration = weatherTrend.duration || 0;
-    const allowRandomChange = currentDuration <= 0 || (isSpecialTimeChange && currentDuration < MIN_WEATHER_DURATION);
+    
+    // ZMĚNA: Ignorujeme speciální čas při inicializaci, protože 8:00 je výchozí čas
+    const allowRandomChange = currentDuration <= 0 || 
+      (isSpecialTimeChange && currentDuration < MIN_WEATHER_DURATION && !forcedChange);
     
     // Pravděpodobnost změny počasí závisí na délce trvání současného počasí
     const changeProb = Math.max(0.05, Math.min(0.3, 1 - (currentDuration / 24)));

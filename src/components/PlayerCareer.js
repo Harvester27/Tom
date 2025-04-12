@@ -217,9 +217,9 @@ const PlayerCareer = ({
     return hour < practiceHour;
   }, []);
 
-  // Nastavení počátečního data a stavu
+  // Efekt pro nastavení počátečního času a data
   useEffect(() => {
-    // Určíme počáteční datum založené na hokejovém tréninku nebo výchozí hodnotu
+    // Zkontrolujeme, jestli existuje hokejový trénink a nastavíme počáteční datum podle něj
     let startDate;
     
     if (hockeyPractice && hockeyPractice.date) {
@@ -230,8 +230,18 @@ const PlayerCareer = ({
       startDate.setHours(8, 0, 0, 0);
     }
     
+    // Abychom předešli problémům s inicializací počasí v 8:00, 
+    // nastavíme čas na 9:00, které není "speciální čas"
+    startDate.setHours(9, 0, 0, 0);
+    
     setCurrentDate(startDate);
-    updateWeather(startDate, 8, true); // Nastavit počáteční počasí
+    setCurrentHour(9); // Začínáme v 9:00 místo 8:00
+    
+    // Nastavíme počáteční počasí jednorázově
+    setTimeout(() => {
+      console.log("🌦️ [WEATHER] Inicializace počasí po načtení komponenty");
+      updateWeather(startDate, 9, true);
+    }, 1000); // Krátké zpoždění pro jistotu
   }, [hockeyPractice, updateWeather]);
 
   // Sledování, zda se hráč domluvil na hokeji
