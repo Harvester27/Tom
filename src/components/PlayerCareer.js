@@ -157,14 +157,23 @@ const PlayerCareer = ({
           return 8; // Nový den začíná v 8:00
         }
         
-        // Aktualizace počasí s novou hodinou
+        // Aktualizace počasí s novou hodinou - pouze jednou za herní hodinu
         updateWeather(currentDate, newHour);
         return newHour;
       });
-    }, 30000); // Každých 30 sekund = 1 herní hodina
+    }, 60000); // Každou minutu = 1 herní hodina (prodlouženo pro lepší hratelnost)
 
     return () => clearInterval(interval);
   }, [currentDate, goToNextDay, updateWeather]);
+  
+  // Efekt pro počáteční načtení počasí
+  useEffect(() => {
+    // Pouze při počátečním načtení, vnutíme změnu počasí
+    if (weather === 'clear' && temperature === 22) {
+      console.log('🌡️ Inicializace počasí při startu');
+      updateWeather(currentDate, currentHour, true);
+    }
+  }, []);
 
   // Funkce pro uložení jména hráče
   const savePlayerName = useCallback(() => {
@@ -793,28 +802,30 @@ const PlayerCareer = ({
         
         @keyframes rain {
           0% { background-position: 0% 0%; }
-          100% { background-position: 20% 100%; }
+          100% { background-position: 10% 100%; }
         }
         
         @keyframes snow {
           0% { background-position: 0% 0%; }
-          100% { background-position: 10% 100%; }
+          100% { background-position: 5% 100%; }
         }
 
         @keyframes storm {
-          0%, 100% { opacity: 0.3; }
-          50% { opacity: 0.8; }
+          0% { opacity: 0.2; background-position: 0% 0%; }
+          50% { opacity: 0.5; background-position: 2% 50%; }
+          75% { opacity: 0.7; background-position: 3% 75%; }
+          100% { opacity: 0.2; background-position: 5% 100%; }
         }
 
         @keyframes mixed-precipitation {
           0% { background-position: 0% 0%; }
-          100% { background-position: 15% 100%; }
+          100% { background-position: 8% 100%; }
         }
 
         @keyframes fog {
-          0% { opacity: 0.3; }
-          50% { opacity: 0.6; }
-          100% { opacity: 0.3; }
+          0% { opacity: 0.2; }
+          50% { opacity: 0.4; }
+          100% { opacity: 0.2; }
         }
 
         @keyframes pulse-strong {
@@ -828,43 +839,72 @@ const PlayerCareer = ({
         }
 
         .animate-rain {
-          animation: rain 0.8s linear infinite;
+          animation: rain 3s linear infinite;
           background-size: 100px 100px;
           background-image: repeating-linear-gradient(
+            to bottom,
             transparent 0px,
             transparent 5px,
-            rgba(255, 255, 255, 0.1) 5px,
-            rgba(255, 255, 255, 0.1) 10px
+            rgba(120, 180, 255, 0.15) 5px,
+            rgba(120, 180, 255, 0.15) 10px
           );
         }
 
         .animate-snow {
-          animation: snow 3s linear infinite;
-          background-size: 100px 100px;
+          animation: snow 8s linear infinite;
+          background-size: 200px 200px;
           background-image: radial-gradient(
+            circle at 25% 25%,
+            white 0.5%,
+            transparent 1%
+          ), radial-gradient(
+            circle at 75% 75%,
+            white 0.5%,
+            transparent 1%
+          ), radial-gradient(
             circle at 50% 50%,
-            white 0.1em,
-            transparent 0.2em
+            white 0.5%,
+            transparent 1%
           );
         }
 
         .animate-storm {
-          animation: storm 0.8s linear infinite;
+          animation: storm 5s linear infinite;
+          background-size: 200px 200px;
+          background-image: 
+            radial-gradient(circle at 30% 30%, rgba(180, 160, 255, 0.2) 0%, transparent 5%),
+            radial-gradient(circle at 70% 60%, rgba(180, 160, 255, 0.2) 0%, transparent 5%);
         }
 
         .animate-mixed-precipitation {
-          animation: mixed-precipitation 0.8s linear infinite;
-          background-size: 100px 100px;
-          background-image: repeating-linear-gradient(
-            transparent 0px,
-            transparent 5px,
-            rgba(255, 255, 255, 0.1) 5px,
-            rgba(255, 255, 255, 0.1) 10px
-          );
+          animation: mixed-precipitation 4s linear infinite;
+          background-size: 150px 150px;
+          background-image: 
+            repeating-linear-gradient(
+              to bottom,
+              transparent 0px,
+              transparent 5px,
+              rgba(120, 180, 255, 0.15) 5px,
+              rgba(120, 180, 255, 0.15) 10px
+            ),
+            radial-gradient(
+              circle at 70% 70%,
+              white 0.5%,
+              transparent 1%
+            );
         }
 
         .animate-fog {
-          animation: fog 0.8s linear infinite;
+          animation: fog 10s linear infinite;
+          background-image: 
+            linear-gradient(to bottom, transparent, rgba(200, 200, 220, 0.2)),
+            repeating-linear-gradient(
+              0deg,
+              rgba(200, 200, 220, 0.1) 0px,
+              rgba(200, 200, 220, 0.1) 2px,
+              transparent 2px,
+              transparent 4px
+            );
         }
 
         .animate-pulse-strong {

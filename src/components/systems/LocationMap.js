@@ -29,21 +29,45 @@ export const LocationMap = ({
 
   // Funkce pro získání třídy animace počasí
   const getWeatherAnimationClass = useCallback(() => {
-    if (weather === 'clear' || weather === 'partlyCloudy' || weather === 'cloudy') {
+    if (!weather || weather === 'clear' || weather === 'partlyCloudy' || weather === 'cloudy') {
       return '';
     }
     
     switch (weather) {
       case 'rain': 
-        return 'animate-rain bg-gradient-to-b from-transparent to-blue-500/10';
+        return 'animate-rain';
       case 'thunderstorm': 
-        return 'animate-storm bg-gradient-to-b from-transparent to-purple-500/20';
+        return 'animate-storm';
       case 'snow': 
-        return 'animate-snow bg-gradient-to-b from-transparent to-white/10';
+        return 'animate-snow';
       case 'snowRain': 
-        return 'animate-mixed-precipitation bg-gradient-to-b from-transparent to-blue-500/10';
+        return 'animate-mixed-precipitation';
       case 'fog': 
-        return 'animate-fog bg-gradient-to-b from-gray-400/20 to-gray-400/10';
+        return 'animate-fog';
+      default:
+        return '';
+    }
+  }, [weather]);
+  
+  // Funkce pro získání třídy pozadí podle počasí
+  const getWeatherBackgroundClass = useCallback(() => {
+    if (!weather || weather === 'clear' || weather === 'partlyCloudy') {
+      return '';
+    }
+    
+    switch (weather) {
+      case 'cloudy': 
+        return 'bg-gradient-to-b from-transparent to-gray-500/5';
+      case 'rain': 
+        return 'bg-gradient-to-b from-transparent to-blue-500/10';
+      case 'thunderstorm': 
+        return 'bg-gradient-to-b from-transparent to-purple-500/20';
+      case 'snow': 
+        return 'bg-gradient-to-b from-transparent to-white/10';
+      case 'snowRain': 
+        return 'bg-gradient-to-b from-transparent to-blue-500/10';
+      case 'fog': 
+        return 'bg-gradient-to-b from-gray-400/20 to-gray-400/10';
       default:
         return '';
     }
@@ -93,8 +117,13 @@ export const LocationMap = ({
 
   return (
     <div className="flex-1 h-[600px] bg-indigo-900/30 rounded-xl overflow-hidden relative border border-indigo-500/30">
-      {/* Weather effects overlay */}
-      {weather !== 'clear' && weather !== 'partlyCloudy' && weather !== 'cloudy' && (
+      {/* Pozadí počasí */}
+      {weather && weather !== 'clear' && (
+        <div className={`absolute inset-0 pointer-events-none z-0 ${getWeatherBackgroundClass()}`} />
+      )}
+      
+      {/* Animované efekty počasí */}
+      {weather && !['clear', 'partlyCloudy', 'cloudy'].includes(weather) && (
         <div className={`absolute inset-0 pointer-events-none z-0 ${getWeatherAnimationClass()}`} />
       )}
       

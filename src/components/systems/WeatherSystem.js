@@ -64,71 +64,141 @@ export const useWeather = (initialDate, initialHour) => {
     let newWeather = { ...weatherTrend };
 
     // Pokud je potřeba vygenerovat nový trend počasí
-    if (forcedChange || weatherTrend.duration <= 0) {
+    // Kontrolujeme forcedChange, duration <= 0 nebo pokud je speciální časový úsek (nový den, poledne, západ slunce)
+    const isSpecialTimeChange = (hour === 8 || hour === 12 || hour === 18);
+    
+    if (forcedChange || weatherTrend.duration <= 0 || (isSpecialTimeChange && Math.random() < 0.3)) {
+      console.log('🌡️ Generování nového trendu počasí', { hour, forcedChange, isSpecialTimeChange });
+      
       // Základní nastavení podle měsíce
       const seasonalSettings = getSeasonalSettings(month);
       
-      // 80% šance zachovat současný typ počasí, pokud není vyžadována změna
-      if (!forcedChange && Math.random() > 0.2) {
+      // 85% šance zachovat současný typ počasí, pokud není vyžadována změna
+      // Tato pravděpodobnost je vyšší než předtím pro stabilnější počasí
+      if (!forcedChange && Math.random() > 0.15) {
         newWeather.type = weatherTrend.type;
+        console.log('🌡️ Zachováváme současný typ počasí:', newWeather.type);
       } else {
         // Výběr nového typu počasí
         const weatherRoll = Math.random();
-        if (weatherRoll < 0.6) {
-          newWeather.type = 'clear';
-        } else if (weatherRoll < 0.8) {
-          newWeather.type = 'partlyCloudy';
-        } else if (weatherRoll < 0.9) {
-          newWeather.type = 'cloudy';
-        } else {
-          // 10% šance na výraznější změnu počasí
-          const extremeWeather = Math.random();
-          if (extremeWeather < 0.4) {
-            newWeather.type = 'rain';
-            newWeather.stormComing = false;
-          } else if (extremeWeather < 0.7) {
-            newWeather.type = 'thunderstorm';
-            newWeather.stormComing = true;
-          } else if (month <= 1 || month === 11) {
-            newWeather.type = 'snow';
-            newWeather.stormComing = false;
+        const prevType = weatherTrend.type; // Pro plynulejší přechody
+        
+        // Logika pro plynulejší přechody mezi typy počasí
+        if (prevType === 'clear') {
+          // Z jasna většinou na polojasno
+          if (weatherRoll < 0.7) newWeather.type = 'clear';
+          else if (weatherRoll < 0.9) newWeather.type = 'partlyCloudy';
+          else newWeather.type = 'cloudy';
+        } 
+        else if (prevType === 'partlyCloudy') {
+          // Z polojasna buď zpět na jasno nebo více zataženo
+          if (weatherRoll < 0.4) newWeather.type = 'clear';
+          else if (weatherRoll < 0.8) newWeather.type = 'partlyCloudy';
+          else if (weatherRoll < 0.95) newWeather.type = 'cloudy';
+          else newWeather.type = 'rain';
+        }
+        else if (prevType === 'cloudy') {
+          // Ze zataženo buď zpět na polojasno nebo déšť
+          if (weatherRoll < 0.3) newWeather.type = 'partlyCloudy';
+          else if (weatherRoll < 0.7) newWeather.type = 'cloudy';
+          else if (weatherRoll < 0.9) newWeather.type = 'rain';
+          else newWeather.type = 'thunderstorm';
+        }
+        else if (prevType === 'rain') {
+          // Z deště buď zpět na zataženo nebo horší počasí
+          if (weatherRoll < 0.3) newWeather.type = 'cloudy';
+          else if (weatherRoll < 0.7) newWeather.type = 'rain';
+          else if (weatherRoll < 0.9) newWeather.type = 'thunderstorm';
+          else if (month <= 1 || month === 11) newWeather.type = 'snow';
+          else newWeather.type = 'fog';
+        }
+        else if (prevType === 'thunderstorm') {
+          // Z bouřky většinou zpět na déšť
+          if (weatherRoll < 0.6) newWeather.type = 'rain';
+          else if (weatherRoll < 0.9) newWeather.type = 'thunderstorm';
+          else newWeather.type = 'cloudy';
+        }
+        else if (prevType === 'snow') {
+          // Ze sněhu buď sníh pokračuje nebo se vrátí na zataženo/déšť
+          if (weatherRoll < 0.6) newWeather.type = 'snow';
+          else if (weatherRoll < 0.8) newWeather.type = 'snowRain';
+          else newWeather.type = 'cloudy';
+        }
+        else if (prevType === 'snowRain') {
+          if (weatherRoll < 0.5) newWeather.type = 'rain';
+          else if (weatherRoll < 0.8) newWeather.type = 'snow';
+          else newWeather.type = 'cloudy';
+        }
+        else if (prevType === 'fog') {
+          if (weatherRoll < 0.6) newWeather.type = 'fog';
+          else if (weatherRoll < 0.8) newWeather.type = 'cloudy';
+          else newWeather.type = 'partlyCloudy';
+        }
+        else {
+          // Výchozí chování pro první nastavení počasí
+          if (weatherRoll < 0.6) {
+            newWeather.type = 'clear';
+          } else if (weatherRoll < 0.8) {
+            newWeather.type = 'partlyCloudy';
+          } else if (weatherRoll < 0.9) {
+            newWeather.type = 'cloudy';
           } else {
-            newWeather.type = 'fog';
-            newWeather.stormComing = false;
+            // 10% šance na výraznější změnu počasí
+            const extremeWeather = Math.random();
+            if (extremeWeather < 0.4) {
+              newWeather.type = 'rain';
+              newWeather.stormComing = false;
+            } else if (extremeWeather < 0.7) {
+              newWeather.type = 'thunderstorm';
+              newWeather.stormComing = true;
+            } else if (month <= 1 || month === 11) {
+              newWeather.type = 'snow';
+              newWeather.stormComing = false;
+            } else {
+              newWeather.type = 'fog';
+              newWeather.stormComing = false;
+            }
           }
         }
+        
+        console.log('🌡️ Změna počasí z', prevType, 'na', newWeather.type);
       }
 
       // Nastavení základní teploty a trendu
       const timeOfDay = getTimeOfDayModifier(hour);
       newWeather.baseTemp = seasonalSettings.baseTemp + timeOfDay;
       
-      // Nastavení trendu změny teploty
+      // Nastavení trendu změny teploty - plynulejší změny
       if (hour >= 6 && hour <= 14) {
         // Dopoledne - teplota stoupá
-        newWeather.tempTrend = 0.5 + Math.random() * 0.5;
+        newWeather.tempTrend = 0.3 + Math.random() * 0.3;
       } else if (hour >= 15 && hour <= 20) {
         // Odpoledne - teplota klesá
-        newWeather.tempTrend = -(0.3 + Math.random() * 0.4);
+        newWeather.tempTrend = -(0.2 + Math.random() * 0.3);
       } else {
         // Noc - teplota mírně klesá
-        newWeather.tempTrend = -(0.1 + Math.random() * 0.2);
+        newWeather.tempTrend = -(0.1 + Math.random() * 0.1);
       }
 
       // Bouřka způsobí rychlejší pokles teploty
       if (newWeather.type === 'thunderstorm') {
-        newWeather.tempTrend = -2;
+        newWeather.tempTrend = -1;
+      }
+      
+      // Sníh udržuje nižší teploty
+      if (newWeather.type === 'snow') {
+        newWeather.tempTrend -= 0.5;
       }
 
-      // Nastavení délky trendu (4-8 hodin)
-      newWeather.duration = 4 + Math.floor(Math.random() * 4);
+      // Nastavení delší doby trendu (8-16 hodin) pro stabilnější počasí
+      newWeather.duration = 8 + Math.floor(Math.random() * 8);
     } else {
       // Pokračování současného trendu
       newWeather.duration -= 1;
     }
 
-    // Výpočet nové teploty
-    let newTemp = currentTemp + newWeather.tempTrend;
+    // Výpočet nové teploty - plynulejší změny
+    let newTemp = currentTemp + (newWeather.tempTrend / 2); // Poloviční změna pro plynulejší přechod
     
     // Omezení extrémních teplot podle ročního období
     const seasonalSettings = getSeasonalSettings(month);
@@ -143,12 +213,34 @@ export const useWeather = (initialDate, initialHour) => {
 
   // Funkce pro aktualizaci počasí
   const updateWeather = useCallback((date, hour, forcedChange = false) => {
-    const newWeatherData = generateWeather(date, hour, forcedChange);
-    setWeather(newWeatherData.type);
-    setTemperature(newWeatherData.temperature);
-    setWeatherTrend(newWeatherData.trend);
-    return newWeatherData;
-  }, [generateWeather]);
+    // Aktualizace pouze při změně hodiny nebo vynucené změně
+    // Kontrola, zda se opravdu změnila hodina v porovnání s posledním updatem
+    const shouldUpdate = forcedChange || !weatherTrend.lastUpdateHour || weatherTrend.lastUpdateHour !== hour;
+    
+    if (shouldUpdate) {
+      console.log('🌡️ Aktualizace počasí', { hour, forcedChange });
+      const newWeatherData = generateWeather(date, hour, forcedChange);
+      
+      // Přidáme informaci o poslední aktualizaci
+      const updatedTrend = {
+        ...newWeatherData.trend,
+        lastUpdateHour: hour,
+        lastUpdateDate: date.toISOString()
+      };
+      
+      setWeather(newWeatherData.type);
+      setTemperature(newWeatherData.temperature);
+      setWeatherTrend(updatedTrend);
+      return newWeatherData;
+    }
+    
+    // Pokud není potřeba aktualizovat, vrátíme současný stav
+    return {
+      type: weather,
+      temperature,
+      trend: weatherTrend
+    };
+  }, [generateWeather, weather, temperature, weatherTrend]);
 
   // Funkce pro získání emoji počasí
   const getWeatherEmoji = useCallback(() => {
