@@ -159,14 +159,15 @@ const PlayerCareer = ({
         const newHour = prev + 1;
         if (newHour >= 24) {
           goToNextDay();
-          return 8; // Nový den začíná v 8:00
+          return 9; // Nový den začíná v 9:00
         }
         
-        // Aktualizace počasí s novou hodinou - pouze jednou za herní hodinu
-        updateWeather(currentDate, newHour);
+        // Aktualizace počasí s novou hodinou - bez FORCE
+        const date = new Date(currentDate);
+        updateWeather(date, newHour, false);
         return newHour;
       });
-    }, 120000); // Každé 2 minuty = 1 herní hodina (prodlouženo pro lepší hratelnost a stabilnější počasí)
+    }, 120000); // Každé 2 minuty = 1 herní hodina
 
     return () => {
       console.log("🌦️ [WEATHER] Čištění časovače pro aktualizaci počasí");
@@ -217,32 +218,47 @@ const PlayerCareer = ({
     return hour < practiceHour;
   }, []);
 
+  // Jednoduché počítadlo pro kontrolu, kolikrát se efekt spustil
+  const initCount = useRef(0);
+
   // Efekt pro nastavení počátečního času a data
   useEffect(() => {
-    // Zkontrolujeme, jestli existuje hokejový trénink a nastavíme počáteční datum podle něj
-    let startDate;
-    
-    if (hockeyPractice && hockeyPractice.date) {
-      startDate = new Date(hockeyPractice.date);
-      startDate.setHours(8, 0, 0, 0);
-    } else {
-      startDate = new Date(2024, 5, 1); // Červen 2024
-      startDate.setHours(8, 0, 0, 0);
+    // Pouze při prvním spuštění
+    if (initCount.current === 0) {
+      console.log("🌦️ [WEATHER] První inicializace času a data");
+      
+      // Zkontrolujeme, jestli existuje hokejový trénink a nastavíme počáteční datum podle něj
+      let startDate;
+      
+      if (hockeyPractice && hockeyPractice.date) {
+        startDate = new Date(hockeyPractice.date);
+        startDate.setHours(9, 0, 0, 0);
+      } else {
+        startDate = new Date(2024, 5, 1); // Červen 2024
+        startDate.setHours(9, 0, 0, 0);
+      }
+      
+      setCurrentDate(startDate);
+      setCurrentHour(9); // Začínáme v 9:00 místo 8:00
+      
+      // DŮLEŽITÉ: Nastavíme window._weatherInitialized na true IHNED
+      // aby ostatní efekty neprováděly své aktualizace
+      if (typeof window !== 'undefined') {
+        window._weatherInitialized = true;
+      }
+      
+      // Počkáme, až se komponenta stabilizuje, pak provedeme JEDNU aktualizaci počasí
+      const timer = setTimeout(() => {
+        console.log("🌦️ [WEATHER] Načítám počáteční počasí po stabilizaci komponenty");
+        // NEPOUŽÍVÁME forcedChange=true
+        updateWeather(startDate, 9, false);
+      }, 2000); // Delší zpoždění, aby se hra stabilizovala
+      
+      initCount.current++; // Zvýšíme počítadlo
+      
+      return () => clearTimeout(timer);
     }
-    
-    // Abychom předešli problémům s inicializací počasí v 8:00, 
-    // nastavíme čas na 9:00, které není "speciální čas"
-    startDate.setHours(9, 0, 0, 0);
-    
-    setCurrentDate(startDate);
-    setCurrentHour(9); // Začínáme v 9:00 místo 8:00
-    
-    // Nastavíme počáteční počasí jednorázově
-    setTimeout(() => {
-      console.log("🌦️ [WEATHER] Inicializace počasí po načtení komponenty");
-      updateWeather(startDate, 9, true);
-    }, 1000); // Krátké zpoždění pro jistotu
-  }, [hockeyPractice, updateWeather]);
+  }, [hockeyPractice]);
 
   // Sledování, zda se hráč domluvil na hokeji
   useEffect(() => {

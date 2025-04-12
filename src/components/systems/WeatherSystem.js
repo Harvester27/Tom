@@ -85,18 +85,24 @@ export const useWeather = (initialDate, initialHour) => {
     const currentTemp = temperature;
     let newWeather = { ...weatherTrend };
 
-    // Kontrola, zda počasí vůbec potřebuje aktualizaci
-    if (typeof window !== 'undefined' && window._lastGeneratedWeatherId) {
+    // KRITICKÁ OCHRANA: sleduje, kolikrát se generovalo počasí pro stejné datum a hodinu
+    if (typeof window !== 'undefined') {
       const currentId = `${date.toDateString()}-${hour}`;
-      if (currentId === window._lastGeneratedWeatherId && !forcedChange) {
-        weatherLog('Přeskakuji generování počasí - už bylo generováno', { currentId });
+      
+      if (!window._weatherGen) window._weatherGen = {};
+      if (!window._weatherGen[currentId]) window._weatherGen[currentId] = 0;
+      
+      window._weatherGen[currentId]++;
+      
+      // Pokud se počasí generuje vícekrát než 3x pro stejnou hodinu, vraťte stejné počasí
+      if (window._weatherGen[currentId] > 3) {
+        weatherLog(`STABILIZACE: Příliš mnoho generování pro ${currentId} (${window._weatherGen[currentId]}x) - vracím aktuální počasí`);
         return {
           type: weather,
           temperature: temperature,
           trend: weatherTrend
         };
       }
-      window._lastGeneratedWeatherId = currentId;
     }
 
     // Minimální délka trvání počasí - zabraňuje příliš častým změnám
@@ -108,14 +114,17 @@ export const useWeather = (initialDate, initialHour) => {
     const currentDuration = weatherTrend.duration || 0;
     
     // ZMĚNA: Ignorujeme speciální čas při inicializaci, protože 8:00 je výchozí čas
-    const allowRandomChange = currentDuration <= 0 || 
+    const allowRandomChange = (currentDuration <= 0) || 
       (isSpecialTimeChange && currentDuration < MIN_WEATHER_DURATION && !forcedChange);
     
     // Pravděpodobnost změny počasí závisí na délce trvání současného počasí
     const changeProb = Math.max(0.05, Math.min(0.3, 1 - (currentDuration / 24)));
     const shouldChangeRandomly = allowRandomChange && Math.random() < changeProb;
     
-    if (forcedChange || currentDuration <= 0 || shouldChangeRandomly) {
+    // DŮLEŽITÉ: pokud je počasí již nastaveno, nechceme generovat nové při prvotním načtení
+    const isInitialWeather = weather === 'clear' && temperature === 22;
+    
+    if ((forcedChange && isInitialWeather) || currentDuration <= 0 || shouldChangeRandomly) {
       weatherLog('Generování nového trendu počasí', { 
         hour, 
         forcedChange, 
@@ -123,7 +132,8 @@ export const useWeather = (initialDate, initialHour) => {
         currentDuration,
         allowRandomChange,
         changeProb,
-        shouldChangeRandomly
+        shouldChangeRandomly,
+        isInitialWeather
       });
       
       // Základní nastavení podle měsíce
@@ -269,83 +279,52 @@ export const useWeather = (initialDate, initialHour) => {
     };
   }, [temperature, weatherTrend, getSeasonalSettings, getTimeOfDayModifier]);
 
-  // Funkce pro aktualizaci počasí
+  // Funkce pro aktualizaci počasí - ZJEDNODUŠENÁ A STABILNÍ VERZE
   const updateWeather = useCallback((date, hour, forcedChange = false) => {
     // Vytvoříme identifikátory pro tuto aktualizaci
     const dateStr = date.toLocaleDateString();
     const updateId = `${dateStr}-${hour}`;
     
-    // Kontrola, zda se počasí již aktualizovalo pro tuto hodinu
-    const lastUpdateId = weatherTrend.lastUpdateDate && weatherTrend.lastUpdateHour ? 
-      `${new Date(weatherTrend.lastUpdateDate).toLocaleDateString()}-${weatherTrend.lastUpdateHour}` : null;
+    // ******** KRITICKÁ OCHRANA PROTI DUPLICITNÍM AKTUALIZACÍM ********
     
-    // Použijeme globální proměnnou pro sledování poslední aktualizace
-    const lastUpdateIdGlobal = window._lastWeatherUpdateId;
-    
-    // Přísná kontrola proti duplicitním aktualizacím - klíčové pro stabilitu
-    if (updateId === lastUpdateIdGlobal && !forcedChange) {
-      weatherLog('Přeskakuji duplicitní aktualizaci počasí', { updateId, lastUpdateIdGlobal });
-      return { type: weather, temperature, trend: weatherTrend };
-    }
-    
-    // Aktualizace pouze při změně hodiny nebo vynucené změně
-    const shouldUpdate = forcedChange || !lastUpdateId || lastUpdateId !== updateId;
-    
-    weatherLog(`Kontrola aktualizace počasí`, {
-      updateId,
-      lastUpdateId,
-      lastUpdateIdGlobal,
-      shouldUpdate,
-      forcedChange,
-      currentWeather: weather,
-      currentTemp: temperature
-    });
-    
-    if (shouldUpdate) {
-      weatherLog(`Aktualizace počasí pro ${dateStr}, hodina: ${hour}`, { forcedChange });
+    // Nastavíme globální registry, pokud neexistují
+    if (typeof window !== 'undefined') {
+      if (!window._weatherUpdates) window._weatherUpdates = {};
       
-      // Uložíme tuto aktualizaci do globální proměnné
-      window._lastWeatherUpdateId = updateId;
-      
-      const newWeatherData = generateWeather(date, hour, forcedChange);
-      
-      // Přidáme informaci o poslední aktualizaci
-      const updatedTrend = {
-        ...newWeatherData.trend,
-        lastUpdateHour: hour,
-        lastUpdateDate: date.toISOString(),
-        weatherChanged: newWeatherData.type !== weather || forcedChange
-      };
-      
-      // Nastavíme nové hodnoty pouze pokud se něco opravdu změnilo
-      if (newWeatherData.type !== weather || 
-          newWeatherData.temperature !== temperature || 
-          forcedChange) {
-          
-        weatherLog(`Nastavení nového počasí: ${newWeatherData.type}, teplota: ${newWeatherData.temperature}°C`, {
-          předchozí: { typ: weather, teplota: temperature },
-          nové: { typ: newWeatherData.type, teplota: newWeatherData.temperature }
-        });
-        
-        setWeather(newWeatherData.type);
-        setTemperature(newWeatherData.temperature);
-        setWeatherTrend(updatedTrend);
-      } else {
-        // I když se viditelné počasí nemění, aktualizujeme trend
-        setWeatherTrend(updatedTrend);
-        weatherLog('Počasí zůstává beze změny');
+      // Kontrola, jestli už bylo toto ID aktualizováno
+      if (window._weatherUpdates[updateId]) {
+        weatherLog(`PŘESKAKUJI AKTUALIZACI - již provedena pro ${updateId}, počet: ${window._weatherUpdates[updateId]}`);
+        return { type: weather, temperature, trend: weatherTrend };
       }
       
-      return newWeatherData;
+      // Zaznamenáme, že pro toto ID byla provedena aktualizace
+      if (!window._weatherUpdates[updateId]) window._weatherUpdates[updateId] = 0;
+      window._weatherUpdates[updateId]++;
+      
+      weatherLog(`Aktualizace počasí pro ${dateStr}, hodina: ${hour}, počet: ${window._weatherUpdates[updateId]}`, { forcedChange });
     }
     
-    // Pokud není potřeba aktualizovat, vrátíme současný stav
-    weatherLog('Přeskakuji aktualizaci počasí - již aktualizováno pro tuto hodinu');
-    return {
-      type: weather,
-      temperature,
-      trend: weatherTrend
+    // ******** KONEC KRITICKÉ OCHRANY ********
+    
+    // Generování nového počasí
+    const newWeatherData = generateWeather(date, hour, forcedChange);
+    
+    // Přidáme informaci o poslední aktualizaci
+    const updatedTrend = {
+      ...newWeatherData.trend,
+      lastUpdateHour: hour,
+      lastUpdateDate: date.toISOString(),
+      weatherChanged: newWeatherData.type !== weather || forcedChange
     };
+    
+    // Nastavíme nové hodnoty
+    setWeather(newWeatherData.type);
+    setTemperature(newWeatherData.temperature);
+    setWeatherTrend(updatedTrend);
+    
+    weatherLog(`Počasí aktualizováno na: ${newWeatherData.type}, teplota: ${newWeatherData.temperature}°C`);
+    
+    return newWeatherData;
   }, [generateWeather, weather, temperature, weatherTrend]);
 
   // Funkce pro získání emoji počasí
@@ -378,31 +357,48 @@ export const useWeather = (initialDate, initialHour) => {
     }
   }, [weather]);
 
-  // Inicializace počasí při prvním načtení - s ochranou proti vícenásobnému volání
+  // KRITICKÝ EFEKT: Zajistí počáteční nastavení počasí, pokud není ještě nastaveno
+  // Tento efekt se spustí pouze při prvním renderu a zajistí stabilní výchozí počasí
   useEffect(() => {
-    // Použijeme statickou proměnnou, která přežije mezi rerendery
-    if (!window._weatherInitialized && initialDate && initialHour !== undefined) {
-      weatherLog('První inicializace počasí', { initialDate, initialHour });
+    if (typeof window !== 'undefined' && !window._weatherInitialSetup && weather === 'clear' && temperature === 22) {
+      weatherLog('Nastavuji výchozí počasí - JEDNOU PŘI STARTU');
       
-      // Nastavíme první počasí vynuceně, aby bylo konzistentní
-      const initialWeather = generateWeather(initialDate, initialHour, true);
+      // Nastavit výchozí počasí podle sezóny bez vynucené změny
+      if (initialDate && initialHour !== undefined) {
+        const month = initialDate.getMonth();
+        const seasonalSettings = getSeasonalSettings(month);
+        
+        // Nastavení počasí podle sezóny - bez náhodnosti
+        let initialType = 'clear';
+        if (month >= 11 || month <= 1) initialType = 'cloudy'; // zima
+        else if (month >= 2 && month <= 4) initialType = 'partlyCloudy'; // jaro
+        else if (month >= 5 && month <= 7) initialType = 'clear'; // léto
+        else initialType = 'partlyCloudy'; // podzim
+        
+        // Nastavení stabilní teploty podle času
+        const timeModifier = getTimeOfDayModifier(initialHour);
+        const initialTemp = Math.round(seasonalSettings.baseTemp + timeModifier);
+        
+        // Přímo nastavíme výchozí počasí
+        setWeather(initialType);
+        setTemperature(initialTemp);
+        setWeatherTrend({
+          type: initialType,
+          baseTemp: seasonalSettings.baseTemp,
+          tempTrend: 0.2, // mírný nárůst
+          duration: 24, // vydrží celý den
+          stormComing: false,
+          lastUpdateHour: initialHour,
+          lastUpdateDate: initialDate.toISOString()
+        });
+        
+        weatherLog(`Výchozí počasí nastaveno na ${initialType}, teplota: ${initialTemp}°C`);
+      }
       
-      setWeather(initialWeather.type);
-      setTemperature(initialWeather.temperature);
-      setWeatherTrend({
-        ...initialWeather.trend,
-        lastUpdateHour: initialHour,
-        lastUpdateDate: initialDate.toISOString(),
-        duration: 24 // První počasí trvá celý den
-      });
-      
-      // Označíme, že počasí bylo inicializováno - globálně pro celou aplikaci
-      window._weatherInitialized = true;
-      isFirstRender.current = false;
-      
-      weatherLog('Počasí úspěšně inicializováno', { typ: initialWeather.type, teplota: initialWeather.temperature });
+      // Označit, že výchozí počasí bylo nastaveno
+      window._weatherInitialSetup = true;
     }
-  }, [initialDate, initialHour, generateWeather]);
+  }, []);
 
   return {
     weather,
