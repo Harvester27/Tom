@@ -348,6 +348,11 @@ const PlayerCareer = ({
         console.log("Nastavení hokejového tréninku:", practice);
         setHockeyPractice(practice);
         saveToStorage('hockeyPractice', practice);
+        
+        // NOVÉ: Zobrazení upozornění ihned po potvrzení tréninku
+        setTimeout(() => {
+          alert('Hokejový trénink potvrzen na 2. června v 17:00! Přijď na zimní stadion od 16:00.');
+        }, 1000);
       }
     }
   }, []);
@@ -508,6 +513,22 @@ const PlayerCareer = ({
               : 'Trénink týmu',
             onClick: () => {
               if (isGameDay) {
+                // Kontrola, jestli už je správný čas pro hokej
+                const hockeyDate = new Date(2024, 5, 2); // 2. června 2024
+                const currentTimestamp = currentDate.getTime();
+                const minTimeForHockey = new Date(2024, 5, 2);
+                minTimeForHockey.setHours(16, 0, 0, 0); // 16:00
+                
+                if (currentTimestamp < minTimeForHockey.getTime()) {
+                  // Pokud je moc brzo, zobrazíme upozornění
+                  // ale nezobrazujeme časový detail znovu, protože už byl zobrazen dříve
+                  alert('Je ještě brzo na hokej! Přijď později.');
+                  return;
+                }
+                
+                // Nastavíme čas na 19:00 a spustíme hokejový zápas
+                setCurrentHour(19);
+                updateWeather(currentDate, 19, false);
                 console.log("Spouštím hokejový zápas s Oldou!");
                 setShowOldaGame(true);
               } else {
