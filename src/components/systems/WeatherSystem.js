@@ -12,6 +12,12 @@ const weatherLog = (...args) => {
   }
 };
 
+// Globální kontrola inicializace počasí - mimo React
+if (typeof window !== 'undefined' && !window._weatherInitialized) {
+  window._weatherInitialized = false;
+  window._lastWeatherUpdateId = null;
+}
+
 /**
  * Hook pro správu počasí v herním světě
  * @param {Date} initialDate - Počáteční datum
@@ -256,21 +262,33 @@ export const useWeather = (initialDate, initialHour) => {
     const lastUpdateId = weatherTrend.lastUpdateDate && weatherTrend.lastUpdateHour ? 
       `${new Date(weatherTrend.lastUpdateDate).toLocaleDateString()}-${weatherTrend.lastUpdateHour}` : null;
     
+    // Použijeme globální proměnnou pro sledování poslední aktualizace
+    const lastUpdateIdGlobal = window._lastWeatherUpdateId;
+    
+    // Přísná kontrola proti duplicitním aktualizacím - klíčové pro stabilitu
+    if (updateId === lastUpdateIdGlobal && !forcedChange) {
+      weatherLog('Přeskakuji duplicitní aktualizaci počasí', { updateId, lastUpdateIdGlobal });
+      return { type: weather, temperature, trend: weatherTrend };
+    }
+    
     // Aktualizace pouze při změně hodiny nebo vynucené změně
     const shouldUpdate = forcedChange || !lastUpdateId || lastUpdateId !== updateId;
     
     weatherLog(`Kontrola aktualizace počasí`, {
       updateId,
       lastUpdateId,
+      lastUpdateIdGlobal,
       shouldUpdate,
       forcedChange,
       currentWeather: weather,
-      currentTemp: temperature,
-      weatherTrend
+      currentTemp: temperature
     });
     
     if (shouldUpdate) {
       weatherLog(`Aktualizace počasí pro ${dateStr}, hodina: ${hour}`, { forcedChange });
+      
+      // Uložíme tuto aktualizaci do globální proměnné
+      window._lastWeatherUpdateId = updateId;
       
       const newWeatherData = generateWeather(date, hour, forcedChange);
       
@@ -343,9 +361,10 @@ export const useWeather = (initialDate, initialHour) => {
     }
   }, [weather]);
 
-  // Inicializace počasí při prvním načtení
+  // Inicializace počasí při prvním načtení - s ochranou proti vícenásobnému volání
   useEffect(() => {
-    if (isFirstRender.current && initialDate && initialHour !== undefined) {
+    // Použijeme statickou proměnnou, která přežije mezi rerendery
+    if (!window._weatherInitialized && initialDate && initialHour !== undefined) {
       weatherLog('První inicializace počasí', { initialDate, initialHour });
       
       // Nastavíme první počasí vynuceně, aby bylo konzistentní
@@ -360,7 +379,11 @@ export const useWeather = (initialDate, initialHour) => {
         duration: 24 // První počasí trvá celý den
       });
       
+      // Označíme, že počasí bylo inicializováno - globálně pro celou aplikaci
+      window._weatherInitialized = true;
       isFirstRender.current = false;
+      
+      weatherLog('Počasí úspěšně inicializováno', { typ: initialWeather.type, teplota: initialWeather.temperature });
     }
   }, [initialDate, initialHour, generateWeather]);
 
