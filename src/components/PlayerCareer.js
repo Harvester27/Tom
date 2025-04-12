@@ -147,20 +147,24 @@ const PlayerCareer = ({
     setShowLocationInfo(false);
   }, [currentDate, updateWeather]);
 
-  // Nová funkce pro ruční změnu času
-  const changeGameTime = useCallback((newHour) => {
-    if (newHour >= 0 && newHour < 24) {
-      setCurrentHour(newHour);
-      
-      // Aktualizujeme počasí s novým časem
-      const date = new Date(currentDate);
-      updateWeather(date, newHour, false);
-      
-      console.log(`Čas změněn na ${newHour}:00`);
-    } else {
-      console.error("Neplatný čas. Zadejte hodnotu mezi 0-23.");
+  // Nová funkce pro posun času o 1 hodinu dopředu
+  const advanceOneHour = useCallback(() => {
+    const newHour = currentHour + 1;
+    
+    // Pokud je 23:00, přejdeme na další den a nastavíme 9:00
+    if (newHour >= 24) {
+      goToNextDay();
+      return;
     }
-  }, [currentDate, updateWeather]);
+    
+    setCurrentHour(newHour);
+    
+    // Aktualizujeme počasí s novým časem
+    const date = new Date(currentDate);
+    updateWeather(date, newHour, false);
+    
+    console.log(`Čas posunut na ${newHour}:00`);
+  }, [currentDate, currentHour, goToNextDay, updateWeather]);
 
   // Přidáme novou funkci pro rychlý skok na den hokejového tréninku
   const goToHockeyDay = useCallback(() => {
@@ -392,16 +396,8 @@ const PlayerCareer = ({
       color: '#FFD700',
       actions: [
         {
-          name: 'Nastavit čas na 12:00',
-          onClick: () => changeGameTime(12)
-        },
-        {
-          name: 'Nastavit čas na 16:00',
-          onClick: () => changeGameTime(16)
-        },
-        {
-          name: 'Nastavit čas na 20:00',
-          onClick: () => changeGameTime(20)
+          name: `Posunout čas o 1 hodinu → ${(currentHour + 1) % 24}:00`,
+          onClick: advanceOneHour
         },
         {
           name: 'Jít spát (další den)',
