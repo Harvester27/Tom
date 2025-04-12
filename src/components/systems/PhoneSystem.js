@@ -304,7 +304,10 @@ export function usePhone() {
       phoneScreen, 
       unreadMessages,
       conversations,
-      activeChat
+      activeChat,
+      setPhoneScreen,
+      openChat,
+      handleChatUpdate
     } = props;
     
     switch (phoneScreen) {
@@ -378,7 +381,8 @@ export function usePhone() {
         if (!activeChat) return null;
         return (
           <div className="h-full flex flex-col">
-            <div className="p-4 bg-indigo-950/50 flex items-center gap-4">
+            {/* Záhlaví chatu - vždy viditelné */}
+            <div className="p-4 bg-indigo-950/50 flex items-center gap-4 sticky top-0 z-10">
               <button 
                 onClick={() => setPhoneScreen('messages')}
                 className="w-8 h-8 rounded-lg bg-indigo-800/50 hover:bg-indigo-700/50 flex items-center justify-center text-white"
@@ -406,11 +410,15 @@ export function usePhone() {
                 </div>
               </div>
             </div>
-            <OldaChat
-              key={activeChat.id}
-              initialMessages={activeChat.messages}
-              onChatUpdate={(updatedMessages) => handleChatUpdate(activeChat.id, updatedMessages)}
-            />
+            
+            {/* Chat component */}
+            <div className="flex-1 overflow-hidden">
+              <OldaChat
+                key={activeChat.id}
+                initialMessages={activeChat.messages}
+                onChatUpdate={(updatedMessages) => handleChatUpdate(activeChat.id, updatedMessages)}
+              />
+            </div>
           </div>
         );
 
@@ -481,7 +489,7 @@ export function usePhone() {
           </>
         );
     }
-  }, [openChat, setPhoneScreen, handleChatUpdate]);
+  }, []);
 
   return {
     phoneScreen: state.phoneScreen,
