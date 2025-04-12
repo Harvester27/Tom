@@ -1,6 +1,16 @@
 'use client';
 
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
+
+// Debug konstanta - zapnout pro lepší debugging
+const DEBUG_WEATHER = true;
+
+// Debug funkce
+const weatherLog = (...args) => {
+  if (DEBUG_WEATHER) {
+    console.log('🌦️ [WEATHER]', ...args);
+  }
+};
 
 /**
  * Hook pro správu počasí v herním světě
@@ -9,6 +19,9 @@ import { useState, useCallback, useEffect } from 'react';
  * @returns {Object} - Objekt s aktuálním stavem počasí a funkcemi pro jeho ovládání
  */
 export const useWeather = (initialDate, initialHour) => {
+  // Reference pro detekci prvního renderu
+  const isFirstRender = useRef(true);
+  
   // Stav počasí
   const [weather, setWeather] = useState('clear');
   const [temperature, setTemperature] = useState(22);
@@ -17,7 +30,10 @@ export const useWeather = (initialDate, initialHour) => {
     baseTemp: 22,
     tempTrend: 0, // změna teploty za hodinu
     duration: 24, // jak dlouho trend vydrží
-    stormComing: false
+    stormComing: false,
+    lastUpdateHour: null,
+    lastUpdateDate: null,
+    weatherChanged: false  // Pro detekci, zda počasí bylo změněno
   });
 
   // Funkce pro získání nastavení podle ročního období
@@ -63,21 +79,37 @@ export const useWeather = (initialDate, initialHour) => {
     const currentTemp = temperature;
     let newWeather = { ...weatherTrend };
 
-    // Pokud je potřeba vygenerovat nový trend počasí
-    // Kontrolujeme forcedChange, duration <= 0 nebo pokud je speciální časový úsek (nový den, poledne, západ slunce)
-    const isSpecialTimeChange = (hour === 8 || hour === 12 || hour === 18);
+    // Minimální délka trvání počasí - zabraňuje příliš častým změnám
+    const MIN_WEATHER_DURATION = 6; 
     
-    if (forcedChange || weatherTrend.duration <= 0 || (isSpecialTimeChange && Math.random() < 0.3)) {
-      console.log('🌡️ Generování nového trendu počasí', { hour, forcedChange, isSpecialTimeChange });
+    // Pokud je potřeba vygenerovat nový trend počasí
+    // Kontrolujeme forcedChange, duration <= 0 nebo pokud je speciální časový úsek
+    const isSpecialTimeChange = (hour === 8 || hour === 12 || hour === 18);
+    const currentDuration = weatherTrend.duration || 0;
+    const allowRandomChange = currentDuration <= 0 || (isSpecialTimeChange && currentDuration < MIN_WEATHER_DURATION);
+    
+    // Pravděpodobnost změny počasí závisí na délce trvání současného počasí
+    const changeProb = Math.max(0.05, Math.min(0.3, 1 - (currentDuration / 24)));
+    const shouldChangeRandomly = allowRandomChange && Math.random() < changeProb;
+    
+    if (forcedChange || currentDuration <= 0 || shouldChangeRandomly) {
+      weatherLog('Generování nového trendu počasí', { 
+        hour, 
+        forcedChange, 
+        isSpecialTimeChange,
+        currentDuration,
+        allowRandomChange,
+        changeProb,
+        shouldChangeRandomly
+      });
       
       // Základní nastavení podle měsíce
       const seasonalSettings = getSeasonalSettings(month);
       
-      // 85% šance zachovat současný typ počasí, pokud není vyžadována změna
-      // Tato pravděpodobnost je vyšší než předtím pro stabilnější počasí
-      if (!forcedChange && Math.random() > 0.15) {
+      // 90% šance zachovat současný typ počasí, pokud není vyžadována změna - VELMI stabilní počasí
+      if (!forcedChange && Math.random() > 0.1) {
         newWeather.type = weatherTrend.type;
-        console.log('🌡️ Zachováváme současný typ počasí:', newWeather.type);
+        weatherLog('Zachováváme současný typ počasí:', newWeather.type);
       } else {
         // Výběr nového typu počasí
         const weatherRoll = Math.random();
@@ -161,7 +193,7 @@ export const useWeather = (initialDate, initialHour) => {
           }
         }
         
-        console.log('🌡️ Změna počasí z', prevType, 'na', newWeather.type);
+        weatherLog('Změna počasí', { z: prevType, na: newWeather.type });
       }
 
       // Nastavení základní teploty a trendu
@@ -190,15 +222,18 @@ export const useWeather = (initialDate, initialHour) => {
         newWeather.tempTrend -= 0.5;
       }
 
-      // Nastavení delší doby trendu (8-16 hodin) pro stabilnější počasí
-      newWeather.duration = 8 + Math.floor(Math.random() * 8);
+      // Nastavení delší doby trendu (10-24 hodin) pro stabilnější počasí
+      // Minimální délka je 3x delší než předtím
+      newWeather.duration = 10 + Math.floor(Math.random() * 14);
+      weatherLog('Nový trend počasí nastaven na', newWeather.duration, 'hodin');
     } else {
       // Pokračování současného trendu
       newWeather.duration -= 1;
+      weatherLog('Pokračování současného trendu počasí, zbývá hodin:', newWeather.duration);
     }
 
     // Výpočet nové teploty - plynulejší změny
-    let newTemp = currentTemp + (newWeather.tempTrend / 2); // Poloviční změna pro plynulejší přechod
+    let newTemp = currentTemp + (newWeather.tempTrend / 3); // Velmi pomalá změna teploty
     
     // Omezení extrémních teplot podle ročního období
     const seasonalSettings = getSeasonalSettings(month);
@@ -213,28 +248,64 @@ export const useWeather = (initialDate, initialHour) => {
 
   // Funkce pro aktualizaci počasí
   const updateWeather = useCallback((date, hour, forcedChange = false) => {
+    // Vytvoříme identifikátory pro tuto aktualizaci
+    const dateStr = date.toLocaleDateString();
+    const updateId = `${dateStr}-${hour}`;
+    
+    // Kontrola, zda se počasí již aktualizovalo pro tuto hodinu
+    const lastUpdateId = weatherTrend.lastUpdateDate && weatherTrend.lastUpdateHour ? 
+      `${new Date(weatherTrend.lastUpdateDate).toLocaleDateString()}-${weatherTrend.lastUpdateHour}` : null;
+    
     // Aktualizace pouze při změně hodiny nebo vynucené změně
-    // Kontrola, zda se opravdu změnila hodina v porovnání s posledním updatem
-    const shouldUpdate = forcedChange || !weatherTrend.lastUpdateHour || weatherTrend.lastUpdateHour !== hour;
+    const shouldUpdate = forcedChange || !lastUpdateId || lastUpdateId !== updateId;
+    
+    weatherLog(`Kontrola aktualizace počasí`, {
+      updateId,
+      lastUpdateId,
+      shouldUpdate,
+      forcedChange,
+      currentWeather: weather,
+      currentTemp: temperature,
+      weatherTrend
+    });
     
     if (shouldUpdate) {
-      console.log('🌡️ Aktualizace počasí', { hour, forcedChange });
+      weatherLog(`Aktualizace počasí pro ${dateStr}, hodina: ${hour}`, { forcedChange });
+      
       const newWeatherData = generateWeather(date, hour, forcedChange);
       
       // Přidáme informaci o poslední aktualizaci
       const updatedTrend = {
         ...newWeatherData.trend,
         lastUpdateHour: hour,
-        lastUpdateDate: date.toISOString()
+        lastUpdateDate: date.toISOString(),
+        weatherChanged: newWeatherData.type !== weather || forcedChange
       };
       
-      setWeather(newWeatherData.type);
-      setTemperature(newWeatherData.temperature);
-      setWeatherTrend(updatedTrend);
+      // Nastavíme nové hodnoty pouze pokud se něco opravdu změnilo
+      if (newWeatherData.type !== weather || 
+          newWeatherData.temperature !== temperature || 
+          forcedChange) {
+          
+        weatherLog(`Nastavení nového počasí: ${newWeatherData.type}, teplota: ${newWeatherData.temperature}°C`, {
+          předchozí: { typ: weather, teplota: temperature },
+          nové: { typ: newWeatherData.type, teplota: newWeatherData.temperature }
+        });
+        
+        setWeather(newWeatherData.type);
+        setTemperature(newWeatherData.temperature);
+        setWeatherTrend(updatedTrend);
+      } else {
+        // I když se viditelné počasí nemění, aktualizujeme trend
+        setWeatherTrend(updatedTrend);
+        weatherLog('Počasí zůstává beze změny');
+      }
+      
       return newWeatherData;
     }
     
     // Pokud není potřeba aktualizovat, vrátíme současný stav
+    weatherLog('Přeskakuji aktualizaci počasí - již aktualizováno pro tuto hodinu');
     return {
       type: weather,
       temperature,
@@ -274,10 +345,24 @@ export const useWeather = (initialDate, initialHour) => {
 
   // Inicializace počasí při prvním načtení
   useEffect(() => {
-    if (initialDate && initialHour !== undefined) {
-      updateWeather(initialDate, initialHour, true);
+    if (isFirstRender.current && initialDate && initialHour !== undefined) {
+      weatherLog('První inicializace počasí', { initialDate, initialHour });
+      
+      // Nastavíme první počasí vynuceně, aby bylo konzistentní
+      const initialWeather = generateWeather(initialDate, initialHour, true);
+      
+      setWeather(initialWeather.type);
+      setTemperature(initialWeather.temperature);
+      setWeatherTrend({
+        ...initialWeather.trend,
+        lastUpdateHour: initialHour,
+        lastUpdateDate: initialDate.toISOString(),
+        duration: 24 // První počasí trvá celý den
+      });
+      
+      isFirstRender.current = false;
     }
-  }, []);
+  }, [initialDate, initialHour, generateWeather]);
 
   return {
     weather,

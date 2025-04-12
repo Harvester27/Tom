@@ -161,18 +161,16 @@ const PlayerCareer = ({
         updateWeather(currentDate, newHour);
         return newHour;
       });
-    }, 60000); // Každou minutu = 1 herní hodina (prodlouženo pro lepší hratelnost)
+    }, 120000); // Každé 2 minuty = 1 herní hodina (prodlouženo pro lepší hratelnost a stabilnější počasí)
 
     return () => clearInterval(interval);
   }, [currentDate, goToNextDay, updateWeather]);
   
-  // Efekt pro počáteční načtení počasí
+  // Samostatný efekt pro počáteční nastavení počasí - pouze při startu aplikace
   useEffect(() => {
-    // Pouze při počátečním načtení, vnutíme změnu počasí
-    if (weather === 'clear' && temperature === 22) {
-      console.log('🌡️ Inicializace počasí při startu');
-      updateWeather(currentDate, currentHour, true);
-    }
+    console.log("🌦️ [WEATHER] Počáteční nastavení počasí při startu aplikace");
+    // Předáme počáteční datum a hodinu systému počasí
+    // WeatherSystem si interně zajistí, že počasí bude nastaveno pouze jednou
   }, []);
 
   // Funkce pro uložení jména hráče
