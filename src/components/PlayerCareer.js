@@ -513,32 +513,20 @@ const PlayerCareer = ({
               : 'Trénink týmu',
             onClick: () => {
               if (isGameDay) {
-                // Kontrola, jestli už je správný čas pro hokej
-                // Vytvoříme správnou kontrolu času
-                // Kontrolujeme, jestli už je alespoň 16:00 v den hokeje (2. června)
-                const hockeyDate = new Date(2024, 5, 2);
-                const isCorrectDay = currentDate.getDate() === hockeyDate.getDate() &&
-                                    currentDate.getMonth() === hockeyDate.getMonth() &&
-                                    currentDate.getFullYear() === hockeyDate.getFullYear();
-
-                // Pokud je správný den, kontrolujeme hodinu
+                // Kontrola, zda je správný den a čas
+                const isCorrectDay = currentDate.getDate() === 2 &&
+                                   currentDate.getMonth() === 5 &&
+                                   currentDate.getFullYear() === 2024;
+                
                 if (isCorrectDay && currentHour >= 16) {
                   // Nastavíme čas na 19:00 a spustíme hokejový zápas
                   setCurrentHour(19);
                   updateWeather(currentDate, 19, false);
-                  console.log("Spouštím hokejový zápas s Oldou!");
                   setShowOldaGame(true);
                 } else {
-                  // Pokud je moc brzo, zobrazíme upozornění
+                  // Upozornění pokud je příliš brzo
                   alert('Je ještě brzo na hokej! Přijď 2. června od 16:00.');
-                  return;
                 }
-                
-                // Nastavíme čas na 19:00 a spustíme hokejový zápas
-                setCurrentHour(19);
-                updateWeather(currentDate, 19, false);
-                console.log("Spouštím hokejový zápas s Oldou!");
-                setShowOldaGame(true);
               } else {
                 console.log('Běžný trénink týmu - není den hokeje s Oldou');
               }

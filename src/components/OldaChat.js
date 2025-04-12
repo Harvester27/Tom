@@ -263,32 +263,41 @@ const OldaChat = ({ initialMessages, onChatUpdate, showGame, playerName, current
         onChatUpdate(updatedMessagesAfterPlayer);
     }
 
+    // Tady je důležitá úprava - nebudeme ukazovat indikátor psaní,
+    // pokud následující sekvence je "end"
+    const nextSequenceKey = option.next;
+    const nextDialog = dialogSequences[nextSequenceKey];
+    
+    // Pokud je další sekvence "end" nebo nemá zprávu, nezobrazujeme indikátor psaní
+    if (nextSequenceKey === 'end' || !nextDialog || !nextDialog.message) {
+      setShowOptions(false);
+      setCurrentSequence(nextSequenceKey);
+      return;
+    }
+
+    // Jinak pokračujeme jako dřív
     setShowOptions(false);
     setIsTyping(true);
 
     setTimeout(() => {
       setIsTyping(false);
       
-      const nextSequenceKey = option.next;
-      const nextDialog = dialogSequences[nextSequenceKey];
-
-      let updatedMessagesAfterOlda = updatedMessagesAfterPlayer;
-      if (nextSequenceKey !== 'end' && nextDialog && nextDialog.message) {
-          const oldaMessage = {
-              id: Date.now() + 1,
-              sender: 'Olda',
-              text: nextDialog.message,
-              time: new Date().toLocaleTimeString('cs-CZ', { hour: '2-digit', minute: '2-digit' }),
-              read: false
-          };
-          updatedMessagesAfterOlda = [...updatedMessagesAfterPlayer, oldaMessage];
-          setMessages(updatedMessagesAfterOlda);
-          
-          saveMessagesToLocalStorage(updatedMessagesAfterOlda);
-          
-          if (onChatUpdate) {
-              onChatUpdate(updatedMessagesAfterOlda);
-          }
+      if (nextDialog && nextDialog.message) {
+        const oldaMessage = {
+          id: Date.now() + 1,
+          sender: 'Olda',
+          text: nextDialog.message,
+          time: new Date().toLocaleTimeString('cs-CZ', { hour: '2-digit', minute: '2-digit' }),
+          read: false
+        };
+        const updatedMessagesAfterOlda = [...updatedMessagesAfterPlayer, oldaMessage];
+        setMessages(updatedMessagesAfterOlda);
+        
+        saveMessagesToLocalStorage(updatedMessagesAfterOlda);
+        
+        if (onChatUpdate) {
+          onChatUpdate(updatedMessagesAfterOlda);
+        }
       }
 
       setCurrentSequence(nextSequenceKey);
