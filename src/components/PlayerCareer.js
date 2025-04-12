@@ -147,6 +147,21 @@ const PlayerCareer = ({
     setShowLocationInfo(false);
   }, [currentDate, updateWeather]);
 
+  // Přidáme novou funkci pro rychlý skok na den hokejového tréninku
+  const goToHockeyDay = useCallback(() => {
+    const hockeyDate = new Date(2024, 5, 2); // 2. června 2024
+    hockeyDate.setHours(14, 0, 0, 0); // Nastavíme čas na 14:00, aby byl před tréninkem
+    
+    setCurrentDate(hockeyDate);
+    setCurrentHour(14);
+    updateWeather(hockeyDate, 14, true);
+    
+    console.log("Přesun na den hokejového tréninku:", {
+      nové_datum: hockeyDate.toISOString(),
+      nová_hodina: 14
+    });
+  }, [updateWeather]);
+
   // Referenční proměnná pro kontrolu inicializace počasí
   const weatherInitialized = useRef(false);
   
@@ -205,6 +220,20 @@ const PlayerCareer = ({
     if (!practice || !practice.date) return false;
     
     const practiceDate = new Date(practice.date);
+    
+    // Přidáme debugging výpisy
+    console.log("Kontrola hokejového dne:", {
+      aktuálníDatum: date.toISOString().split('T')[0],
+      tréninkovýDen: practiceDate.toISOString().split('T')[0],
+      aktuálníDen: date.getDate(),
+      tréninkovýDen: practiceDate.getDate(),
+      aktuálníMěsíc: date.getMonth(),
+      tréninkovýMěsíc: practiceDate.getMonth(),
+      výsledek: date.getDate() === practiceDate.getDate() &&
+               date.getMonth() === practiceDate.getMonth() &&
+               date.getFullYear() === practiceDate.getFullYear()
+    });
+    
     return date.getDate() === practiceDate.getDate() &&
            date.getMonth() === practiceDate.getMonth() &&
            date.getFullYear() === practiceDate.getFullYear();
@@ -215,6 +244,13 @@ const PlayerCareer = ({
     if (!practice || !practice.time) return false;
     
     const practiceHour = parseInt(practice.time.split(':')[0]);
+    
+    console.log("Kontrola času před tréninkem:", {
+      aktuálníHodina: hour,
+      tréninková: practiceHour,
+      výsledek: hour < practiceHour
+    });
+    
     return hour < practiceHour;
   }, []);
 
@@ -231,11 +267,13 @@ const PlayerCareer = ({
       let startDate;
       
       if (hockeyPractice && hockeyPractice.date) {
+        console.log("Nastavuji datum podle uloženého hokejového tréninku:", hockeyPractice.date);
         startDate = new Date(hockeyPractice.date);
         startDate.setHours(9, 0, 0, 0);
       } else {
-        startDate = new Date(2024, 5, 1); // Červen 2024
+        startDate = new Date(2024, 5, 1); // 1. června 2024 (den před tréninkem)
         startDate.setHours(9, 0, 0, 0);
+        console.log("Nastavuji výchozí datum na 1. června 2024");
       }
       
       setCurrentDate(startDate);
@@ -258,30 +296,41 @@ const PlayerCareer = ({
       
       return () => clearTimeout(timer);
     }
-  }, [hockeyPractice]);
+  }, [hockeyPractice, updateWeather]);
 
   // Sledování, zda se hráč domluvil na hokeji
   useEffect(() => {
+    console.log("Kontrola chatu s Oldou pro nastavení hokejového tréninku");
     const savedMessages = loadFromStorage('oldaChatMessages', null);
     
     if (savedMessages) {
       const playerMessages = savedMessages.filter(msg => msg.sender === 'Player');
       
-      // Kontrola posledních zpráv pro potvrzení
+      // Rozšíříme seznam možných potvrzení, aby se zvýšila šance na zachycení
       const confirmationMessages = [
         'Díky moc! Tak v 16:15 na zimáku.',
         'Díky, výstroj mám. Tak v 16:30 na zimáku!',
         'Super, budu tam!',
-        'Jasně, budu tam! Díky za info.'
+        'Jasně, budu tam! Díky za info.',
+        'Určitě přijdu',
+        'Díky za pozvání',
+        'Rád se přidám'
       ];
       
+      // Kontrolujeme shodu části zprávy, ne jen celou zprávu
       const isConfirmed = playerMessages.some(msg => 
-        confirmationMessages.some(confirm => msg.text.includes(confirm))
+        confirmationMessages.some(confirm => msg.text.toLowerCase().includes(confirm.toLowerCase()))
       );
+
+      console.log("Kontrola potvrzení tréninku:", {
+        zprávy: playerMessages.map(m => m.text),
+        potvrzeno: isConfirmed
+      });
 
       if (isConfirmed) {
         // Nastavení data na 2. června 2024
-        const practiceDate = new Date(2024, 5, 2, 17, 0, 0, 0);
+        const practiceDate = new Date(2024, 5, 2);
+        practiceDate.setHours(17, 0, 0, 0);
 
         const practice = {
           date: practiceDate.toISOString(),
@@ -290,6 +339,7 @@ const PlayerCareer = ({
           needsEquipment: playerMessages.some(msg => msg.text.includes('16:15')) // přijde dřív kvůli vybavení
         };
         
+        console.log("Nastavení hokejového tréninku:", practice);
         setHockeyPractice(practice);
         saveToStorage('hockeyPractice', practice);
       }
@@ -342,6 +392,10 @@ const PlayerCareer = ({
         {
           name: 'Jít spát (další den)',
           onClick: goToNextDay
+        },
+        {
+          name: 'TEST: Skok na den hokejového tréninku',
+          onClick: goToHockeyDay
         },
         {
           name: 'Nastavit jméno hráče',
@@ -420,22 +474,47 @@ const PlayerCareer = ({
       y: 60,
       icon: '🏟️',
       color: '#87CEEB',
-      actions: [
-        {
-          name: hockeyPractice && isHockeyPracticeDay(currentDate, hockeyPractice) && isBeforePractice(currentHour, hockeyPractice)
-            ? '🏒 Jít na hokej s Oldovou partou (17:00)'
-            : 'Trénink týmu',
-          onClick: () => {
-            if (hockeyPractice && isHockeyPracticeDay(currentDate, hockeyPractice) && isBeforePractice(currentHour, hockeyPractice)) {
-              setShowOldaGame(true);
-            } else {
-              console.log('Trénink týmu');
+      get actions() {
+        const isGameDay = hockeyPractice && 
+                       isHockeyPracticeDay(currentDate, hockeyPractice) && 
+                       isBeforePractice(currentHour, hockeyPractice);
+      
+        // Logování pro snadnější debugování
+        console.log("Stadium - kontrola hokejového dne:", {
+          mámeHokejovýTrénink: !!hockeyPractice,
+          datum: currentDate.toISOString(),
+          hodina: currentHour,
+          hokejDatum: hockeyPractice?.date,
+          hokejČas: hockeyPractice?.time,
+          jeHokejovýDen: isHockeyPracticeDay(currentDate, hockeyPractice),
+          jePředTréninkem: isBeforePractice(currentHour, hockeyPractice),
+          výsledek: isGameDay
+        });
+      
+        return [
+          {
+            name: isGameDay
+              ? `🏒 Jít na hokej s Oldovou partou (${hockeyPractice.time})`
+              : 'Trénink týmu',
+            onClick: () => {
+              if (isGameDay) {
+                console.log("Spouštím hokejový zápas s Oldou!");
+                setShowOldaGame(true);
+              } else {
+                console.log('Běžný trénink týmu - není den hokeje s Oldou');
+              }
             }
+          },
+          {
+            name: 'Zápas',
+            onClick: () => console.log('Zápas')
+          },
+          {
+            name: 'Prohlídka stadionu',
+            onClick: () => console.log('Prohlídka stadionu')
           }
-        },
-        'Zápas',
-        'Prohlídka stadionu'
-      ]
+        ];
+      }
     },
     {
       id: 'shop',
